@@ -1,0 +1,30 @@
+<?php
+
+use Dvarilek\FilamentConverse\Models\Conversation;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('conversation_participants', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignIdFor(Conversation::class, 'conversation_id')
+                ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
+            $table->morphs('participant');
+            $table->timestamp('joined_at')->nullable()->default(null);
+            $table->timestamp('invited_at')->nullable()->default(null);
+            $table->timestamp('last_read_at')->nullable()->default(null);
+            $table->timestamps();
+
+            $table->unique(['conversation_id', 'participant_id', 'participant_type']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('conversation_participants');
+    }
+};
