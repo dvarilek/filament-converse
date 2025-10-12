@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models;
 
+use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -70,6 +71,24 @@ class Conversation extends Model
      */
     public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(ConversationParticipant::class);
+        return $this->belongsTo(ConversationParticipant::class, 'created_by');
+    }
+
+    public function isDirect(): bool
+    {
+        return $this->type === ConversationTypeEnum::DIRECT;
+    }
+
+    public function isGroup(): bool
+    {
+        return $this->type === ConversationTypeEnum::GROUP;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function sendMessage(ConversationParticipant $sender, array $attributes): Message
+    {
+        return app(SendMessage::class)->handle($sender, $this, $attributes);
     }
 }

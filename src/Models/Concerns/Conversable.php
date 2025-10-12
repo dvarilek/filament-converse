@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 /**
  * @mixin Model
  *
- * @property Collection<int, ConversationParticipant> $conversationParticipants
+ * @property Collection<int, ConversationParticipant> $conversationParticipation
  * @property Collection<int, Conversation> $conversations
  */
 trait Conversable
@@ -22,7 +22,7 @@ trait Conversable
     /**
      * @return MorphMany<ConversationParticipant, static>
      */
-    public function conversationParticipants(): MorphMany
+    public function conversationParticipation(): MorphMany
     {
         return $this->morphMany(ConversationParticipant::class, 'participant');
     }

@@ -6,7 +6,7 @@ namespace Dvarilek\FilamentConverse\Enums;
 
 enum ConversationTypeEnum: string
 {
-    case PRIVATE = 'private';
+    case DIRECT = 'direct';
 
     case GROUP = 'group';
 }

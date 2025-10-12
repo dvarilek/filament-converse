@@ -21,7 +21,7 @@ use Illuminate\Support\Collection;
  * @property Carbon|null $updated_at
  * @property Conversation $conversation
  * @property ConversationParticipant $sender
- * @property Message|null $replyTo
+ * @property Message|null $reply
  * @property Collection<int, Message> $replies
  */
 class Message extends Model
@@ -60,7 +60,7 @@ class Message extends Model
     /**
      * @return BelongsTo<Message, static>
      */
-    public function replyTo(): BelongsTo
+    public function reply(): BelongsTo
     {
         return $this->belongsTo(Message::class, 'reply_to_message_id');
     }
