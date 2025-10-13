@@ -35,10 +35,13 @@ trait Conversable
         return $this->morphToMany(
             Conversation::class,
             'participant',
-            'conversation_participants'
+            'conversation_participants',
+            'participant_id',
+            'conversation_id'
         )
-            ->withPivot(['joined_at', 'last_read_at'])
             ->withTimestamps()
-            ->using(ConversationParticipant::class);
+            ->with([
+                'createdBy', 'participants'
+            ]);
     }
 }
