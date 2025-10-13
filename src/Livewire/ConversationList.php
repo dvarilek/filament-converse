@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Livewire;
 
+use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Illuminate\Contracts\View\View;
+use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
+use App\Models\User;
+use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -19,11 +23,17 @@ class ConversationList extends Component
     {
         $user = auth()->user();
 
-        return $user ? $user->conversations() : [];
+        if (! $user) {
+            return [];
+        }
+
+        FilamentConverseException::validateConversableUser($user);
+
+        return $user->conversations()->get()->toArray();
     }
 
     public function render(): View
     {
-        return view('filament-converse::livewire.conversation-list');
+        return view('filament-converse::conversation-list');
     }
 }

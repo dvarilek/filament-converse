@@ -1,2 +1,85 @@
 .fi-converse-conversation-list {
+    @apply rounded-xl bg-white  shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
+
+    & .fi-converse-conversation-list-header {
+        @apply flex flex-col gap-6 px-6 pt-6 pb-3;
+
+        & .fi-converse-conversation-list-header-top {
+            @apply flex justify-between gap-3;
+
+            & .fi-converse-conversation-list-header-content {
+                & .fi-converse-conversation-list-header-title {
+                    @apply flex items-center gap-3;
+
+                    & .fi-converse-conversation-list-header-heading {
+                        @apply text-xl leading-6 font-bold text-gray-950 dark:text-white truncate;
+                    }
+                }
+
+                & .fi-converse-conversation-list-header-description {
+                    @apply mt-1 text-sm text-gray-600 dark:text-gray-400 truncate;
+                }
+            }
+        }
+
+        & .fi-converse-conversation-list-header-bottom {
+            @apply flex flex-col gap-3;
+
+            & .fi-converse-conversation-list-header-bottom-actions {
+                @apply flex items-center gap-3;
+            }
+        }
+    }
+
+    & .fi-converse-conversation-area {
+        @apply flex flex-col gap-3 px-6 pb-6 pt-3 overflow-y-auto;
+
+        & .fi-converse-conversation-list-item {
+            @apply flex gap-3 p-2 min-h-16 cursor-pointer;
+
+            &.fi-active {
+                @apply bg-gray-100 dark:bg-white/5;
+            }
+
+            &.fi-unread {
+                @apply rounded-r-xl border-l-2 border-l-primary-600 bg-gray-100 dark:bg-white/5;
+            }
+
+            &:not(.fi-active) {
+                @apply rounded-xl;
+            }
+
+            &:not(.fi-unread) {
+                @apply rounded-xl;
+            }
+
+            &:hover {
+                @apply bg-gray-100 dark:bg-white/5;
+            }
+
+            & .tempavatar {
+                @apply flex-shrink-0 h-12 w-12 rounded-full bg-red-600;
+            }
+
+            & .fi-ta-converse-conversation-list-item-content {
+                @apply flex-1 min-w-0;
+
+                & .fi-ta-converse-conversation-list-item-title {
+                    @apply flex items-center justify-between gap-2;
+
+                    & .fi-ta-converse-conversation-list-item-heading {
+                        @apply text-sm leading-6 font-semibold text-gray-950 dark:text-white truncate;
+                    }
+
+                    & .fi-ta-converse-conversation-list-item-last-message-time-indicator {
+                        @apply pr-1 text-sm text-gray-600 dark:text-gray-400 truncate;
+                    }
+                }
+
+                & .fi-ta-converse-conversation-list-item-last-message-description {
+                    @apply pt-1 text-sm text-gray-600 dark:text-gray-400 truncate;
+                }
+            }
+        }
+    }
 }

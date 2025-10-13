@@ -30,11 +30,13 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
                     ->askToRunMigrations()
                     ->askToStarRepoOnGitHub('dvarilek/filament-converse');
             });
+
+
     }
 
     public function packageBooted()
     {
-        Livewire::component('filament-converse::conversation-list', ConversationList::class);
-        Livewire::component('filament-converse::conversation-thread', ConversationThread::class);
+        Livewire::component('filament-converse::livewire.conversation-list', ConversationList::class);
+        Livewire::component('filament-converse::livewire.conversation-thread', ConversationThread::class);
     }
 }

@@ -11,6 +11,6 @@ class ConversationThread extends Component
 {
     public function render(): View
     {
-        return view('filament-converse::livewire.conversation-thread');
+        return view('filament-converse::conversation-thread');
     }
 }
