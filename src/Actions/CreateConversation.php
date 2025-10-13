@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Actions;
 
+use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipant;
@@ -27,7 +28,7 @@ class CreateConversation
 
         /* @var Conversation */
         return DB::transaction(function () use ($createdBy, $participants, $attributes) {
-            $this->validationCandidateParticipant($createdBy);
+            FilamentConverseException::validateConversableUser($createdBy);
 
             $timestamp = now()->format('Y-m-d H:i:s');
 
@@ -53,7 +54,7 @@ class CreateConversation
             $conversation->createdBy()->associate($createdByParticipant)->save();
 
             $participants->each(function (Authenticatable & Model $participant) use ($conversationKey, $timestamp) {
-                $this->validationCandidateParticipant($participant);
+                FilamentConverseException::validateConversableUser($participant);
 
                 $participant->conversationParticipation()->create([
                     'joined_at' => $timestamp,
@@ -79,13 +80,6 @@ class CreateConversation
 
         if ($count > 1 && $conversation->isDirect()) {
             throw new Exception('A direct conversation cannot be created with more than one participant');
-        }
-    }
-
-    protected function validationCandidateParticipant(Authenticatable & Model $participant): void
-    {
-        if (! in_array(Conversable::class, class_uses_recursive($participant))) {
-            throw new Exception('The conversation participant must be a model that uses the `Dvarilek\FilamentConverse\Models\Concerns\Conversable` trait.');
         }
     }
 }
