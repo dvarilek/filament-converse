@@ -26,7 +26,7 @@ use Illuminate\Support\Collection;
  * @property Collection<int, Conversation> $createdConversations
  * @property Authenticatable&Model $participant
  */
-class ConversationParticipant extends Model
+class ConversationParticipation extends Model
 {
     use HasUuids;
 

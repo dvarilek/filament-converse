@@ -22,8 +22,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Collection<int, Message> $messages
- * @property Collection<int, ConversationParticipant> $participants
- * @property ConversationParticipant|null $createdBy
+ * @property Collection<int, ConversationParticipation> $participations
+ * @property ConversationParticipation|null $createdBy
  */
 class Conversation extends Model
 {
@@ -59,19 +59,19 @@ class Conversation extends Model
     }
 
     /**
-     * @return HasMany<ConversationParticipant, static>
+     * @return HasMany<ConversationParticipation, static>
      */
-    public function participants(): HasMany
+    public function participations(): HasMany
     {
-        return $this->hasMany(ConversationParticipant::class);
+        return $this->hasMany(ConversationParticipation::class);
     }
 
     /**
-     * @return BelongsTo<ConversationParticipant, static>
+     * @return BelongsTo<ConversationParticipation, static>
      */
     public function createdBy(): BelongsTo
     {
-        return $this->belongsTo(ConversationParticipant::class, 'created_by');
+        return $this->belongsTo(ConversationParticipation::class, 'created_by');
     }
 
     public function isDirect(): bool
@@ -87,7 +87,7 @@ class Conversation extends Model
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function sendMessage(ConversationParticipant $sender, array $attributes): Message
+    public function sendMessage(ConversationParticipation $sender, array $attributes): Message
     {
         return app(SendMessage::class)->handle($sender, $this, $attributes);
     }

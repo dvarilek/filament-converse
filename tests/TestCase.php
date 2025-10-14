@@ -28,7 +28,7 @@ abstract class TestCase extends OrchestraTestCase
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
         (require __DIR__ . '/../database/migrations/1_create_conversations_table.php')->up();
-        (require __DIR__ . '/../database/migrations/2_create_conversation_participants_table.php')->up();
+        (require __DIR__ . '/../database/migrations/2_create_conversation_participations_table.php')->up();
         (require __DIR__ . '/../database/migrations/3_create_messages_table.php')->up();
     }
 

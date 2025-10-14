@@ -51,9 +51,9 @@ it('can retrieve conversations for a specific user', function () {
 
     $conversationPrimaryKeyName = (new Conversation)->getKeyName();
 
-    /* @var Collection<int, Conversation> */
+    /* @var Collection<int, Conversation> $creatorConversations */
     $creatorConversations = $creator->conversations()->get();
-    /* @var list<string> */
+    /* @var list<string> $creatorConversationPrimaryKeys */
     $creatorConversationPrimaryKeys = $creatorConversations->pluck($conversationPrimaryKeyName);
 
     expect($creatorConversations->count())->toBe(3)
@@ -66,9 +66,9 @@ it('can retrieve conversations for a specific user', function () {
             $fourthConversation->getKey()
         );
 
-    /* @var Collection<int, Conversation> */
+    /* @var Collection<int, Conversation> $firstUserConversations */
     $firstUserConversations = $firstUser->conversations()->get();
-    /* @var list<string> */
+    /* @var list<string> $firstUserConversationPrimaryKeys */
     $firstUserConversationPrimaryKeys = $firstUserConversations->pluck($conversationPrimaryKeyName);
 
     expect($firstUserConversations->count())->toBe(4)
@@ -79,9 +79,9 @@ it('can retrieve conversations for a specific user', function () {
             $fourthConversation->getKey()
         );
 
-    /* @var Collection<int, Conversation> */
+    /* @var Collection<int, Conversation> $secondUserConversations */
     $secondUserConversations = $secondUser->conversations()->get();
-    /* @var list<string> */
+    /* @var list<string> $secondUserConversationPrimaryKeys */
     $secondUserConversationPrimaryKeys = $secondUserConversations->pluck($conversationPrimaryKeyName);
 
     expect($secondUserConversations->count())->toBe(2)
@@ -116,6 +116,10 @@ it('conversation retrieval preloads relationships', function () {
         ->toBe($retrievedConversation->getKey())
         ->and($retrievedConversation->relationLoaded('createdBy'))
         ->toBeTrue()
-        ->and($retrievedConversation->relationLoaded('participants'))
+        ->and($retrievedConversation->relationLoaded('participations'))
+        ->toBeTrue()
+        ->and($retrievedConversation->createdBy->relationLoaded('participant'))
+        ->toBeTrue()
+        ->and($retrievedConversation->participations->first()->relationLoaded('participant'))
         ->toBeTrue();
 });

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Models\ConversationParticipant;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignIdFor(Message::class, 'reply_to_message_id')
                 ->nullable()->default(null)
                 ->constrained()->nullOnDelete()->cascadeOnUpdate();
-            $table->foreignIdFor(ConversationParticipant::class, 'sender_id')
+            $table->foreignIdFor(ConversationParticipation::class, 'sender_id')
                 ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });

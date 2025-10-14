@@ -7,7 +7,7 @@ namespace Dvarilek\FilamentConverse\Actions;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Models\ConversationParticipant;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -44,7 +44,7 @@ class CreateConversation
 
             $conversationKey = $conversation->getKey();
 
-            /* @var ConversationParticipant $createdByParticipant */
+            /* @var ConversationParticipation $createdByParticipant */
             $createdByParticipant = $createdBy->conversationParticipation()->create([
                 'joined_at' => $timestamp,
                 'invited_at' => $timestamp,

@@ -30,7 +30,7 @@ it('can create a conversation with a single participant', function () {
         ->name->toBe('Test')
         ->description->toBe('Test description')
         ->color->toBe('primary')
-        ->and($conversation->participants)->toHaveCount(2)
+        ->and($conversation->participations)->toHaveCount(2)
         ->and($creator->conversationParticipation()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
         ->and($otherUser->conversationParticipation()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
         ->and($conversation->createdBy->participant->getKey())->toBe($creator->getKey());
@@ -59,7 +59,7 @@ it('can create a conversation with multiple participants', function () {
         ->name->toBe('Test')
         ->description->toBe('Test description')
         ->color->toBe('primary')
-        ->and($conversation->participants)->toHaveCount(3)
+        ->and($conversation->participations)->toHaveCount(3)
         ->and($creator->conversationParticipation()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
         ->and($firstUser->conversationParticipation()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
         ->and($secondUser->conversationParticipation()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()

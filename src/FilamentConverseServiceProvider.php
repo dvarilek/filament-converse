@@ -21,7 +21,7 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
             ->hasTranslations()
             ->hasMigrations(
                 '1_create_conversations_table',
-                '2_create_conversation_participants_table',
+                '2_create_conversation_participations_table',
                 '3_create_messages_table'
             )
             ->hasInstallCommand(function (InstallCommand $command) {
