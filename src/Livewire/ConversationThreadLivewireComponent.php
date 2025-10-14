@@ -7,7 +7,7 @@ namespace Dvarilek\FilamentConverse\Livewire;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
-class ConversationThread extends Component
+class ConversationThreadLivewireComponent extends Component
 {
     public function render(): View
     {

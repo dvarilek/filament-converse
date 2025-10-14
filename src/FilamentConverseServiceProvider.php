@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse;
 
-use Dvarilek\FilamentConverse\Livewire\ConversationList;
-use Dvarilek\FilamentConverse\Livewire\ConversationThread;
+use Dvarilek\FilamentConverse\Livewire\ConversationListLivewireComponent;
+use Dvarilek\FilamentConverse\Livewire\ConversationThreadLivewireComponent;
 use Livewire\Livewire;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
@@ -30,13 +30,11 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
                     ->askToRunMigrations()
                     ->askToStarRepoOnGitHub('dvarilek/filament-converse');
             });
-
-
     }
 
     public function packageBooted()
     {
-        Livewire::component('filament-converse::livewire.conversation-list', ConversationList::class);
-        Livewire::component('filament-converse::livewire.conversation-thread', ConversationThread::class);
+        Livewire::component('filament-converse::livewire.conversation-list', ConversationListLivewireComponent::class);
+        Livewire::component('filament-converse::livewire.conversation-thread', ConversationThreadLivewireComponent::class);
     }
 }

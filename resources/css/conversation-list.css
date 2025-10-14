@@ -32,33 +32,21 @@
     }
 
     & .fi-converse-conversation-area {
-        @apply flex flex-col gap-3 px-6 pb-6 pt-3 overflow-y-auto;
+        @apply flex flex-col gap-3 px-6 pb-6 pt-3;
 
         & .fi-converse-conversation-list-item {
-            @apply flex gap-3 p-2 min-h-16 cursor-pointer;
+            @apply items-center rounded-xl flex gap-3 p-2 min-h-18 cursor-pointer;
 
-            &.fi-active {
+            &.fi-converse-conversation-list-overflow {
+                @apply overflow-y-auto;
+            }
+
+            &:is(.fi-converse-conversation-list-item-active, .fi-converse-conversation-list-item-unread, :hover) {
                 @apply bg-gray-100 dark:bg-white/5;
             }
 
-            &.fi-unread {
-                @apply rounded-r-xl border-l-2 border-l-primary-600 bg-gray-100 dark:bg-white/5;
-            }
-
-            &:not(.fi-active) {
-                @apply rounded-xl;
-            }
-
-            &:not(.fi-unread) {
-                @apply rounded-xl;
-            }
-
-            &:hover {
-                @apply bg-gray-100 dark:bg-white/5;
-            }
-
-            & .tempavatar {
-                @apply flex-shrink-0 h-12 w-12 rounded-full bg-red-600;
+            & .fi-ta-converse-conversation-list-item-avatar {
+                @apply self-center;
             }
 
             & .fi-ta-converse-conversation-list-item-content {
@@ -71,13 +59,17 @@
                         @apply text-sm leading-6 font-semibold text-gray-950 dark:text-white truncate;
                     }
 
-                    & .fi-ta-converse-conversation-list-item-last-message-time-indicator {
-                        @apply pr-1 text-sm text-gray-600 dark:text-gray-400 truncate;
+                    & .fi-ta-converse-conversation-list-item-indicator {
+                        @apply flex items-center gap-1;
+
+                        & .fi-ta-converse-conversation-list-item-last-message-time-indicator {
+                            @apply pr-1 text-sm text-gray-600 dark:text-gray-400 truncate;
+                        }
                     }
                 }
 
                 & .fi-ta-converse-conversation-list-item-last-message-description {
-                    @apply pt-1 text-sm text-gray-600 dark:text-gray-400 truncate;
+                    @apply pt-1.5 text-sm text-gray-600 dark:text-gray-400 truncate;
                 }
             }
         }

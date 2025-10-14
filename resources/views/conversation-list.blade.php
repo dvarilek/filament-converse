@@ -1,6 +1,9 @@
 @php
     use Dvarilek\FilamentConverse\Models\Conversation;
+    use Illuminate\Contracts\Auth\Authenticatable;
+    use Illuminate\Database\Eloquent\Model;
 
+    $filament = filament();
     // TODO:
     $searchDebounce = '500ms';
     $searchOnBlur = true;
@@ -8,9 +11,6 @@
 
     $activeConversationKey = '';
     $conversationModelPrimaryKey = (new Conversation)->getKeyName();
-
-    // TODO: Blue left border on unread + highlight, handle trailing, elipsis and min-h
-    // TODO: Avatar, if more make it +1 stacked
 @endphp
 
 <div class="fi-converse-conversation-list">
@@ -30,9 +30,7 @@
                 </p>
             </div>
 
-            <div>
-                TODO: Add actions
-            </div>
+            {{ $this->createConversation }}
         </div>
 
         <div class="fi-converse-conversation-list-header-bottom">
@@ -59,23 +57,38 @@
         @foreach($this->conversations as $conversation)
             <li
                 @class([
-                    'fi-active' => $conversation[$conversationModelPrimaryKey] !== $activeConversationKey,
-                    'fi-unread' => false,
+                    'fi-converse-conversation-list-item-active' => $conversation[$conversationModelPrimaryKey] === $activeConversationKey,
+                    'fi-converse-conversation-list-item-unread' => false,
+                    'fi-converse-conversation-list-overflow' => false,
                     'fi-converse-conversation-list-item'
                 ])
             >
-                <div class="tempavatar">
+                @php
+                    /* @var Authenticatable & Model $conversationAuthor */
+                    $conversationAuthor = $conversation->createdBy->participant;
+                    $conversationName = $conversation->name ?? "Conversation name";
+                @endphp
 
-                </div>
+                <x-filament::avatar
+                    class="fi-ta-converse-conversation-list-item-avatar"
+                    :src="$filament->getUserAvatarUrl($conversationAuthor)"
+                    :alt="$conversationName"
+                    size="lg"
+                />
 
                 <div class="fi-ta-converse-conversation-list-item-content">
                     <div class="fi-ta-converse-conversation-list-item-title">
                         <h4 class="fi-ta-converse-conversation-list-item-heading">
-                            {{ $conversation->name ?? "Conversation name" }}
+                            {{ $conversationName }}
                         </h4>
-                        <p class="fi-ta-converse-conversation-list-item-last-message-time-indicator">
-                            Time
-                        </p>
+                        <div class="fi-ta-converse-conversation-list-item-indicator">
+                            <p class="fi-ta-converse-conversation-list-item-last-message-time-indicator">
+                                Time
+                            </p>
+                            <x-filament::badge>
+                                +2
+                            </x-filament::badge>
+                        </div>
                     </div>
                     <p class="fi-ta-converse-conversation-list-item-last-message-description">
                         Someone: Long message that is very very very very very long long long
