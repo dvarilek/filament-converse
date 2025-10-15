@@ -6,6 +6,8 @@ namespace Dvarilek\FilamentConverse\Models;
 
 use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +17,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property ConversationTypeEnum $type
+ * @property string|null $image
  * @property string|null $name
  * @property string|null $description
  * @property string|null $color
@@ -34,6 +37,7 @@ class Conversation extends Model
      */
     protected $fillable = [
         'type',
+        'image',
         'name',
         'description',
         'color',
@@ -90,5 +94,37 @@ class Conversation extends Model
     public function sendMessage(ConversationParticipation $sender, array $attributes): Message
     {
         return app(SendMessage::class)->handle($sender, $this, $attributes);
+    }
+
+    public function getName(): string
+    {
+        if ($this->name) {
+            return $this->name;
+        }
+
+        $participations = $this->participations();
+
+        if ($this->isDirect()) {
+            return $this->participations()
+                ->whereNot(static function (Builder $query) {
+                    $user = auth()->user();
+
+                    return $query
+                        ->where('participant_type', $user::class)
+                        ->where('participant_id', $user->getKey());
+                })
+                ->value('participant_name');
+        }
+
+        $participantNames = $participations
+            ->pluck('participant_name')
+            ->filter();
+
+        return match($participantNames->count()) {
+            0 => '',
+            1 => $participantNames->first(),
+            2 => $participantNames->join(' & '),
+            default => $participantNames->slice(0, -1)->join(', ') . ' & ' . $participantNames->last()
+        };
     }
 }

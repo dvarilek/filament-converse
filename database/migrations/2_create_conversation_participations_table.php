@@ -13,6 +13,8 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignIdFor(Conversation::class, 'conversation_id')
                 ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
+            $table->string('participant_name')->nullable()->default(null);
+            $table->string('participant_avatar_source')->nullable()->default(null);
             $table->morphs('participant');
             $table->timestamp('joined_at')->nullable()->default(null);
             $table->timestamp('invited_at')->nullable()->default(null);

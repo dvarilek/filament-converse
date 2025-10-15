@@ -45,4 +45,14 @@ trait Conversable
                 'participations.participant'
             ]);
     }
+
+    public static function getNameColumn(): string
+    {
+        return 'name';
+    }
+
+    public static function getAvatarColumn(): ?string
+    {
+        return null;
+    }
 }

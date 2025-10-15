@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -18,6 +19,8 @@ use Illuminate\Support\Collection;
  * @property Carbon|null $invited_at
  * @property Carbon|null $last_read_at
  * @property string $conversation_id
+ * @property string $participant_name
+ * @property string|null $participant_avatar_source
  * @property string $participant_type
  * @property int|string $participant_id
  * @property Carbon|null $created_at
@@ -38,6 +41,8 @@ class ConversationParticipation extends Model
         'invited_at',
         'last_read_at',
         'conversation_id',
+        'participant_name',
+        'participant_avatar_source',
         'participant_type',
         'participant_id',
     ];
@@ -81,5 +86,32 @@ class ConversationParticipation extends Model
     public function isPending(): bool
     {
         return $this->joined_at === null;
+    }
+
+    protected static function booting()
+    {
+        parent::booting();
+
+        static::creating(function (self $participation) {
+            if ($participation->participant_name && $participation->participant_avatar_source) {
+                return;
+            }
+
+            /* @var class-string<Authenticatable & Model> $participantModel */
+            $participantModel = Relation::getMorphedModel($participation->participant_type) ?? $participation->participant_type;
+
+            $participant = $participation->participant()->get(array_filter([
+                $participantModelName = $participantModel::getNameColumn(),
+                $participentModelAvatar = $participantModel::getAvatarColumn()
+            ]))->first();
+
+            if (! $participation->participant_name) {
+                $participation->participant_name = $participant->getAttribute($participantModelName);
+            }
+
+            if (! $participation->participant_avatar_source) {
+                $participation->participant_avatar_source = $participant->getAttribute($participentModelAvatar);
+            }
+        });
     }
 }
