@@ -102,7 +102,7 @@ class ConversationParticipation extends Model
 
             $participant = $participation->participant()->get(array_filter([
                 $participantModelName = $participantModel::getNameColumn(),
-                $participentModelAvatar = $participantModel::getAvatarColumn()
+                $participentModelAvatar = $participantModel::getAvatarColumn(),
             ]))->first();
 
             if (! $participation->participant_name) {

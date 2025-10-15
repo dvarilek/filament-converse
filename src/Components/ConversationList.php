@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Components;
 
 use Dvarilek\FilamentConverse\Livewire\ConversationListLivewireComponent;
-use Filament\Schemas\Components\Livewire;
 use Filament\Schemas\Components\Component;
 
 class ConversationList extends Component

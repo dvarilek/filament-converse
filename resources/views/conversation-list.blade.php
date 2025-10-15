@@ -1,13 +1,26 @@
 @php
+    use Illuminate\View\ComponentAttributeBag;
+    use Filament\Support\Icons\Heroicon;
     use Dvarilek\FilamentConverse\Models\Conversation;
     use Illuminate\Contracts\Auth\Authenticatable;
     use Illuminate\Database\Eloquent\Model;
 
-    $filament = filament();
-    // TODO:
+    $heading = 'Conversation';
+    $description = 'Some description';
+    $headingBadgeLabel = $this->conversations->count();
+    $headingBadgeColor = 'primary';
+
+    $hasSearch = true;
     $searchDebounce = '500ms';
     $searchOnBlur = true;
     $searchPlaceholder = '';
+
+    $isConversationUnread = fn (Conversation $conversation) => false;
+    $shouldOverflowConversationList = false;
+
+    $getConversationParticipantNameUsing = fn (Authenticatable & Model $user) => $user->name;
+
+    $getConversationAvatarSourceUsing = fn (Conversation $conversation) => null;
 
     $activeConversationKey = '';
     $conversationModelPrimaryKey = (new Conversation)->getKeyName();
@@ -19,82 +32,125 @@
             <div class="fi-converse-conversation-list-header-content">
                 <div class="fi-converse-conversation-list-header-title">
                     <h2 class="fi-converse-conversation-list-header-heading">
-                        Conversations
+                        {{ $heading }}
                     </h2>
-                    <x-filament::badge>
-                        12
-                    </x-filament::badge>
+                    @if (filled($headingBadgeLabel))
+                        <x-filament::badge :color="$headingBadgeColor">
+                            {{ $headingBadgeLabel }}
+                        </x-filament::badge>
+                    @endif
                 </div>
-                <p class="fi-converse-conversation-list-header-description">
-                    Some description
-                </p>
+                @if (filled($description))
+                    <p class="fi-converse-conversation-list-header-description">
+                        {{ $description }}
+                    </p>
+                @endif
             </div>
 
             {{ $this->createConversation }}
         </div>
 
         <div class="fi-converse-conversation-list-header-bottom">
-            <x-filament-tables::search-field
-                :debounce="$searchDebounce"
-                :on-blur="$searchOnBlur"
-                :placeholder="$searchPlaceholder"
-            />
+            @if ($hasSearch)
+                @php
+                    $wireModelAttribute = $searchOnBlur ? 'wire:model.blur' : "wire:model.live.debounce.{$searchDebounce}";
+                @endphp
+
+                <div
+                    x-id="['input']"
+                    class="fi-converse-conversation-list-search-field"
+                >
+                    <label x-bind:for="$id('input')" class="fi-sr-only">
+                        {{ __('filament-tables::table.fields.search.label') }}
+                    </label>
+
+                    <x-filament::input.wrapper
+                        inline-prefix
+                        :prefix-icon="Heroicon::MagnifyingGlass"
+                        wire:target="conversationListSearch"
+                    >
+                        <x-filament::input
+                            :attributes="
+                                (new ComponentAttributeBag)->merge([
+                                    'autocomplete' => 'off',
+                                    'inlinePrefix' => true,
+                                    'maxlength' => 1000,
+                                    'placeholder' => $searchPlaceholder,
+                                    'type' => 'search',
+                                    'wire:key' => $this->getId() . '.table.conversationListSearch.field.input',
+                                    $wireModelAttribute => 'conversationListSearch',
+                                    'x-bind:id' => '$id(\'input\')',
+                                    'x-on:keyup' => 'if ($event.key === \'Enter\') { $wire.$refresh() }',
+                                ], escape: false)
+                            "
+                        />
+                    </x-filament::input.wrapper>
+                </div>
+            @endif
+
             <div class="fi-converse-conversation-list-header-bottom-actions">
-                <x-filament::badge>
-                    Action1
-                </x-filament::badge>
-                <x-filament::badge>
-                    Action2
-                </x-filament::badge>
-                <x-filament::badge>
-                    Action3
-                </x-filament::badge>
+                <x-filament::badge>Action1</x-filament::badge>
+                <x-filament::badge>Action2</x-filament::badge>
+                <x-filament::badge>Action3</x-filament::badge>
             </div>
         </div>
     </div>
 
     <ul class="fi-converse-conversation-area">
-        @foreach($this->conversations as $conversation)
+        @forelse ($this->conversations as $conversation)
             <li
                 @class([
                     'fi-converse-conversation-list-item-active' => $conversation[$conversationModelPrimaryKey] === $activeConversationKey,
-                    'fi-converse-conversation-list-item-unread' => false,
-                    'fi-converse-conversation-list-overflow' => false,
-                    'fi-converse-conversation-list-item'
+                    'fi-converse-conversation-list-item-unread' => $isConversationUnread($conversation),
+                    'fi-converse-conversation-list-overflow' => $shouldOverflowConversationList,
+                    'fi-converse-conversation-list-item',
                 ])
             >
                 @php
+                    /* @var Conversation $conversation */
+                    $conversationName = $conversation->getName();
+
                     /* @var Authenticatable & Model $conversationAuthor */
                     $conversationAuthor = $conversation->createdBy->participant;
-                    $conversationName = $conversation->name ?? "Conversation name";
                 @endphp
 
-                <x-filament::avatar
-                    class="fi-ta-converse-conversation-list-item-avatar"
-                    :src="$filament->getUserAvatarUrl($conversationAuthor)"
-                    :alt="$conversationName"
-                    size="lg"
-                />
+                @if ($source = $getConversationAvatarSourceUsing($conversation))
+                    <x-filament::avatar
+                        class="fi-ta-converse-conversation-list-item-avatar"
+                        :src="$source"
+                        :alt="$conversationName"
+                        size="lg"
+                    />
+                @endif
 
                 <div class="fi-ta-converse-conversation-list-item-content">
                     <div class="fi-ta-converse-conversation-list-item-title">
-                        <h4 class="fi-ta-converse-conversation-list-item-heading">
+                        <h4
+                            class="fi-ta-converse-conversation-list-item-heading"
+                        >
                             {{ $conversationName }}
                         </h4>
-                        <div class="fi-ta-converse-conversation-list-item-indicator">
-                            <p class="fi-ta-converse-conversation-list-item-last-message-time-indicator">
+                        <div
+                            class="fi-ta-converse-conversation-list-item-indicator"
+                        >
+                            <p
+                                class="fi-ta-converse-conversation-list-item-last-message-time-indicator"
+                            >
                                 Time
                             </p>
-                            <x-filament::badge>
-                                +2
-                            </x-filament::badge>
+                            <x-filament::badge>+2</x-filament::badge>
                         </div>
                     </div>
-                    <p class="fi-ta-converse-conversation-list-item-last-message-description">
-                        Someone: Long message that is very very very very very long long long
+                    <p
+                        class="fi-ta-converse-conversation-list-item-last-message-description"
+                    >
+                        Someone: Long message that is very very very very very
+                        long long long
                     </p>
                 </div>
             </li>
-        @endforeach
+        @empty
+            <div class="fi-converse-conversation-area-empty"></div>
+        @endforelse
     </ul>
 </div>

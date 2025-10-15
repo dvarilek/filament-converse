@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Dvarilek\FilamentConverse\Tests\Models\User;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Dvarilek\FilamentConverse\Tests\Models\User;
 
 it('can create conversation participation with participant name', function () {
     $firstUser = User::factory()->state(['name' => 'user name'])->create();
@@ -20,7 +20,6 @@ it('can create conversation participation with participant name', function () {
         ]
     )
         ->createdBy;
-
 
     expect($firstUserParticipation)->toBeInstanceOf(ConversationParticipation::class)
         ->participant_name->toBe('user name');

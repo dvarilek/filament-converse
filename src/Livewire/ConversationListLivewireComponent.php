@@ -6,6 +6,7 @@ namespace Dvarilek\FilamentConverse\Livewire;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -13,10 +14,6 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\View\View;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
-use App\Models\User;
-use Filament\Actions\Action;
-use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -25,6 +22,8 @@ class ConversationListLivewireComponent extends Component implements HasActions,
 {
     use InteractsWithActions;
     use InteractsWithForms;
+
+    public string $conversationListSearch = '';
 
     /**
      * @return Collection<int, Conversation>

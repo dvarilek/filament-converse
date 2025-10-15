@@ -6,7 +6,6 @@ namespace Dvarilek\FilamentConverse\Models;
 
 use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -102,25 +101,18 @@ class Conversation extends Model
             return $this->name;
         }
 
-        $participations = $this->participations();
+        $participantNames = $this->participations()
+            ->whereNot(static function (Builder $query) {
+                $user = auth()->user();
 
-        if ($this->isDirect()) {
-            return $this->participations()
-                ->whereNot(static function (Builder $query) {
-                    $user = auth()->user();
-
-                    return $query
-                        ->where('participant_type', $user::class)
-                        ->where('participant_id', $user->getKey());
-                })
-                ->value('participant_name');
-        }
-
-        $participantNames = $participations
+                return $query
+                    ->where('participant_type', $user::class)
+                    ->where('participant_id', $user->getKey());
+            })
             ->pluck('participant_name')
             ->filter();
 
-        return match($participantNames->count()) {
+        return match ($participantNames->count()) {
             0 => '',
             1 => $participantNames->first(),
             2 => $participantNames->join(' & '),

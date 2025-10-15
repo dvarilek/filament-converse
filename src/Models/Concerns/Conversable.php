@@ -42,7 +42,7 @@ trait Conversable
             ->withTimestamps()
             ->with([
                 'createdBy.participant',
-                'participations.participant'
+                'participations.participant',
             ]);
     }
 

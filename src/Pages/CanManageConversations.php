@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Pages;
 
-use Dvarilek\FilamentConverse\Livewire\ConversationListLivewireComponent;
-use Dvarilek\FilamentConverse\Livewire\ConversationThreadLivewireComponent;;
+use Dvarilek\FilamentConverse\Components\ConversationList;
+use Dvarilek\FilamentConverse\Components\ConversationThread;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
-use Filament\Schemas\Components\Livewire;
-use Dvarilek\FilamentConverse\Components\ConversationList;
-use Dvarilek\FilamentConverse\Components\ConversationThread;
 use Filament\Schemas\Schema;
 
 /**
@@ -35,7 +32,7 @@ trait CanManageConversations
     {
         return $schema
             ->components([
-                $this->getConversationComponents()
+                $this->getConversationComponents(),
             ]);
     }
 
