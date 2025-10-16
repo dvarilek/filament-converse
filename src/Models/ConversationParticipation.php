@@ -88,6 +88,15 @@ class ConversationParticipation extends Model
         return $this->joined_at === null;
     }
 
+    public function getAvatarSource(): string
+    {
+        if ($this->participant_avatar_source) {
+            return $this->participant_avatar_source;
+        }
+        
+        return filament()->getUserAvatarUrl($this->participant);
+    }
+    
     protected static function booting()
     {
         parent::booting();

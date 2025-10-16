@@ -69,6 +69,18 @@ class Conversation extends Model
         return $this->hasMany(ConversationParticipation::class);
     }
 
+    public function otherParticipations(): HasMany
+    {
+        return $this->participations()
+            ->whereNot(static function (Builder $query) {
+                $user = auth()->user();
+
+                return $query
+                    ->where('participant_type', $user::class)
+                    ->where('participant_id', $user->getKey());
+            });
+    }
+
     /**
      * @return BelongsTo<ConversationParticipation, static>
      */
@@ -101,14 +113,7 @@ class Conversation extends Model
             return $this->name;
         }
 
-        $participantNames = $this->participations()
-            ->whereNot(static function (Builder $query) {
-                $user = auth()->user();
-
-                return $query
-                    ->where('participant_type', $user::class)
-                    ->where('participant_id', $user->getKey());
-            })
+        $participantNames = $this->otherParticipations()
             ->pluck('participant_name')
             ->filter();
 

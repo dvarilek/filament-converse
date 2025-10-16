@@ -20,7 +20,7 @@
 
     $getConversationParticipantNameUsing = fn (Authenticatable & Model $user) => $user->name;
 
-    $getConversationAvatarSourceUsing = fn (Conversation $conversation) => null;
+    $hasAvatar = true;
 
     $activeConversationKey = '';
     $conversationModelPrimaryKey = (new Conversation)->getKeyName();
@@ -107,20 +107,28 @@
                 ])
             >
                 @php
+                    // TODO; getUserName // FilamentManager class
                     /* @var Conversation $conversation */
                     $conversationName = $conversation->getName();
 
-                    /* @var Authenticatable & Model $conversationAuthor */
-                    $conversationAuthor = $conversation->createdBy->participant;
+                    $otherParticipations = $conversation->otherParticipations()->get();
                 @endphp
 
-                @if ($source = $getConversationAvatarSourceUsing($conversation))
-                    <x-filament::avatar
-                        class="fi-ta-converse-conversation-list-item-avatar"
-                        :src="$source"
-                        :alt="$conversationName"
-                        size="lg"
-                    />
+                @if ($hasAvatar)
+                    @if ($conversation->isDirect())
+                        @php
+                            $otherParticipant = $otherParticipations->first();
+                        @endphp
+
+                        <x-filament::avatar
+                            class="fi-ta-converse-conversation-list-item-avatar"
+                            :src="$otherParticipant->value('participant_avatar_source') ?: filament()->getUserAvatarUrl($otherParticipant->participant)"
+                            :alt="$otherParticipant->value('participant_name')"
+                            size="lg"
+                        />
+                    @else
+                        
+                    @endif
                 @endif
 
                 <div class="fi-ta-converse-conversation-list-item-content">
