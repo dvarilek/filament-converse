@@ -23,7 +23,7 @@
         }
 
         & .fi-converse-conversation-list-header-bottom {
-            @apply flex flex-col gap-3;
+            @apply flex flex-col gap-4;
 
             & .fi-converse-conversation-list-header-bottom-actions {
                 @apply flex items-center gap-3;
@@ -49,32 +49,47 @@
                 @apply bg-gray-100 dark:bg-white/5;
             }
 
-            & .fi-ta-converse-conversation-list-item-avatar {
-                @apply self-center;
+            & .fi-converse-conversation-list-item-image-wrapper {
+                @apply min-h-10 min-w-10;
+
+                &.fi-converse-conversation-list-item-multiple-avatars {
+                    @apply relative mb-1;
+                }
+
+                &.fi-converse-conversation-list-item-image {
+                    @apply self-center;
+                }
+
+                & .fi-converse-conversation-list-item-penultimate-avatar {
+                    @apply absolute bottom-3 left-0;
+                }
+
+                & .fi-converse-conversation-list-item-last-avatar {
+                    @apply absolute -bottom-2 right-0 z-10;
+                }
             }
 
-            & .fi-ta-converse-conversation-list-item-content {
+            & .fi-converse-conversation-list-item-content {
                 @apply min-w-0 flex-1;
 
-                & .fi-ta-converse-conversation-list-item-title {
+                & .fi-converse-conversation-list-item-title {
                     @apply flex items-center justify-between gap-2;
 
-                    & .fi-ta-converse-conversation-list-item-heading {
+                    & .fi-converse-conversation-list-item-heading {
                         @apply truncate text-sm font-semibold leading-6 text-gray-950 dark:text-white;
                     }
 
-                    & .fi-ta-converse-conversation-list-item-indicator {
+                    & .fi-converse-conversation-list-item-indicator {
                         @apply flex items-center gap-1;
 
                         &
-                            .fi-ta-converse-conversation-list-item-last-message-time-indicator {
+                            .fi-converse-conversation-list-item-last-message-time-indicator {
                             @apply truncate pr-1 text-sm text-gray-600 dark:text-gray-400;
                         }
                     }
                 }
 
-                &
-                    .fi-ta-converse-conversation-list-item-last-message-description {
+                & .fi-converse-conversation-list-item-last-message-description {
                     @apply truncate pt-1.5 text-sm text-gray-600 dark:text-gray-400;
                 }
             }

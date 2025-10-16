@@ -46,12 +46,7 @@ trait Conversable
             ]);
     }
 
-    public static function getNameColumn(): string
-    {
-        return 'name';
-    }
-
-    public static function getAvatarColumn(): ?string
+    public function getAvatarColumn(): ?string
     {
         return null;
     }

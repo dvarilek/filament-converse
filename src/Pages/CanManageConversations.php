@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Pages;
 
-use Dvarilek\FilamentConverse\Components\ConversationList;
-use Dvarilek\FilamentConverse\Components\ConversationThread;
+use Dvarilek\FilamentConverse\Livewire\Concerns\HasConversations;
+use Dvarilek\FilamentConverse\Livewire\Concerns\HasFilters;
+use Dvarilek\FilamentConverse\Livewire\Concerns\HasSearch;
+use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
+use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
@@ -16,6 +19,10 @@ use Filament\Schemas\Schema;
  */
 trait CanManageConversations
 {
+    use HasConversations;
+    use HasFilters;
+    use HasSearch;
+
     /**
      * @return int | array<string, ?int>
      */

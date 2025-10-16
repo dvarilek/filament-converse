@@ -44,7 +44,6 @@ class ConversationListLivewireComponent extends Component implements HasActions,
 
     public function createConversation(): Action
     {
-        // TODO: Move to its own class probably
         return Action::make('createConversation')
             ->label('Create')
             ->icon(Heroicon::Plus)

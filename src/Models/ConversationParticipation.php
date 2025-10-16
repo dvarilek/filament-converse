@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -97,7 +96,7 @@ class ConversationParticipation extends Model
         return filament()->getUserAvatarUrl($this->participant);
     }
 
-    protected static function booting()
+    protected static function booting(): void
     {
         parent::booting();
 
@@ -106,20 +105,17 @@ class ConversationParticipation extends Model
                 return;
             }
 
-            /* @var class-string<Authenticatable & Model> $participantModel */
-            $participantModel = Relation::getMorphedModel($participation->participant_type) ?? $participation->participant_type;
+            $participant = $participation->participant;
 
-            $participant = $participation->participant()->get(array_filter([
-                $participantModelName = $participantModel::getNameColumn(),
-                $participentModelAvatar = $participantModel::getAvatarColumn(),
-            ]))->first();
+            $participantModelName = filament()->getUserName($participant);
+            $participantModelAvatarColumn = $participant->getAvatarColumn();
 
             if (! $participation->participant_name) {
-                $participation->participant_name = $participant->getAttribute($participantModelName);
+                $participation->participant_name = $participantModelName;
             }
 
             if (! $participation->participant_avatar_source) {
-                $participation->participant_avatar_source = $participant->getAttribute($participentModelAvatar);
+                $participation->participant_avatar_source = $participant->getAttribute($participantModelAvatarColumn);
             }
         });
     }

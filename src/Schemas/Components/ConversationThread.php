@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Dvarilek\FilamentConverse\Components;
+namespace Dvarilek\FilamentConverse\Schemas\Components;
 
-use Dvarilek\FilamentConverse\Livewire\ConversationListLivewireComponent;
+use Dvarilek\FilamentConverse\Livewire\ConversationThreadLivewireComponent;
 use Filament\Schemas\Components\Component;
 
-class ConversationList extends Component
+class ConversationThread extends Component
 {
     /**
      * @var view-string
@@ -38,7 +38,7 @@ class ConversationList extends Component
     public static function make(string | Closure | null $component = null, array | Closure $data = []): static
     {
         $static = app(static::class, [
-            'component' => $component ?? ConversationListLivewireComponent::class,
+            'component' => $component ?? ConversationThreadLivewireComponent::class,
             'data' => $data,
         ]);
         $static->configure();

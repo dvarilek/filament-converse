@@ -1,29 +1,38 @@
 @php
     use Dvarilek\FilamentConverse\Models\Conversation;
+    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
     use Filament\Support\Icons\Heroicon;
-    use Illuminate\Contracts\Auth\Authenticatable;
-    use Illuminate\Database\Eloquent\Model;
+    use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
 
-    $heading = 'Conversation';
-    $description = 'Some description';
+    $heading = $getHeading();
+    $description = $getDescription();
+    $shouldConversationListOverflow = $shouldConversationListOverflow();
+
+    // TODO: Heading count
     $headingBadgeLabel = $this->conversations->count();
     $headingBadgeColor = 'primary';
 
-    $hasSearch = true;
-    $searchDebounce = '500ms';
-    $searchOnBlur = true;
-    $searchPlaceholder = '';
+    $hasSearch = $isSearchable();
+    $searchPlaceholder = $getSearchPlaceholder();
+    $searchDebounce = $getSearchDebounce();
+    $searchOnBlur = $isSearchOnBlur();
 
-    $isConversationUnread = fn (Conversation $conversation) => false;
-    $shouldOverflowConversationList = false;
+    $emptyState = $getEmptyState();
+    $emptyStateHeading = $getEmptyStateHeading();
+    $emptyStateDescription = $getEmptyStateDescription();
+    $emptyStateIcon = $getEmptyStateIcon();
+    $emptyStateIconColor = $getEmptyStateIconColor();
 
-    $getConversationParticipantNameUsing = fn (Authenticatable & Model $user) => $user->name;
+    $shouldShowConversationImage = $shouldShowConversationImage();
+    $hasConversationImageClosure = $hasConversationImageClosure();
+    $hasIsConversationUnreadClosure = $hasIsConversationUnreadClosure();
 
-    $hasAvatar = true;
+    // TODO; use getUserName internally instead of introducing a new method in Conversable trait // FilamentManager class
 
-    $activeConversationKey = '';
-    $conversationModelPrimaryKey = (new Conversation)->getKeyName();
+    /* @var Collection<int, Conversation> $conversations */
+    $conversations = $getConversations();
+    $activeConversation = $getActiveConversation();
 @endphp
 
 <div class="fi-converse-conversation-list">
@@ -47,7 +56,7 @@
                 @endif
             </div>
 
-            {{ $this->createConversation }}
+            TODO: Action
         </div>
 
         <div class="fi-converse-conversation-list-header-bottom">
@@ -77,7 +86,7 @@
                                     'maxlength' => 1000,
                                     'placeholder' => $searchPlaceholder,
                                     'type' => 'search',
-                                    'wire:key' => $this->getId() . '.table.conversationListSearch.field.input',
+                                    'wire:key' => $this->getId() . '.conversationListSearch.field.input',
                                     $wireModelAttribute => 'conversationListSearch',
                                     'x-bind:id' => '$id(\'input\')',
                                     'x-on:keyup' => 'if ($event.key === \'Enter\') { $wire.$refresh() }',
@@ -97,51 +106,91 @@
     </div>
 
     <ul class="fi-converse-conversation-area">
-        @forelse ($this->conversations as $conversation)
+        @forelse ($conversations as $conversation)
             <li
                 @class([
-                    'fi-converse-conversation-list-item-active' => $conversation[$conversationModelPrimaryKey] === $activeConversationKey,
-                    'fi-converse-conversation-list-item-unread' => $isConversationUnread($conversation),
-                    'fi-converse-conversation-list-overflow' => $shouldOverflowConversationList,
+                    'fi-converse-conversation-list-item-active' => $conversation->getKey() === $activeConversation?->getKey(),
+                    'fi-converse-conversation-list-item-unread' => $hasIsConversationUnreadClosure && $isConversationUnread($conversation),
+                    'fi-converse-conversation-list-overflow' => $shouldConversationListOverflow,
                     'fi-converse-conversation-list-item',
                 ])
             >
                 @php
-                    // TODO; getUserName // FilamentManager class
-                    /* @var Conversation $conversation */
-                    $conversationName = $conversation->getName();
-
-                    $otherParticipations = $conversation->otherParticipations()->get();
+                    $conversationName = $getConversationName($conversation);
                 @endphp
 
-                @if ($hasAvatar)
-                    @if ($conversation->isDirect())
+                @if ($shouldShowConversationImage)
+                    @if ($hasConversationImageClosure && filled($conversationImage = $getConversationImage($conversation)))
+                        <div
+                            class="fi-converse-conversation-list-item-image-wrapper"
+                        >
+                            <x-filament::avatar
+                                class="fi-converse-conversation-list-item-image"
+                                :src="$conversationImage"
+                                :alt="$conversationName"
+                                size="lg"
+                            />
+                        </div>
+                    @else
                         @php
-                            $otherParticipant = $otherParticipations->first();
+                            /* @var Collection<int, ConversationParticipation> $otherParticipations */
+                            $otherParticipations = $conversation->otherParticipations()->get();
+                            $hasMultipleAvatarsInConversationImage = $conversation->isGroup() || $otherParticipations->count() >= 2;
                         @endphp
 
-                        <x-filament::avatar
-                            class="fi-ta-converse-conversation-list-item-avatar"
-                            :src="$otherParticipant->value('participant_avatar_source') ?: filament()->getUserAvatarUrl($otherParticipant->participant)"
-                            :alt="$otherParticipant->value('participant_name')"
-                            size="lg"
-                        />
-                    @else
+                        <div
+                            @class([
+                                'fi-converse-conversation-list-item-multiple-avatars' => $hasMultipleAvatarsInConversationImage,
+                                'fi-converse-conversation-list-item-image-wrapper',
+                            ])
+                        >
+                            @if ($hasMultipleAvatarsInConversationImage)
+                                @php
+                                    // TODO: Actually take two latest by messages or two first if no messages
+                                    $lastTwoParticipations = $otherParticipations->slice(-2)->values();
+                                    $latestParticipant = $lastTwoParticipations->last();
+                                    $penultimateParticipant = $lastTwoParticipations->first();
+                                @endphp
+
+                                <x-filament::avatar
+                                    class="fi-converse-conversation-list-item-image fi-converse-conversation-list-item-penultimate-avatar"
+                                    :src="$penultimateParticipant->participant_avatar_source ?? filament()->getUserAvatarUrl($penultimateParticipant->participant)"
+                                    :alt="$penultimateParticipant->participant_name"
+                                    size="md"
+                                />
+                                <x-filament::avatar
+                                    color="primary"
+                                    class="fi-converse-conversation-list-item-image fi-converse-conversation-list-item-last-avatar"
+                                    :src="$latestParticipant->participant_avatar_source ?? filament()->getUserAvatarUrl($latestParticipant->participant)"
+                                    :alt="$latestParticipant->participant_name"
+                                    size="md"
+                                />
+                            @else
+                                @php
+                                    $otherParticipant = $otherParticipations->first();
+                                @endphp
+
+                                <x-filament::avatar
+                                    class="fi-converse-conversation-list-item-image"
+                                    :src="$otherParticipant->participant_avatar_source ?? filament()->getUserAvatarUrl($otherParticipant->participant)"
+                                    :alt="$conversationName"
+                                    size="lg"
+                                />
+                            @endif
+                        </div>
                     @endif
                 @endif
 
-                <div class="fi-ta-converse-conversation-list-item-content">
-                    <div class="fi-ta-converse-conversation-list-item-title">
-                        <h4
-                            class="fi-ta-converse-conversation-list-item-heading"
-                        >
+                <div class="fi-converse-conversation-list-item-content">
+                    <div class="fi-converse-conversation-list-item-title">
+                        <h4 class="fi-converse-conversation-list-item-heading">
                             {{ $conversationName }}
                         </h4>
                         <div
-                            class="fi-ta-converse-conversation-list-item-indicator"
+                            class="fi-converse-conversation-list-item-indicator"
                         >
                             <p
-                                class="fi-ta-converse-conversation-list-item-last-message-time-indicator"
+                                class="fi-converse-conversation-list-item-last-message-time-indicator"
                             >
                                 Time
                             </p>
@@ -149,15 +198,28 @@
                         </div>
                     </div>
                     <p
-                        class="fi-ta-converse-conversation-list-item-last-message-description"
+                        class="fi-converse-conversation-list-item-last-message-description"
                     >
-                        Someone: Long message that is very very very very very
-                        long long long
+                        TODO: Do this and other stuff in there
                     </p>
                 </div>
             </li>
         @empty
-            <div class="fi-converse-conversation-area-empty"></div>
+            @if ($customEmptyState)
+                {{ $customEmptyState }}
+            @else
+                <x-filament::empty-state
+                    :icon="$emptyStateIcon"
+                    :icon-color="$emptyStateIconColor"
+                >
+                    <x-slot name="heading">
+                        {{ $emptyStateHeading }}
+                    </x-slot>
+                    <x-slot name="description">
+                        {{ $emptyStateDescription }}
+                    </x-slot>
+                </x-filament::empty-state>
+            @endif
         @endforelse
     </ul>
 </div>
