@@ -93,10 +93,10 @@ class ConversationParticipation extends Model
         if ($this->participant_avatar_source) {
             return $this->participant_avatar_source;
         }
-        
+
         return filament()->getUserAvatarUrl($this->participant);
     }
-    
+
     protected static function booting()
     {
         parent::booting();

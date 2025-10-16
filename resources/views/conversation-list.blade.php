@@ -1,9 +1,9 @@
 @php
-    use Illuminate\View\ComponentAttributeBag;
-    use Filament\Support\Icons\Heroicon;
     use Dvarilek\FilamentConverse\Models\Conversation;
+    use Filament\Support\Icons\Heroicon;
     use Illuminate\Contracts\Auth\Authenticatable;
     use Illuminate\Database\Eloquent\Model;
+    use Illuminate\View\ComponentAttributeBag;
 
     $heading = 'Conversation';
     $description = 'Some description';
@@ -127,7 +127,6 @@
                             size="lg"
                         />
                     @else
-                        
                     @endif
                 @endif
 
