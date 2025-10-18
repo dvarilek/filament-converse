@@ -36,7 +36,7 @@ class CreateConversation
                 'type' => $attributes['type'],
                 'name' => $attributes['name'] ?? null,
                 'description' => $attributes['description'] ?? null,
-                'color' => $attributes['color'] ?? null,
+                'image' => $attributes['image'] ?? null,
             ]);
 
             $this->validationConversationType($conversation, $participants);
@@ -44,7 +44,7 @@ class CreateConversation
             $conversationKey = $conversation->getKey();
 
             /* @var ConversationParticipation $createdByParticipant */
-            $createdByParticipant = $createdBy->conversationParticipation()->create([
+            $createdByParticipant = $createdBy->conversationParticipations()->create([
                 'joined_at' => $timestamp,
                 'invited_at' => $timestamp,
                 'conversation_id' => $conversationKey,
@@ -55,7 +55,7 @@ class CreateConversation
             $participants->each(function (Authenticatable & Model $participant) use ($conversationKey, $timestamp) {
                 FilamentConverseException::validateConversableUser($participant);
 
-                $participant->conversationParticipation()->create([
+                $participant->conversationParticipations()->create([
                     'joined_at' => $timestamp,
                     'invited_at' => $timestamp,
                     'conversation_id' => $conversationKey,

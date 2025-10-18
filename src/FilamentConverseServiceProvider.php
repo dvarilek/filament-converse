@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse;
 
+use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Livewire\ConversationListLivewireComponent;
 use Dvarilek\FilamentConverse\Livewire\ConversationThreadLivewireComponent;
+use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
+use Exception;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 use Livewire\Livewire;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
@@ -32,9 +37,30 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
             });
     }
 
-    public function packageBooted()
+    public function packageBooted(): void
     {
         Livewire::component('filament-converse::livewire.conversation-list', ConversationListLivewireComponent::class);
         Livewire::component('filament-converse::livewire.conversation-thread', ConversationThreadLivewireComponent::class);
+    }
+
+    /**
+     * @return class-string<Authenticatable & Model>
+     */
+    public static function getFilamentConverseUserModel(): string
+    {
+        /* @var class-string<Authenticatable & Model> $model */
+        $model = config('filament-converse.user_model');
+
+        if (! is_subclass_of($model, Model::class)) {
+            throw new Exception('The user model must be an instance of [Illuminate\Database\Eloquent\Model].');
+        }
+
+        if (! is_subclass_of($model, Authenticatable::class)) {
+            throw new Exception('The user model must be an instance of [Illuminate\Contracts\Auth\Authenticatable].');
+        }
+
+        FilamentConverseException::validateConversableUser($model);
+
+        return $model;
     }
 }

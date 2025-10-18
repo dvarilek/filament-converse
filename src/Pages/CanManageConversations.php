@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Pages;
 
 use Dvarilek\FilamentConverse\Livewire\Concerns\HasConversations;
-use Dvarilek\FilamentConverse\Livewire\Concerns\HasFilters;
-use Dvarilek\FilamentConverse\Livewire\Concerns\HasSearch;
+use Dvarilek\FilamentConverse\Livewire\Concerns\CanFilterConversations;
+use Dvarilek\FilamentConverse\Livewire\Concerns\CanSearchConversations;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
+use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
@@ -20,13 +21,13 @@ use Filament\Schemas\Schema;
 trait CanManageConversations
 {
     use HasConversations;
-    use HasFilters;
-    use HasSearch;
+    use CanFilterConversations;
+    use CanSearchConversations;
 
     /**
      * @return int | array<string, ?int>
      */
-    public function getColumns(): int | array
+    public function getConversationComponentsColumns(): int | array
     {
         return [
             'xl' => 6,
@@ -45,7 +46,7 @@ trait CanManageConversations
 
     protected function getConversationComponents(): Component
     {
-        return Grid::make($this->getColumns())
+        return Grid::make($this->getConversationComponentsColumns())
             ->schema([
                 $this->conversationList($this->getConversationListComponent()),
                 $this->conversationThread($this->getConversationThreadComponent()),

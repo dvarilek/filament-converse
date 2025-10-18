@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models;
 
+use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -18,9 +18,6 @@ use Illuminate\Support\Collection;
  * @property Carbon|null $invited_at
  * @property Carbon|null $last_read_at
  * @property string $conversation_id
- * @property string $participant_name
- * @property string|null $participant_avatar_source
- * @property string $participant_type
  * @property int|string $participant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -40,9 +37,6 @@ class ConversationParticipation extends Model
         'invited_at',
         'last_read_at',
         'conversation_id',
-        'participant_name',
-        'participant_avatar_source',
-        'participant_type',
         'participant_id',
     ];
 
@@ -75,48 +69,15 @@ class ConversationParticipation extends Model
     }
 
     /**
-     * @return MorphTo<Model, static>
+     * @return BelongsTo<Authenticatable & Model, static>
      */
-    public function participant(): MorphTo
+    public function participant(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->belongsTo(FilamentConverseServiceProvider::getFilamentConverseUserModel(), 'participant_id');
     }
 
     public function isPending(): bool
     {
         return $this->joined_at === null;
-    }
-
-    public function getAvatarSource(): string
-    {
-        if ($this->participant_avatar_source) {
-            return $this->participant_avatar_source;
-        }
-
-        return filament()->getUserAvatarUrl($this->participant);
-    }
-
-    protected static function booting(): void
-    {
-        parent::booting();
-
-        static::creating(function (self $participation) {
-            if ($participation->participant_name && $participation->participant_avatar_source) {
-                return;
-            }
-
-            $participant = $participation->participant;
-
-            $participantModelName = filament()->getUserName($participant);
-            $participantModelAvatarColumn = $participant->getAvatarColumn();
-
-            if (! $participation->participant_name) {
-                $participation->participant_name = $participantModelName;
-            }
-
-            if (! $participation->participant_avatar_source) {
-                $participation->participant_avatar_source = $participant->getAttribute($participantModelAvatarColumn);
-            }
-        });
     }
 }

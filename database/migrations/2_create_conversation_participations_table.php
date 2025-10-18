@@ -4,6 +4,7 @@ use Dvarilek\FilamentConverse\Models\Conversation;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 
 return new class extends Migration
 {
@@ -13,15 +14,14 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignIdFor(Conversation::class, 'conversation_id')
                 ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
-            $table->string('participant_name')->nullable()->default(null);
-            $table->string('participant_avatar_source')->nullable()->default(null);
-            $table->morphs('participant');
+            $table->foreignIdFor(FilamentConverseServiceProvider::getFilamentConverseUserModel(), 'participant_id')
+                ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamp('joined_at')->nullable()->default(null);
             $table->timestamp('invited_at')->nullable()->default(null);
             $table->timestamp('last_read_at')->nullable()->default(null);
             $table->timestamps();
 
-            $table->unique(['conversation_id', 'participant_id', 'participant_type']);
+            $table->unique(['conversation_id', 'participant_id']);
         });
     }
 

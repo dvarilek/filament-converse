@@ -22,5 +22,5 @@ it('can create conversation participation with participant name', function () {
         ->createdBy;
 
     expect($firstUserParticipation)->toBeInstanceOf(ConversationParticipation::class)
-        ->participant_name->toBe('user name');
+        ->participant->name->toBe('user name');
 });

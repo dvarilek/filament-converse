@@ -94,32 +94,3 @@ it('can retrieve conversations for a specific user', function () {
             $thirdConversation->getKey(),
         );
 });
-
-it('conversation retrieval preloads relationships', function () {
-    $creator = User::factory()->create();
-    $firstUser = User::factory()->create();
-    $secondUser = User::factory()->create();
-
-    /* @var Conversation $conversation */
-    $conversation = app(CreateConversation::class)->handle(
-        $creator,
-        collect([$firstUser, $secondUser]),
-        [
-            'type' => ConversationTypeEnum::GROUP,
-        ]
-    );
-
-    /* @var Conversation $retrievedConversation */
-    $retrievedConversation = $creator->conversations->first();
-
-    expect($conversation->getKey())
-        ->toBe($retrievedConversation->getKey())
-        ->and($retrievedConversation->relationLoaded('createdBy'))
-        ->toBeTrue()
-        ->and($retrievedConversation->relationLoaded('participations'))
-        ->toBeTrue()
-        ->and($retrievedConversation->createdBy->relationLoaded('participant'))
-        ->toBeTrue()
-        ->and($retrievedConversation->participations->first()->relationLoaded('participant'))
-        ->toBeTrue();
-});

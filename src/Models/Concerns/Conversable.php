@@ -6,48 +6,49 @@ namespace Dvarilek\FilamentConverse\Models\Concerns;
 
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Collection;
 
 /**
  * @mixin Model
  *
- * @property Collection<int, ConversationParticipation> $conversationParticipation
  * @property Collection<int, Conversation> $conversations
+ * @property Collection<int, ConversationParticipation> $conversationParticipations
  */
 trait Conversable
 {
     /**
-     * @return MorphMany<ConversationParticipation, static>
+     * @return HasMany<ConversationParticipation, static>
      */
-    public function conversationParticipation(): MorphMany
+    public function conversationParticipations(): HasMany
     {
-        return $this->morphMany(ConversationParticipation::class, 'participant');
+        return $this->hasMany(ConversationParticipation::class, 'participant_id');
     }
 
     /**
-     * @return MorphToMany<Conversation, static>
+     * @return HasManyThrough<Conversation, ConversationParticipation, static>
      */
-    public function conversations(): MorphToMany
+    public function conversations(): HasManyThrough
     {
-        return $this->morphToMany(
+        return $this->hasManyThrough(
             Conversation::class,
-            'participant',
-            'conversation_participations',
+            ConversationParticipation::class,
             'participant_id',
+            'id',
+            'id',
             'conversation_id'
-        )
-            ->withTimestamps()
-            ->with([
-                'createdBy.participant',
-                'participations.participant',
-            ]);
+        );
     }
 
-    public function getAvatarColumn(): ?string
+    public function participatesInAnyConversation(): bool
     {
-        return null;
+        return $this->conversations()->exists();
+    }
+
+    public static function getFilamentNameAttribute(): string
+    {
+        return 'name';
     }
 }

@@ -24,12 +24,21 @@ trait HasConversations
 
         FilamentConverseException::validateConversableUser($user);
 
-        $conversations = $user->conversations()->getQuery();
+        $conversations = $user->conversations()
+            ->with([
+                'createdBy.participant',
+                'participations.participant',
+            ]);
 
         $this->applyConversationListSearch($conversations);
         $this->applyConversationListFilters($conversations);
 
         return $conversations->get();
+    }
+
+    public function updateActiveConversation(string $conversationKey): void
+    {
+        $this->activeConversationKey = $conversationKey;
     }
 
     public function getActiveConversation(): ?Conversation
@@ -38,7 +47,7 @@ trait HasConversations
             return null;
         }
 
-        $conversation = $this->conversations->firstWhere((new Conversation)->getKeyName(), $this->activeConversationKey);
+        $conversation = $this->conversations->firstWhere((new Conversation())->getKeyName(), $this->activeConversationKey);
 
         if (! $conversation) {
             return null;

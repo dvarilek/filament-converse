@@ -3,6 +3,7 @@
 namespace Dvarilek\FilamentConverse\Tests;
 
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
+use Dvarilek\FilamentConverse\Tests\Models\User;
 use Filament\Actions\ActionsServiceProvider;
 use Filament\FilamentServiceProvider;
 use Filament\Forms\FormsServiceProvider;
@@ -52,5 +53,6 @@ abstract class TestCase extends OrchestraTestCase
     public function getEnvironmentSetUp($app): void
     {
         config()->set('database.default', 'testing');
+        config()->set('filament-converse.user_model', User::class);
     }
 }

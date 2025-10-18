@@ -6,6 +6,7 @@ namespace Dvarilek\FilamentConverse\Models;
 
 use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
+use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -19,12 +20,12 @@ use Illuminate\Support\Carbon;
  * @property string|null $image
  * @property string|null $name
  * @property string|null $description
- * @property string|null $color
  * @property string $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Collection<int, Message> $messages
  * @property Collection<int, ConversationParticipation> $participations
+ * @property Collection<int, ConversationParticipation> $otherParticipations
  * @property ConversationParticipation|null $createdBy
  */
 class Conversation extends Model
@@ -39,7 +40,6 @@ class Conversation extends Model
         'image',
         'name',
         'description',
-        'color',
         'created_by',
     ];
 
@@ -69,16 +69,13 @@ class Conversation extends Model
         return $this->hasMany(ConversationParticipation::class);
     }
 
+    /**
+     * @return HasMany<ConversationParticipation, static>
+     */
     public function otherParticipations(): HasMany
     {
         return $this->participations()
-            ->whereNot(static function (Builder $query) {
-                $user = auth()->user();
-
-                return $query
-                    ->where('participant_type', $user::class)
-                    ->where('participant_id', $user->getKey());
-            });
+            ->whereNot('participant_id', auth()->id());
     }
 
     /**
@@ -113,9 +110,14 @@ class Conversation extends Model
             return $this->name;
         }
 
+        $nameAttribute = FilamentConverseServiceProvider::getFilamentConverseUserModel()::getFilamentNameAttribute();
+
         $participantNames = $this->otherParticipations()
-            ->pluck('participant_name')
-            ->filter();
+            ->with([
+                'participant:id,' . $nameAttribute
+            ])
+            ->get()
+            ->pluck('participant.' . $nameAttribute);
 
         return match ($participantNames->count()) {
             0 => '',

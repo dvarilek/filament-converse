@@ -8,7 +8,7 @@ use Closure;
 
 trait HasSearch
 {
-    protected bool | Closure $isSearchable = false;
+    protected bool | Closure $isSearchable = true;
 
     protected string | Closure | null $searchPlaceholder = null;
 

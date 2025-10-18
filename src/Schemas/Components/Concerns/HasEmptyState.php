@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 
 use BackedEnum;
-use Closure;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
+use Closure;
 
 trait HasEmptyState
 {
@@ -64,8 +64,7 @@ trait HasEmptyState
 
     public function getEmptyStateHeading(): string | Htmlable
     {
-        // TODO:
-        return $this->evaluate($this->emptyStateHeading) ?? __();
+        return $this->evaluate($this->emptyStateHeading) ?? __('filament-converse::conversation-list.empty-state.heading');
     }
 
     public function getEmptyStateDescription(): string | Htmlable | null
