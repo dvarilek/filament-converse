@@ -56,7 +56,7 @@
             }
 
             & .fi-converse-conversation-list-item-image-wrapper {
-                @apply min-w-10 min-h-10;
+                @apply min-h-10 min-w-10;
 
                 &.fi-converse-conversation-list-item-multiple-avatars {
                     @apply relative mb-1;
@@ -67,11 +67,11 @@
                 }
 
                 & .fi-converse-conversation-list-item-penultimate-avatar {
-                    @apply absolute  left-0 bottom-3;
+                    @apply absolute bottom-3 left-0;
                 }
 
                 & .fi-converse-conversation-list-item-last-avatar {
-                    @apply absolute right-0 z-10 -bottom-2;
+                    @apply absolute -bottom-2 right-0 z-10;
                 }
             }
 

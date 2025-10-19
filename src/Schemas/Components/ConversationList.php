@@ -7,23 +7,16 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 use Closure;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Tests\Models\User;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateDirectConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateGroupConversationAction;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Forms\Components\MorphToSelect;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Models\Contracts\HasName;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
-use Filament\Support\Facades\FilamentColor;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\HtmlString;
 use Livewire\Component as LivewireComponent;
 
 class ConversationList extends Component
@@ -79,13 +72,13 @@ class ConversationList extends Component
         });
 
         $this->childComponents(fn () => [
-            $this->getCreateConversationAction()
+            $this->getCreateConversationAction(),
         ], static::HEADER_ACTIONS_KEY);
 
         $this->childComponents(fn () => [
             $this->getCreateDirectConversationAction(),
             $this->getCreateGroupConversationAction(),
-        ], static::CREATE_CONVERSATION_NESTED_ACTIONS_KEY);;
+        ], static::CREATE_CONVERSATION_NESTED_ACTIONS_KEY);
 
         $this->getConversationNameUsing(static function (Conversation $conversation) {
             return $conversation->getName();
@@ -111,7 +104,7 @@ class ConversationList extends Component
         return $this;
     }
 
-    public function conversationListOverflow(bool|Closure $condition = true): static
+    public function conversationListOverflow(bool | Closure $condition = true): static
     {
         $this->shouldConversationListOverflow = $condition;
 
@@ -161,7 +154,6 @@ class ConversationList extends Component
 
     protected function getCreateConversationAction(): Action
     {
-        // TODO: Add iconAlias namespace
         $action = Action::make('createConversation')
             ->label(__('filament-converse::conversation-list.actions.create.label'))
             ->icon(Heroicon::Plus)
@@ -185,59 +177,7 @@ class ConversationList extends Component
 
     protected function getCreateDirectConversationAction(): Action
     {
-        $action = Action::make('createDirectConversation')
-            ->label(__('filament-converse::conversation-list.actions.create-direct.label'))
-            ->modalHeading(__('filament-converse::conversation-list.actions.create-direct.modal-heading'))
-            ->icon(Heroicon::OutlinedUser)
-            ->modalWidth(Width::Large)
-            ->model(Conversation::class)
-            ->schema([
-                Select::make('participations')
-                    ->label(__('filament-converse::conversation-list.actions.create-direct.schema.participant'))
-                    ->placeholder(__('filament-converse::conversation-list.actions.create-direct.schema.placeholder'))
-                    ->required()
-                    ->searchable()
-                    ->allowHtml()
-                    ->options(function () {
-                        $user = auth()->user();
-
-                        $options = $user::query()
-                            ->whereKeyNot($user->getKey())
-                            ->pluck($user::getFilamentNameAttribute(), $user->getKeyName())
-                            ->map(function ($name) use ($user) {
-                                $escapedName = e($name);
-
-                                /* @var Model $user */
-
-                                $avatarUrl = filament()->getUserAvatarUrl((new $user)->setAttribute($user::getFilamentNameAttribute(), $name));
-
-                                return "
-                                    <div style='display: flex; align-items: center; gap: 0.5rem;'>
-                                        <img
-                                            class='fi-avatar fi-circular sm'
-                                            src='{$avatarUrl}'
-                                            alt='{$escapedName}'
-                                            style='padding: 2px'
-                                        >
-                                        <span>{$escapedName}</span>
-                                    </div>
-                                ";
-                            });
-
-                        if ($user instanceof HasAvatar || $user->hasAttribute('avatar_url')) {
-                            // TODO: Do
-                        }
-
-                        return $options;
-                    }),
-                TextInput::make('name')
-                    ->maxLength(255),
-                Textarea::make('description')
-                    ->maxLength(255),
-            ])
-            ->action(function (array $data) {
-
-            });
+        $action = CreateDirectConversationAction::make();
 
         if ($this->modifyCreateDirectConversationActionUsing) {
             $action = $this->evaluate($this->modifyCreateDirectConversationActionUsing, [
@@ -252,14 +192,7 @@ class ConversationList extends Component
 
     protected function getCreateGroupConversationAction(): Action
     {
-        $action = Action::make('createGroupConversation')
-            ->label(__('filament-converse::conversation-list.actions.create-group.label'))
-            ->modalHeading(__('filament-converse::conversation-list.actions.create-group.modal-heading'))
-            ->icon(Heroicon::OutlinedUserGroup)
-            ->modalWidth(Width::Large)
-            ->schema([
-
-            ]);
+        $action = CreateGroupConversationAction::make();
 
         if ($this->modifyCreateGroupConversationActionUsing) {
             $action = $this->evaluate($this->modifyCreateGroupConversationActionUsing, [

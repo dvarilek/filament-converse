@@ -1,10 +1,10 @@
 <?php
 
+use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 
 return new class extends Migration
 {

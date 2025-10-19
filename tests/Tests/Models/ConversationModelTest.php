@@ -66,3 +66,23 @@ it('can construct direct conversation name from its participants', function () {
     expect($conversation->getName())
         ->toBe($otherUser->name);
 });
+
+it('can retrieve other participations', function () {
+    $creator = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $this->actingAs($creator);
+
+    /* @var Conversation $conversation */
+    $conversation = app(CreateConversation::class)->handle(
+        $creator,
+        $otherUser,
+        [
+            'type' => ConversationTypeEnum::DIRECT,
+        ]
+    );
+
+    expect($conversation)->toBeInstanceOf(Conversation::class)
+        ->otherParticipations->toHaveCount(1)
+        ->otherParticipations->value('participant_id')->toBe($otherUser->getKey());
+});

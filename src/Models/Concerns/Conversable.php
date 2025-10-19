@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models\Concerns;
 
+use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -16,6 +19,8 @@ use Illuminate\Support\Collection;
  *
  * @property Collection<int, Conversation> $conversations
  * @property Collection<int, ConversationParticipation> $conversationParticipations
+ *
+ * @method Builder excludeSharedDirectConversationsWith(Authenticatable $participant)
  */
 trait Conversable
 {
@@ -40,6 +45,24 @@ trait Conversable
             'id',
             'conversation_id'
         );
+    }
+
+    /**
+     * @param  Builder<static>  $query
+     */
+    public function scopeExcludeSharedDirectConversationsWith(Builder $query, Authenticatable & Model $participant): void
+    {
+        $query
+            ->whereDoesntHave(
+                'conversations',
+                static fn (Builder $query) => $query
+                    ->where('type', ConversationTypeEnum::DIRECT)
+                    ->whereHas(
+                        'participations',
+                        static fn (Builder $subQuery) => $subQuery
+                            ->where('participant_id', $participant->getKey())
+                    )
+            );
     }
 
     public function participatesInAnyConversation(): bool

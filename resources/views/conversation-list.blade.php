@@ -1,12 +1,12 @@
 @php
     use Dvarilek\FilamentConverse\Models\Conversation;
+    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+    use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
+    use Filament\Actions\Action;
+    use Filament\Actions\ActionGroup;
     use Filament\Support\Icons\Heroicon;
     use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
-    use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
-    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-    use Filament\Actions\Action;
-    use Filament\Actions\ActionGroup;
 
     // TODO: Heading count
     $headingBadgeLabel = $this->conversations->count();
@@ -49,7 +49,7 @@
 
             @if (count($headerActions))
                 <div class="fi-converse-conversation-list-header-actions">
-                    @foreach($headerActions as $action)
+                    @foreach ($headerActions as $action)
                         {{ $action }}
                     @endforeach
                 </div>
@@ -106,10 +106,12 @@
         </div>
     </div>
 
-    <ul @class([
-        'fi-converse-conversation-list-overflow' => $shouldConversationListOverflow(),
-        'fi-converse-conversation-area'
-    ])>
+    <ul
+        @class([
+            'fi-converse-conversation-list-overflow' => $shouldConversationListOverflow(),
+            'fi-converse-conversation-area',
+        ])
+    >
         @forelse ($conversations as $conversation)
             <li
                 wire:click="updateActiveConversation('{{ $conversationKey = $conversation->getKey() }}')"
@@ -125,7 +127,9 @@
 
                 @if ($shouldShowConversationImage)
                     @if ($hasConversationImageClosure && filled($conversationImage = $getConversationImage($conversation)))
-                        <div class="fi-converse-conversation-list-item-image-wrapper">
+                        <div
+                            class="fi-converse-conversation-list-item-image-wrapper"
+                        >
                             <x-filament::avatar
                                 class="fi-converse-conversation-list-item-image"
                                 :src="$conversationImage"
@@ -135,15 +139,16 @@
                         </div>
                     @else
                         @php
-                            /* @var Collection<int, ConversationParticipation> $otherParticipations */
-                            $otherParticipations = $conversation->otherParticipations()->get();
+                            $otherParticipations = $conversation->otherParticipations;
                             $hasMultipleAvatarsInConversationImage = $conversation->isGroup() || $otherParticipations->count() >= 2;
                         @endphp
 
-                        <div @class([
-                            "fi-converse-conversation-list-item-multiple-avatars" => $hasMultipleAvatarsInConversationImage,
-                            "fi-converse-conversation-list-item-image-wrapper"
-                        ])>
+                        <div
+                            @class([
+                                'fi-converse-conversation-list-item-multiple-avatars' => $hasMultipleAvatarsInConversationImage,
+                                'fi-converse-conversation-list-item-image-wrapper',
+                            ])
+                        >
                             @if ($hasMultipleAvatarsInConversationImage)
                                 @php
                                     // TODO: Actually take two latest by messages or two first if no messages
@@ -162,18 +167,14 @@
                                     color="primary"
                                     class="fi-converse-conversation-list-item-image fi-converse-conversation-list-item-last-avatar"
                                     :src="filament()->getUserAvatarUrl($latestParticipant)"
-                                    :alt="$latestParticipant->getAttribute($latestParticipant::getFilamentNameAttribute()"
+                                    :alt="$latestParticipant->getAttribute($latestParticipant::getFilamentNameAttribute())"
                                     size="md"
                                 />
                             @else
-                                @php
-                                    $otherParticipant = $otherParticipations->first()->participant;
-                                @endphp
-
                                 <x-filament::avatar
                                     class="fi-converse-conversation-list-item-image"
-                                    :src="filament()->getUserAvatarUrl($otherParticipant)"
-                                    :alt="$conversationName->getAttribute($otherParticipant::getFilamentNameAttribute())"
+                                    :src="filament()->getUserAvatarUrl($otherParticipations->first()->participant)"
+                                    :alt="$conversationName"
                                     size="lg"
                                 />
                             @endif
@@ -183,16 +184,13 @@
 
                 <div class="fi-converse-conversation-list-item-content">
                     <div class="fi-converse-conversation-list-item-title">
-                        <h4
-                            class="fi-converse-conversation-list-item-heading"
-                        >
+                        <h4 class="fi-converse-conversation-list-item-heading">
                             {{ $conversationName }}
                         </h4>
                         <p
                             class="fi-converse-conversation-list-item-time-indicator"
                         >
                             TODO
-
                         </p>
                     </div>
                     <p
@@ -200,7 +198,6 @@
                     >
                         TODO: Do this and other stuff in there
                     </p>
-
                 </div>
             </li>
         @empty

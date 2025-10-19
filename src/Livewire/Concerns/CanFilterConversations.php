@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 trait CanFilterConversations
 {
     /**
-     * @param Builder<Conversation> $query
+     * @param  Builder<Conversation>  $query
      */
     public function applyConversationListFilters(Builder $query): void
     {

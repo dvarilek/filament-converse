@@ -13,7 +13,7 @@ trait CanSearchConversations
     public string $conversationListSearch = '';
 
     /**
-     * @param Builder<Conversation> $query
+     * @param  Builder<Conversation>  $query
      */
     public function applyConversationListSearch(Builder $query): void
     {
@@ -24,14 +24,19 @@ trait CanSearchConversations
         $nameAttribute = FilamentConverseServiceProvider::getFilamentConverseUserModel()::getFilamentNameAttribute();
 
         $query
-            ->where(fn (Builder $query) => $query
-                ->where('name', 'like', "%{$this->conversationListSearch}%")
-                ->orWhere('description', 'like', "%{$this->conversationListSearch}%")
-                ->orWhereHas('participations', fn (Builder $subQuery) => $subQuery
-                    ->whereHas('participant', fn (Builder $q) => $q
-                        ->where($nameAttribute, 'like', "%{$this->conversationListSearch}%")
+            ->where(
+                fn (Builder $query) => $query
+                    ->where('name', 'like', "%{$this->conversationListSearch}%")
+                    ->orWhere('description', 'like', "%{$this->conversationListSearch}%")
+                    ->orWhereHas(
+                        'participations',
+                        fn (Builder $subQuery) => $subQuery
+                            ->whereHas(
+                                'participant',
+                                fn (Builder $q) => $q
+                                    ->where($nameAttribute, 'like', "%{$this->conversationListSearch}%")
+                            )
                     )
-                )
             );
     }
 

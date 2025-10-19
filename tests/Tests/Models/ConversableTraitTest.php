@@ -94,3 +94,24 @@ it('can retrieve conversations for a specific user', function () {
             $thirdConversation->getKey(),
         );
 });
+
+it('can exclude users with existing shared direct conversations', function () {
+    $creator = User::factory()->create();
+    $firstUser = User::factory()->create();
+    $secondUser = User::factory()->create();
+
+    app(CreateConversation::class)->handle(
+        $creator,
+        $firstUser,
+        [
+            'type' => ConversationTypeEnum::DIRECT,
+        ]
+    );
+
+    $result = User::query()->excludeSharedDirectConversationsWith($creator)->get();
+    $primaryKey = (new User)->getKeyName();
+
+    expect($result)->toHaveCount(1)
+        ->and($result->pluck($primaryKey))->not->toContain($creator->getKey(), $firstUser->getKey())
+        ->and($result->pluck($primaryKey))->toContain($secondUser->getKey());
+});

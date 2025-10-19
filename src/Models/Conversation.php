@@ -7,7 +7,6 @@ namespace Dvarilek\FilamentConverse\Models;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -66,7 +65,7 @@ class Conversation extends Model
      */
     public function participations(): HasMany
     {
-        return $this->hasMany(ConversationParticipation::class);
+        return $this->hasMany(ConversationParticipation::class, 'conversation_id');
     }
 
     /**
@@ -114,7 +113,7 @@ class Conversation extends Model
 
         $participantNames = $this->otherParticipations()
             ->with([
-                'participant:id,' . $nameAttribute
+                'participant:id,' . $nameAttribute,
             ])
             ->get()
             ->pluck('participant.' . $nameAttribute);

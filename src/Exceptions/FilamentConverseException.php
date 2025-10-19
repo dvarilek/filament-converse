@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 final class FilamentConverseException extends Exception
 {
     /**
-     * @param class-string<Model & Authenticatable>|Model $user
+     * @param  class-string<Model & Authenticatable>|Model  $user
      */
     public static function validateConversableUser(string | Model $user): void
     {

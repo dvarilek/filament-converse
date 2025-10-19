@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Pages;
 
-use Dvarilek\FilamentConverse\Livewire\Concerns\HasConversations;
 use Dvarilek\FilamentConverse\Livewire\Concerns\CanFilterConversations;
 use Dvarilek\FilamentConverse\Livewire\Concerns\CanSearchConversations;
+use Dvarilek\FilamentConverse\Livewire\Concerns\HasConversations;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
-use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
@@ -20,9 +19,14 @@ use Filament\Schemas\Schema;
  */
 trait CanManageConversations
 {
-    use HasConversations;
     use CanFilterConversations;
     use CanSearchConversations;
+    use HasConversations;
+
+    public function mountCanManageConversations(): void
+    {
+        // $this->resetCachedConversations();
+    }
 
     /**
      * @return int | array<string, ?int>

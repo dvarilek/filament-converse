@@ -10,9 +10,4 @@ use Filament\Pages\Page;
 class ConversationPage extends Page implements HasConversationList
 {
     use CanManageConversations;
-
-    public function mount(): void
-    {
-        $this->resetCachedConversations();
-    }
 }

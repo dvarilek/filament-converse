@@ -5,13 +5,9 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
-use Dvarilek\FilamentConverse\Livewire\ConversationListLivewireComponent;
-use Dvarilek\FilamentConverse\Livewire\ConversationThreadLivewireComponent;
-use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use Livewire\Livewire;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -23,6 +19,7 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
         $package
             ->name('filament-converse')
             ->hasViews('filament-converse')
+            ->hasConfigFile('filament-converse')
             ->hasTranslations()
             ->hasMigrations(
                 '1_create_conversations_table',
@@ -32,15 +29,10 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command
                     ->publishMigrations()
+                    ->publishConfigFile()
                     ->askToRunMigrations()
                     ->askToStarRepoOnGitHub('dvarilek/filament-converse');
             });
-    }
-
-    public function packageBooted(): void
-    {
-        Livewire::component('filament-converse::livewire.conversation-list', ConversationListLivewireComponent::class);
-        Livewire::component('filament-converse::livewire.conversation-thread', ConversationThreadLivewireComponent::class);
     }
 
     /**

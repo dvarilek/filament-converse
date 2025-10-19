@@ -39,14 +39,14 @@ abstract class TestCase extends OrchestraTestCase
     protected function getPackageProviders($app): array
     {
         return [
-            LivewireServiceProvider::class,
+            ActionsServiceProvider::class,
             FilamentConverseServiceProvider::class,
             FilamentServiceProvider::class,
-            SupportServiceProvider::class,
             FormsServiceProvider::class,
+            LivewireServiceProvider::class,
+            SupportServiceProvider::class,
             TablesServiceProvider::class,
             WidgetsServiceProvider::class,
-            ActionsServiceProvider::class,
         ];
     }
 
