@@ -2,11 +2,16 @@
 
 namespace Dvarilek\FilamentConverse\Tests;
 
+use BladeUI\Heroicons\BladeHeroiconsServiceProvider;
+use BladeUI\Icons\BladeIconsServiceProvider;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Dvarilek\FilamentConverse\Tests\Models\User;
+use Dvarilek\FilamentConverse\Tests\Tests\TestPanelProvider;
 use Filament\Actions\ActionsServiceProvider;
+use Filament\Facades\Filament;
 use Filament\FilamentServiceProvider;
 use Filament\Forms\FormsServiceProvider;
+use Filament\Schemas\SchemasServiceProvider;
 use Filament\Support\SupportServiceProvider;
 use Filament\Tables\TablesServiceProvider;
 use Filament\Widgets\WidgetsServiceProvider;
@@ -25,6 +30,8 @@ abstract class TestCase extends OrchestraTestCase
     {
         parent::setUp();
 
+        Filament::setCurrentPanel('default');
+
         $this->loadLaravelMigrations();
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
@@ -39,14 +46,18 @@ abstract class TestCase extends OrchestraTestCase
     protected function getPackageProviders($app): array
     {
         return [
+            BladeHeroiconsServiceProvider::class,
+            BladeIconsServiceProvider::class,
             ActionsServiceProvider::class,
             FilamentConverseServiceProvider::class,
             FilamentServiceProvider::class,
             FormsServiceProvider::class,
-            LivewireServiceProvider::class,
+            TestPanelProvider::class,
+            SchemasServiceProvider::class,
             SupportServiceProvider::class,
             TablesServiceProvider::class,
             WidgetsServiceProvider::class,
+            LivewireServiceProvider::class,
         ];
     }
 

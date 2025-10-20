@@ -4,111 +4,54 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
-use Dvarilek\FilamentConverse\Livewire\ConversationThreadLivewireComponent;
+use Closure;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Concerns\HasKey;
+use Illuminate\Contracts\Support\Htmlable;
 
 class ConversationThread extends Component
 {
+    use HasKey;
+
     /**
      * @var view-string
      */
-    protected string $view = 'filament-schemas::components.livewire';
+    protected string $view = 'filament-converse::conversation-thread';
 
-    protected bool | Closure $isLazy = false;
-
-    /**
-     * @var array<string, mixed> | Closure
-     */
-    protected array | Closure $data = [];
-
-    protected string | Closure $component;
+    protected string | Htmlable | Closure | null $heading = null;
 
     /**
      * @param  array<string, mixed> | Closure  $data
      */
-    final public function __construct(string | Closure $component, array | Closure $data = [])
+    public function __construct(string | Htmlable | Closure | null $heading)
     {
-        $this->component($component);
-        $this->data($data);
+        $this->heading($heading);
     }
 
-    /**
-     * @param  array<string, mixed> | Closure  $data
-     */
-    public static function make(string | Closure | null $component = null, array | Closure $data = []): static
+    public static function make(string | Htmlable | Closure | null $heading = null)
     {
-        $static = app(static::class, [
-            'component' => $component ?? ConversationThreadLivewireComponent::class,
-            'data' => $data,
-        ]);
+        $static = app(static::class, ['heading' => $heading]);
         $static->configure();
 
         return $static;
     }
 
-    public function component(string | Closure $component): static
+    protected function setUp(): void
     {
-        $this->component = $component;
+        parent::setUp();
+
+        $this->key('conversation-thread');
+    }
+
+    public function heading(string | Htmlable | Closure | null $heading): static
+    {
+        $this->heading = $heading;
 
         return $this;
     }
 
-    public function getComponent(): string
+    public function getHeading(): string | Htmlable
     {
-        return $this->evaluate($this->component);
-    }
-
-    public function lazy(bool | Closure $condition = true): static
-    {
-        $this->isLazy = $condition;
-
-        return $this;
-    }
-
-    public function isLazy(): bool
-    {
-        return (bool) $this->evaluate($this->isLazy);
-    }
-
-    /**
-     * @param  array<string, mixed> | Closure  $data
-     */
-    public function data(array | Closure $data): static
-    {
-        $this->data = $data;
-
-        return $this;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function getData(): array
-    {
-        return $this->evaluate($this->data);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function getComponentProperties(): array
-    {
-        $properties = [
-            'record' => $this->getRecord(),
-        ];
-
-        if ($this->isLazy()) {
-            $properties['lazy'] = true;
-        }
-
-        return [
-            ...$properties,
-            ...$this->getData(),
-        ];
-    }
-
-    public function getId(): ?string
-    {
-        return $this->getCustomId();
+        return $this->evaluate($this->heading) ?? __('filament-converse::conversation-thread.heading');
     }
 }

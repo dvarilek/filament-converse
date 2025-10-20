@@ -12,6 +12,7 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateGroupConve
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
@@ -24,6 +25,7 @@ class ConversationList extends Component
     use Concerns\HasConversations;
     use Concerns\HasEmptyState;
     use Concerns\HasSearch;
+    use HasKey;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
 
@@ -46,12 +48,12 @@ class ConversationList extends Component
 
     protected ?Closure $modifyCreateGroupConversationActionUsing = null;
 
-    public function __construct(string | Closure | null $heading)
+    final public function __construct(string | Htmlable | Closure | null $heading)
     {
         $this->heading($heading);
     }
 
-    public static function make(string | Closure | null $heading = null)
+    public static function make(string | Htmlable | Closure | null $heading = null)
     {
         $static = app(static::class, ['heading' => $heading]);
         $static->configure();
@@ -62,6 +64,8 @@ class ConversationList extends Component
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->key('conversation-list');
 
         $this->searchPlaceholder(__('filament-converse::conversation-list.search.placeholder'));
 
