@@ -14,6 +14,14 @@ return [
 
     ],
 
+    'last-message' => [
+
+        'current-user' => 'You',
+
+        'empty-state' => 'No messages yet',
+
+    ],
+
     'actions' => [
 
         'create' => [

@@ -14,6 +14,14 @@ return [
 
     ],
 
+    'last-message' => [
+
+        'current-user' => 'Vy',
+
+        'empty-state' => 'Zatím žádné zprávy',
+
+    ],
+
     'actions' => [
 
         'create' => [

@@ -15,12 +15,12 @@ use Illuminate\Support\Collection;
  * @property string|null $content
  * @property list<string> $attachments
  * @property string $conversation_id
- * @property int|string $sender_id
+ * @property int|string $author_id
  * @property string|null $reply_to_message_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Conversation $conversation
- * @property ConversationParticipation $sender
+ * @property ConversationParticipation $author
  * @property Message|null $reply
  * @property Collection<int, Message> $replies
  */
@@ -34,9 +34,8 @@ class Message extends Model
     protected $fillable = [
         'content',
         'attachments',
-        'conversation_id',
         'reply_to_message_id',
-        'sender_id',
+        'author_id',
     ];
 
     /**
@@ -48,15 +47,7 @@ class Message extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-
-    /**
-     * @return BelongsTo<Conversation, static>
-     */
-    public function conversation(): BelongsTo
-    {
-        return $this->belongsTo(Conversation::class, 'conversation_id');
-    }
-
+    
     /**
      * @return BelongsTo<Message, static>
      */
@@ -68,9 +59,9 @@ class Message extends Model
     /**
      * @return BelongsTo<ConversationParticipation, static>
      */
-    public function sender(): BelongsTo
+    public function author(): BelongsTo
     {
-        return $this->belongsTo(ConversationParticipation::class, 'sender_id');
+        return $this->belongsTo(ConversationParticipation::class, 'author_id');
     }
 
     /**

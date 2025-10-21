@@ -7,11 +7,15 @@ namespace Dvarilek\FilamentConverse\Models;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Carbon;
 
 /**
@@ -22,7 +26,6 @@ use Illuminate\Support\Carbon;
  * @property string $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property Collection<int, Message> $messages
  * @property Collection<int, ConversationParticipation> $participations
  * @property Collection<int, ConversationParticipation> $otherParticipations
  * @property ConversationParticipation|null $createdBy
@@ -52,12 +55,16 @@ class Conversation extends Model
         'updated_at' => 'datetime',
     ];
 
-    /**
-     * @return HasMany<Message, static>
-     */
-    public function messages(): HasMany
+    public function messages(): HasManyThrough
     {
-        return $this->hasMany(Message::class);
+        return $this->hasManyThrough(
+            Message::class,
+            ConversationParticipation::class,
+            'conversation_id',
+            'author_id',
+            'id',
+            'id'
+        );
     }
 
     /**
@@ -73,8 +80,7 @@ class Conversation extends Model
      */
     public function otherParticipations(): HasMany
     {
-        return $this->participations()
-            ->whereNot('participant_id', auth()->id());
+        return $this->participations()->whereNot('participant_id', auth()->id());
     }
 
     /**
@@ -98,9 +104,9 @@ class Conversation extends Model
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function sendMessage(ConversationParticipation $sender, array $attributes): Message
+    public function sendMessage(ConversationParticipation $author, array $attributes): Message
     {
-        return app(SendMessage::class)->handle($sender, $this, $attributes);
+        return app(SendMessage::class)->handle($author, $this, $attributes);
     }
 
     public function getName(): string

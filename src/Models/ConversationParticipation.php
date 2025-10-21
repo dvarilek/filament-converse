@@ -17,11 +17,9 @@ use Illuminate\Support\Collection;
  * @property Carbon|null $joined_at
  * @property Carbon|null $invited_at
  * @property Carbon|null $last_read_at
- * @property string $conversation_id
  * @property int|string $participant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property Conversation $conversation
  * @property Collection<int, Conversation> $createdConversations
  * @property Authenticatable&Model $participant
  */
@@ -68,6 +66,11 @@ class ConversationParticipation extends Model
         return $this->hasMany(Conversation::class, 'created_by');
     }
 
+    public function messages(): HasMany
+    {
+        return $this->hasMany(Message::class, 'author_id');
+    }
+    
     /**
      * @return BelongsTo<Authenticatable & Model, static>
      */

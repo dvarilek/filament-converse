@@ -8,10 +8,6 @@
     use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
 
-    // TODO: Heading count
-    $headingBadgeLabel = $this->conversations->count();
-    $headingBadgeColor = 'primary';
-
     $shouldShowConversationImage = $shouldShowConversationImage();
     $hasConversationImageClosure = $hasConversationImageClosure();
     $hasIsConversationUnreadClosure = $hasIsConversationUnreadClosure();
@@ -24,6 +20,8 @@
         $getChildComponents(ConversationList::HEADER_ACTIONS_KEY),
         fn (Action | ActionGroup $action) => $action->isVisible()
     );
+
+    $authenticatedUser = auth()->user();
 @endphp
 
 <div class="fi-converse-conversation-list">
@@ -34,9 +32,12 @@
                     <h2 class="fi-converse-conversation-list-header-heading">
                         {{ $getHeading() }}
                     </h2>
-                    @if (filled($headingBadgeLabel))
-                        <x-filament::badge :color="$headingBadgeColor">
-                            {{ $headingBadgeLabel }}
+                    @if ($hasHeadingBadge() && filled($headingBadgeState = $getHeadingBadgeState()))
+                        <x-filament::badge
+                            :icon="$getHeadingBadgeIcon()"
+                            :color="$getHeadingBadgeColor()"
+                        >
+                            {{ $headingBadgeState }}
                         </x-filament::badge>
                     @endif
                 </div>
@@ -99,9 +100,9 @@
             @endif
 
             <div class="fi-converse-conversation-list-header-bottom-actions">
-                <x-filament::badge>Action1</x-filament::badge>
-                <x-filament::badge>Action2</x-filament::badge>
-                <x-filament::badge>Action3</x-filament::badge>
+                <x-filament::badge>All</x-filament::badge>
+                <x-filament::badge>Direct</x-filament::badge>
+                <x-filament::badge>Group</x-filament::badge>
             </div>
         </div>
     </div>
@@ -113,19 +114,23 @@
         ])
     >
         @forelse ($conversations as $conversation)
+            @php
+                $conversationName = $getConversationName($conversation);
+                $conversationKey = $conversation->getKey();
+
+                $latestMessage = $conversation->getLatestMessage();
+            @endphp
+
             <li
-                wire:click="updateActiveConversation('{{ $conversationKey = $conversation->getKey() }}')"
+                wire:click="updateActiveConversation('{{ $conversationKey }}')"
                 @class([
                     'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
                     'fi-converse-conversation-list-item-unread' => $hasIsConversationUnreadClosure && $isConversationUnread($conversation),
                     'fi-converse-conversation-list-item',
                 ])
             >
-                @php
-                    $conversationName = $getConversationName($conversation);
-                @endphp
-
                 @if ($shouldShowConversationImage)
+
                     @if ($hasConversationImageClosure && filled($conversationImage = $getConversationImage($conversation)))
                         <div
                             class="fi-converse-conversation-list-item-image-wrapper"
@@ -149,7 +154,7 @@
                                 'fi-converse-conversation-list-item-image-wrapper',
                             ])
                         >
-                            @if ($hasMultipleAvatarsInConversationImage)
+                            @if ($hasMultipleAvatarsInConversationImage && ($latestMessages ?? null))
                                 @php
                                     // TODO: Actually take two latest by messages or two first if no messages
                                     $lastTwoParticipations = $otherParticipations->slice(-2)->values();
@@ -187,16 +192,33 @@
                         <h4 class="fi-converse-conversation-list-item-heading">
                             {{ $conversationName }}
                         </h4>
-                        <p
-                            class="fi-converse-conversation-list-item-time-indicator"
-                        >
-                            TODO
-                        </p>
+
+                        @if ($lastMessage)
+                            <p
+                                class="fi-converse-conversation-list-item-time-indicator"
+                            >
+                                TODO
+                            </p>
+                        @endif
                     </div>
                     <p
                         class="fi-converse-conversation-list-item-last-message-description"
                     >
-                        TODO: Do this and other stuff in there
+                        @if ($latestMessage)
+                            @php
+                                $condition = $conversation->otherParticipations->map->getKey()
+                                    ->first(fn (string $key) => $latestMessage->author_id === $key)
+                                    ->getKey() === $authenticatedUser->getKey();
+
+                                $messagePrefix = $condition
+                                    ? $authenticatedUser->getAttributeValue($authenticatedUser::getFilamentNameAttribute())
+                                    : __('filament-converse::conversation-list.last-message.current-user');
+                            @endphp
+
+                            {{ $messagePrefix . ": " . $latestMessage->content }}
+                        @else
+                            {{ __('filament-converse::conversation-list.last-message.empty-state') }}
+                        @endif
                     </p>
                 </div>
             </li>

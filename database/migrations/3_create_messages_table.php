@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignIdFor(Message::class, 'reply_to_message_id')
                 ->nullable()->default(null)
                 ->constrained()->nullOnDelete()->cascadeOnUpdate();
-            $table->foreignIdFor(ConversationParticipation::class, 'sender_id')
+            $table->foreignIdFor(ConversationParticipation::class, 'author_id')
                 ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });

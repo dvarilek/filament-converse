@@ -24,6 +24,7 @@ class ConversationList extends Component
 {
     use Concerns\HasConversations;
     use Concerns\HasEmptyState;
+    use Concerns\HasHeader;
     use Concerns\HasSearch;
     use HasKey;
 
@@ -35,10 +36,6 @@ class ConversationList extends Component
      * @var view-string
      */
     protected string $view = 'filament-converse::conversation-list';
-
-    protected string | Htmlable | Closure | null $heading = null;
-
-    protected string | Htmlable | Closure | null $description = null;
 
     protected bool | Closure $shouldConversationListOverflow = false;
 
@@ -75,6 +72,10 @@ class ConversationList extends Component
             }
         });
 
+        $this->headingBadgeState(static function (HasConversationList $livewire) {
+            return $livewire->conversations->count();
+        });
+
         $this->childComponents(fn () => [
             $this->getCreateConversationAction(),
         ], static::HEADER_ACTIONS_KEY);
@@ -92,20 +93,6 @@ class ConversationList extends Component
             return $conversation->image;
         });
 
-    }
-
-    public function heading(string | Htmlable | Closure | null $heading): static
-    {
-        $this->heading = $heading;
-
-        return $this;
-    }
-
-    public function description(string | Htmlable | Closure | null $description): static
-    {
-        $this->description = $description;
-
-        return $this;
     }
 
     public function conversationListOverflow(bool | Closure $condition = true): static
@@ -134,16 +121,6 @@ class ConversationList extends Component
         $this->modifyCreateGroupConversationActionUsing = $callback;
 
         return $this;
-    }
-
-    public function getHeading(): string | Htmlable
-    {
-        return $this->evaluate($this->heading) ?? __('filament-converse::conversation-list.heading');
-    }
-
-    public function getDescription(): string | Htmlable | null
-    {
-        return $this->evaluate($this->description);
     }
 
     public function shouldConversationListOverflow(): bool

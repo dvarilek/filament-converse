@@ -25,7 +25,7 @@ trait CanManageConversations
 
     public function mountCanManageConversations(): void
     {
-        // $this->resetCachedConversations();
+        $this->resetCachedConversations();
     }
 
     /**

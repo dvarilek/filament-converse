@@ -14,14 +14,14 @@ class SendMessage
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function handle(ConversationParticipation $sender, Conversation $conversation, array $attributes): Message
+    public function handle(ConversationParticipation $author, Conversation $conversation, array $attributes): Message
     {
         /* @var Message */
         return DB::transaction(static fn () => $conversation->messages()->create([
             'content' => $attributes['content'] ?? null,
             'attachments' => $attributes['attachments'] ?? [],
             'reply_to_message_id' => $attributes['reply_to_message_id'] ?? null,
-            'sender_id' => $sender->getKey(),
+            'author_id' => $author->getKey(),
         ]));
     }
 }

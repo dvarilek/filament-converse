@@ -1,3 +1,74 @@
 .fi-converse-conversation-thread {
     @apply rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
+
+    & .fi-converse-conversation-thread-header {
+        @apply pb-3;
+
+        & .fi-converse-conversation-thread-header-avatar {
+            @apply self-end;
+        }
+
+        & .fi-converse-conversation-thread-header-heading {
+            @apply text-xl font-bold leading-6 text-gray-950 dark:text-white;
+        }
+    }
+
+    & .fi-converse-conversation-message-area {
+        @apply flex flex-col gap-3 pt-3;
+
+        & .fi-converse-conversation-thread-message-box {
+            @apply flex flex-col gap-3;
+
+            & .fi-converse-conversation-thread-message-container {
+                @apply flex gap-3;
+
+                & .fi-converse-conversation-thread-message-avatar {
+                    @apply self-end;
+                }
+
+                & .fi-converse-conversation-thread-message-content {
+
+                    & .fi-converse-conversation-thread-message-details {
+                        @apply flex gap-3 text-xs  text-gray-600 dark:text-gray-400;
+
+                        & .fi-converse-conversation-thread-message-author {
+                            @apply max-w-1/2;
+                        }
+
+                        & .fi-converse-conversation-thread-message-time {
+                            @apply max-w-1/2;
+                        }
+                    }
+
+                    & .fi-converse-conversation-thread-message-body {
+                        @apply flex gap-2 items-center;
+
+                        & .fi-converse-conversation-thread-message {
+                            @apply bg-blue-400 break-words whitespace-normal text-sm leading-6 text-gray-950 dark:text-white py-1 px-3 rounded-xl max-w-4/5;
+                        }
+                    }
+                }
+
+                &.fi-converse-conversation-thread-message-container-reversed {
+                    @apply flex-row-reverse;
+
+                    & .fi-converse-conversation-thread-message-content {
+                        @apply items-end;
+                    }
+
+                    & .fi-converse-conversation-thread-message-details {
+                        @apply flex-row-reverse;
+                    }
+
+                    & .fi-converse-conversation-thread-message-body {
+                        @apply flex-row-reverse;
+                    }
+                }
+            }
+        }
+    }
+
+    & .fi-converse-conversation-thread-message-input {
+
+    }
 }

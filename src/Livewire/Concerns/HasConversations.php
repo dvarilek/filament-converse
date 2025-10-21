@@ -4,6 +4,7 @@ namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 
@@ -24,6 +25,7 @@ trait HasConversations
 
         FilamentConverseException::validateConversableUser($user);
 
+        /* @var Builder<Conversation> $conversations */
         $conversations = $user->conversations()
             ->select('conversations.*')
             ->getQuery();
@@ -34,7 +36,9 @@ trait HasConversations
         return $conversations
             ->with([
                 'createdBy.participant',
-                'participations.participant',
+                'otherParticipations.participant' => function (Builder $query) use ($user) {
+                    $query->orderBy
+                }
             ])
             ->get();
     }
