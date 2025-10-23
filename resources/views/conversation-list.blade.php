@@ -6,6 +6,7 @@
     use Filament\Actions\ActionGroup;
     use Filament\Support\Icons\Heroicon;
     use Illuminate\Support\Collection;
+    use Dvarilek\FilamentConverse\Models\Message;
     use Illuminate\View\ComponentAttributeBag;
 
     $shouldShowConversationImage = $shouldShowConversationImage();
@@ -21,7 +22,7 @@
         fn (Action | ActionGroup $action) => $action->isVisible()
     );
 
-    $authenticatedUser = auth()->user();
+    $authenticatedUserKey = auth()->id();
 @endphp
 
 <div class="fi-converse-conversation-list">
@@ -118,9 +119,9 @@
                 $conversationName = $getConversationName($conversation);
                 $conversationKey = $conversation->getKey();
 
-                $latestMessage = $conversation->getLatestMessage();
+                /* @var Message $latestMessage */
+                $latestMessage = $conversation->participations->flatMap->messages->sortByDesc('created_at')->first();
             @endphp
-
             <li
                 wire:click="updateActiveConversation('{{ $conversationKey }}')"
                 @class([
@@ -130,61 +131,11 @@
                 ])
             >
                 @if ($shouldShowConversationImage)
-
-                    @if ($hasConversationImageClosure && filled($conversationImage = $getConversationImage($conversation)))
-                        <div
-                            class="fi-converse-conversation-list-item-image-wrapper"
-                        >
-                            <x-filament::avatar
-                                class="fi-converse-conversation-list-item-image"
-                                :src="$conversationImage"
-                                :alt="$conversationName"
-                                size="lg"
-                            />
-                        </div>
-                    @else
-                        @php
-                            $otherParticipations = $conversation->otherParticipations;
-                            $hasMultipleAvatarsInConversationImage = $conversation->isGroup() || $otherParticipations->count() >= 2;
-                        @endphp
-
-                        <div
-                            @class([
-                                'fi-converse-conversation-list-item-multiple-avatars' => $hasMultipleAvatarsInConversationImage,
-                                'fi-converse-conversation-list-item-image-wrapper',
-                            ])
-                        >
-                            @if ($hasMultipleAvatarsInConversationImage && ($latestMessages ?? null))
-                                @php
-                                    // TODO: Actually take two latest by messages or two first if no messages
-                                    $lastTwoParticipations = $otherParticipations->slice(-2)->values();
-                                    $latestParticipant = $lastTwoParticipations->last()->participant;
-                                    $penultimateParticipant = $lastTwoParticipations->first()->participant;
-                                @endphp
-
-                                <x-filament::avatar
-                                    class="fi-converse-conversation-list-item-image fi-converse-conversation-list-item-penultimate-avatar"
-                                    :src="filament()->getUserAvatarUrl($penultimateParticipant)"
-                                    :alt="$penultimateParticipant->getAttribute($penultimateParticipant::getFilamentNameAttribute())"
-                                    size="md"
-                                />
-                                <x-filament::avatar
-                                    color="primary"
-                                    class="fi-converse-conversation-list-item-image fi-converse-conversation-list-item-last-avatar"
-                                    :src="filament()->getUserAvatarUrl($latestParticipant)"
-                                    :alt="$latestParticipant->getAttribute($latestParticipant::getFilamentNameAttribute())"
-                                    size="md"
-                                />
-                            @else
-                                <x-filament::avatar
-                                    class="fi-converse-conversation-list-item-image"
-                                    :src="filament()->getUserAvatarUrl($otherParticipations->first()->participant)"
-                                    :alt="$conversationName"
-                                    size="lg"
-                                />
-                            @endif
-                        </div>
-                    @endif
+                    <x-filament-converse::conversation-image
+                        :conversation="$conversation"
+                        :conversation-name="$conversationName"
+                        :conversation-image="$hasConversationImageClosure ? $getConversationImage($conversation) : null"
+                    />
                 @endif
 
                 <div class="fi-converse-conversation-list-item-content">
@@ -193,11 +144,11 @@
                             {{ $conversationName }}
                         </h4>
 
-                        @if ($lastMessage)
+                        @if ($latestMessage)
                             <p
                                 class="fi-converse-conversation-list-item-time-indicator"
                             >
-                                TODO
+                                {{ $latestMessage->created_at }}
                             </p>
                         @endif
                     </div>
@@ -206,18 +157,21 @@
                     >
                         @if ($latestMessage)
                             @php
-                                $condition = $conversation->otherParticipations->map->getKey()
-                                    ->first(fn (string $key) => $latestMessage->author_id === $key)
-                                    ->getKey() === $authenticatedUser->getKey();
-
-                                $messagePrefix = $condition
-                                    ? $authenticatedUser->getAttributeValue($authenticatedUser::getFilamentNameAttribute())
-                                    : __('filament-converse::conversation-list.last-message.current-user');
+                                $participantWithLatestMessage = $conversation
+                                    ->participations
+                                    ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
+                                    ?->participant;
                             @endphp
 
-                            {{ $messagePrefix . ": " . $latestMessage->content }}
-                        @else
-                            {{ __('filament-converse::conversation-list.last-message.empty-state') }}
+                            @if ($participantWithLatestMessage)
+                                @php
+                                    $messagePrefix = $participantWithLatestMessage->getKey() === $authenticatedUserKey
+                                        ? __('filament-converse::conversation-list.last-message.current-user')
+                                        : $participantWithLatestMessage->getAttributeValue($participantWithLatestMessage::getFilamentNameAttribute());
+                                @endphp
+
+                                {{ $messagePrefix }}: {{ $latestMessage->content }}
+                            @endif
                         @endif
                     </p>
                 </div>

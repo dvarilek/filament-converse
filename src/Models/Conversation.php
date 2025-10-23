@@ -7,15 +7,12 @@ namespace Dvarilek\FilamentConverse\Models;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Support\Carbon;
 
 /**
@@ -54,18 +51,6 @@ class Conversation extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-
-    public function messages(): HasManyThrough
-    {
-        return $this->hasManyThrough(
-            Message::class,
-            ConversationParticipation::class,
-            'conversation_id',
-            'author_id',
-            'id',
-            'id'
-        );
-    }
 
     /**
      * @return HasMany<ConversationParticipation, static>

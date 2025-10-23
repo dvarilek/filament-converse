@@ -35,10 +35,8 @@ trait HasConversations
 
         return $conversations
             ->with([
-                'createdBy.participant',
-                'otherParticipations.participant' => function (Builder $query) use ($user) {
-                    $query->orderBy
-                }
+                'participations.participant',
+                'participations.messages',
             ])
             ->get();
     }
