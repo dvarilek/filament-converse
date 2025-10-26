@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -20,6 +21,8 @@ use Illuminate\Support\Collection;
  * @property int|string $participant_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property Collection<int, Message> $messages
+ * @property Message|null $latestMessage
  * @property Collection<int, Conversation> $createdConversations
  * @property Authenticatable&Model $participant
  */
@@ -69,6 +72,15 @@ class ConversationParticipation extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class, 'author_id');
+    }
+
+    /**
+     * @return HasOne<Message, static>
+     */
+    public function latestMessage(): HasOne
+    {
+        return $this->hasOne(Message::class, 'author_id')
+            ->latestOfMany('created_at');
     }
     
     /**

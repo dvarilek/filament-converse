@@ -94,6 +94,11 @@ class Conversation extends Model
         return app(SendMessage::class)->handle($author, $this, $attributes);
     }
 
+    public function getLatestMessages(): Collection
+    {
+        
+    }
+
     public function getName(): string
     {
         if ($this->name) {

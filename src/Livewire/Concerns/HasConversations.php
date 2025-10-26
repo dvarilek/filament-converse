@@ -4,6 +4,7 @@ namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\Message;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -36,7 +37,7 @@ trait HasConversations
         return $conversations
             ->with([
                 'participations.participant',
-                'participations.messages',
+                'participations.latestMessage'
             ])
             ->get();
     }

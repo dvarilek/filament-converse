@@ -120,7 +120,11 @@
                 $conversationKey = $conversation->getKey();
 
                 /* @var Message $latestMessage */
-                $latestMessage = $conversation->participations->flatMap->messages->sortByDesc('created_at')->first();
+                $latestMessage = $conversation->participations
+                    ->pluck('latestMessage')
+                    ->filter()
+                    ->sortByDesc('created_at')
+                    ->first();
             @endphp
             <li
                 wire:click="updateActiveConversation('{{ $conversationKey }}')"
@@ -160,18 +164,16 @@
                                 $participantWithLatestMessage = $conversation
                                     ->participations
                                     ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
-                                    ?->participant;
+                                    ->participant;
+
+                                $messagePrefix = $participantWithLatestMessage->getKey() === $authenticatedUserKey
+                                    ? __('filament-converse::conversation-list.last-message.current-user')
+                                    : $participantWithLatestMessage->getAttributeValue($participantWithLatestMessage::getFilamentNameAttribute());
                             @endphp
 
-                            @if ($participantWithLatestMessage)
-                                @php
-                                    $messagePrefix = $participantWithLatestMessage->getKey() === $authenticatedUserKey
-                                        ? __('filament-converse::conversation-list.last-message.current-user')
-                                        : $participantWithLatestMessage->getAttributeValue($participantWithLatestMessage::getFilamentNameAttribute());
-                                @endphp
-
-                                {{ $messagePrefix }}: {{ $latestMessage->content }}
-                            @endif
+                            {{ $messagePrefix }}: {{ $latestMessage->content }}
+                        @else
+                            {{ __('filament-converse::conversation-list.last-message.empty-state') }}
                         @endif
                     </p>
                 </div>
