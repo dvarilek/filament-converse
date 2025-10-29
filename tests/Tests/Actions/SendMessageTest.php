@@ -22,11 +22,10 @@ it('can send a message', function () {
         ]
     );
 
-    $sender = $conversation->createdBy;
+    $author = $conversation->creator;
 
     $message = app(SendMessage::class)->handle(
-        $sender,
-        $conversation,
+        $author,
         [
             'content' => 'Test message',
             'attachments' => [],
@@ -37,8 +36,7 @@ it('can send a message', function () {
         ->toBeInstanceOf(Message::class)
         ->content->toBe('Test message')
         ->attachments->toBe([])
-        ->sender->getKey()->toBe($sender->getKey())
-        ->conversation->getKey()->toBe($conversation->getKey());
+        ->author->getKey()->toBe($author->getKey());
 });
 
 it('can send a message through message model', function () {
@@ -54,9 +52,9 @@ it('can send a message through message model', function () {
         ]
     );
 
-    $sender = $conversation->createdBy;
+    $author = $conversation->creator;
 
-    $message = $conversation->sendMessage($sender, [
+    $message = $author->sendMessage([
         'content' => 'Test message',
     ]);
 
@@ -64,8 +62,7 @@ it('can send a message through message model', function () {
         ->toBeInstanceOf(Message::class)
         ->content->toBe('Test message')
         ->attachments->toBe([])
-        ->sender->getKey()->toBe($sender->getKey())
-        ->conversation->getKey()->toBe($conversation->getKey());
+        ->author->getKey()->toBe($author->getKey());
 });
 
 it('can send a reply to a message', function () {
@@ -81,13 +78,13 @@ it('can send a reply to a message', function () {
         ]
     );
 
-    $sender = $conversation->createdBy;
+    $author = $conversation->creator;
 
-    $message = $conversation->sendMessage($sender, [
+    $message = $author->sendMessage([
         'content' => 'First text message',
     ]);
 
-    $reply = $conversation->sendMessage($sender, [
+    $reply = $conversation->otherParticipations->first()->sendMessage([
         'content' => 'Second text message',
         'reply_to_message_id' => $message->getKey(),
     ]);
@@ -96,8 +93,7 @@ it('can send a reply to a message', function () {
         ->toBeInstanceOf(Message::class)
         ->content->toBe('Second text message')
         ->attachments->toBe([])
-        ->sender->getKey()->toBe($sender->getKey())
-        ->conversation->getKey()->toBe($conversation->getKey())
+        ->author->getKey()->toBe($author->getKey())
         ->reply->getKey()->toBe($message->getKey())
         ->and($message->replies)->toHaveCount(1)
         ->and($message->replies->first()->getKey())->toBe($reply->getKey());

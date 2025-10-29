@@ -6,36 +6,28 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 
 use Closure;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Schemas\Components\Converse;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
 
 trait HasConversations
 {
-    protected bool | Closure $shouldShowConversationImage = true;
+    protected bool | Closure | null $shouldShowConversationImage = true;
 
-    protected ?Closure $getConversationNameUsing = null;
-
-    protected ?Closure $getConversationImageUsing = null;
+    protected ?Closure $formatConversationNameUsing = null;
 
     protected ?Closure $isConversationUnread = null;
 
-    public function showConversationImage(bool | Closure $condition = true): static
+    public function showConversationImage(bool | Closure | null $condition = true): static
     {
         $this->shouldShowConversationImage = $condition;
 
         return $this;
     }
 
-    public function getConversationNameUsing(Closure $callback): static
+    public function formatConversationNameUsing(?Closure $callback = null): static
     {
-        $this->getConversationNameUsing = $callback;
-
-        return $this;
-    }
-
-    public function getConversationImageUsing(?Closure $callback = null): static
-    {
-        $this->getConversationImageUsing = $callback;
+        $this->formatConversationNameUsing = $callback;
 
         return $this;
     }
@@ -52,24 +44,6 @@ trait HasConversations
         return (bool) $this->evaluate($this->shouldShowConversationImage);
     }
 
-    public function getConversationName(Conversation $conversation): string | Htmlable
-    {
-        return $this->evaluate($this->getConversationNameUsing, [
-            'conversation' => $conversation,
-        ], [
-            Conversation::class => $conversation,
-        ]);
-    }
-
-    public function getConversationImage(Conversation $conversation): ?string
-    {
-        return $this->evaluate($this->getConversationImageUsing, [
-            'conversation' => $conversation,
-        ], [
-            Conversation::class => $conversation,
-        ]);
-    }
-
     public function isConversationUnread(Conversation $conversation): bool
     {
         return (bool) $this->evaluate($this->isConversationUnread, [
@@ -79,14 +53,37 @@ trait HasConversations
         ]);
     }
 
-    public function hasConversationImageClosure(): bool
-    {
-        return $this->getConversationImageUsing !== null;
-    }
-
     public function hasIsConversationUnreadClosure(): bool
     {
         return $this->isConversationUnread !== null;
+    }
+
+    public function hasConversationImageClosure(): bool
+    {
+        return $this->getConverseComponent()->hasConversationImageClosure();
+    }
+
+    public function getConversationName(Conversation $conversation): string | Htmlable | null
+    {
+        $name = $this->getConverseComponent()->getConversationName($conversation);
+
+        if ($this->formatConversationNameUsing) {
+            $name = $this->evaluate($this->formatConversationNameUsing, [
+                'name' => $name,
+                'conversationName' => $name,
+                'value' => $name,
+                'conversation' => $conversation,
+            ], [
+                Conversation::class => $conversation,
+            ]);
+        }
+
+        return $name;
+    }
+
+    public function getConversationImage(Conversation $conversation): ?string
+    {
+        return $this->getConverseComponent()->getConversationImage($conversation);
     }
 
     /**
@@ -94,11 +91,22 @@ trait HasConversations
      */
     public function getConversations(): Collection
     {
-        return $this->getLivewire()->conversations;
+        return $this->getConverseComponent()->getConversations();
     }
 
     public function getActiveConversation(): ?Conversation
     {
-        return $this->getLivewire()->getActiveConversation();
+        return $this->getConverseComponent()->getActiveConversation();
+    }
+
+    protected function getConverseComponent(): Converse
+    {
+        $component = $this->getContainer()->getParentComponent();
+
+        if (! $component instanceof Converse) {
+            // TODO: Exception
+        }
+
+        return $component;
     }
 }

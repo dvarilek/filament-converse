@@ -32,7 +32,7 @@ it('can create a conversation with a single participant', function () {
         ->and($conversation->participations)->toHaveCount(2)
         ->and($creator->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
         ->and($otherUser->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
-        ->and($conversation->createdBy->participant->getKey())->toBe($creator->getKey());
+        ->and($conversation->creator->participant->getKey())->toBe($creator->getKey());
 });
 
 it('can create a conversation with multiple participants', function () {
@@ -60,7 +60,7 @@ it('can create a conversation with multiple participants', function () {
         ->and($creator->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
         ->and($firstUser->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
         ->and($secondUser->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
-        ->and($conversation->createdBy->participant->getKey())->toBe($creator->getKey());
+        ->and($conversation->creator->participant->getKey())->toBe($creator->getKey());
 });
 
 it('throws an exception when the creator user is not a model that uses the Conversable trait', function () {

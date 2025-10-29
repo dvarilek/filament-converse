@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Illuminate\Database\Migrations\Migration;

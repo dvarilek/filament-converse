@@ -47,7 +47,7 @@ class Message extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-    
+
     /**
      * @return BelongsTo<Message, static>
      */

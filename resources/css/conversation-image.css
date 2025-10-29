@@ -1,0 +1,19 @@
+.fi-converse-conversation-image-container {
+    @apply min-h-10 min-w-10;
+
+    &.fi-converse-conversation-image-multiple-avatars {
+        @apply relative mb-1;
+    }
+
+    &.fi-converse-conversation-image-image {
+        @apply self-center;
+    }
+
+    & .fi-converse-conversation-image-top-avatar {
+        @apply absolute bottom-3 left-0;
+    }
+
+    & .fi-converse-conversation-image-bottom-avatar {
+        @apply absolute -bottom-2 right-0;
+    }
+}

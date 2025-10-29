@@ -5,20 +5,18 @@
 ])
 
 @php
-    use Illuminate\Support\Collection;
-    use Dvarilek\FilamentConverse\Models\Message;
-    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
     use Dvarilek\FilamentConverse\Models\Conversation;
+    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+    use Dvarilek\FilamentConverse\Models\Message;
+    use Illuminate\Support\Collection;
 
-    /* @var Conversation $conversation*/
+    /* @var Conversation $conversation */
 @endphp
 
 @if ($conversationImage)
-    <div
-        class="fi-converse-conversation-list-item-image-wrapper"
-    >
+    <div class="fi-converse-conversation-image-container">
         <x-filament::avatar
-            class="fi-converse-conversation-list-item-image"
+            class="fi-converse-conversation-image-image"
             :src="$conversationImage"
             :alt="$conversationName"
             size="lg"
@@ -26,86 +24,59 @@
     </div>
 @else
     @php
-        $hasMultipleAvatarsInConversationImage = $conversation->isGroup() && ! $conversation->participations->count() <= 2;
+        $hasMultipleAvatarsInConversationImage = $conversation->isGroup() && $conversation->participations->count() > 2;
         $otherConversationParticipations = $conversation->participations->where('participant_id', '!=', auth()->id());
     @endphp
 
     <div
         @class([
-            'fi-converse-conversation-list-item-multiple-avatars' => $hasMultipleAvatarsInConversationImage,
-            'fi-converse-conversation-list-item-image-wrapper',
+            'fi-converse-conversation-image-multiple-avatars' => $hasMultipleAvatarsInConversationImage,
+            'fi-converse-conversation-image-container',
         ])
     >
-        @if ($hasMultipleAvatarsInConversationImage && false)
+        @if ($hasMultipleAvatarsInConversationImage)
             @php
                 /* @var Collection<int, Message> $latestMessages */
-                $latestMessages = $conversationParticipations
+                $latestMessages = $otherConversationParticipations
                     ->pluck('latestMessage')
                     ->filter()
                     ->sortByDesc('created_at');
 
-                $latestMessage = $latestMessages->first();
-                $primaryKey = (new ConversationParticipation)->getKeyName();
-
-                $participantWithLatestMessage = $conversation
-                    ->participations
-                    ->firstWhere($primaryKey, $latestMessage?->author_id)
-                    ?->participant;
-
                 if ($latestMessages->isEmpty()) {
-                    $fallbackParticipants = $conversation
-                            ->participations
-                            ->where('participant_id', '!=', auth()->id())
-                            ->pluck('participant')
-                            ->filter()
-                            ->values();
-
-                        $participantWithLatestMessage = $fallbackParticipants->get(0);
-                        $participantWithPenultimateMessage = $fallbackParticipants->get(1);
+                    [$bottomAvatarParticipant, $topAvatarParticipant] = $otherConversationParticipations->pluck('participant');
                 } else {
-                    $secondParticipantLatestMessage = $latestMessages
-                        ->where('author_id', '!=', $latestMessage?->author_id)
-                        ->first();
+                    $conversationParticipationPrimaryKey = (new ConversationParticipation)->getKeyName();
 
-                    $participantWithPenultimateMessage = $conversation
-                        ->participations
-                        ->firstWhere($primaryKey, $secondParticipantLatestMessage?->author_id)
-                        ?->participant;
+                    $firstLatestMessage = $latestMessages->first();
+                    $secondLatestMessage = $latestMessages->firstWhere('author_id', '!=', $firstLatestMessage->author_id);
 
-                    if (!$participantWithLatestMessage || !$participantWithPenultimateMessage) {
-                        $fallbackParticipants = $conversation
-                            ->participations
-                            ->pluck('participant')
-                            ->filter()
-                            ->where('id', '!=', auth()->id())
-                            ->whereNotIn('id', array_filter([
-                                $participantWithLatestMessage?->getKey(),
-                                $participantWithPenultimateMessage?->getKey(),
-                            ]))
-                            ->values();
+                    $firstParticipationWithLatestMessage = $otherConversationParticipations
+                        ->firstWhere($conversationParticipationPrimaryKey, $firstLatestMessage->author_id);
 
-                        $participantWithLatestMessage ??= $fallbackParticipants->get(0);
-                        $participantWithPenultimateMessage ??= $fallbackParticipants->get(1);
-                    }
+                    $secondParticipationWithLatestMessage = $otherConversationParticipations
+                        ->firstWhere($conversationParticipationPrimaryKey, $secondLatestMessage?->author_id ?? $firstParticipationWithLatestMessage->getKey());
+
+                    $bottomAvatarParticipant = $firstParticipationWithLatestMessage->participant;
+                    $topAvatarParticipant = $secondParticipationWithLatestMessage->participant;
                 }
             @endphp
 
             <x-filament::avatar
-                class="fi-converse-conversation-list-item-image fi-converse-conversation-list-item-penultimate-avatar"
-                :src="filament()->getUserAvatarUrl($participantWithPenultimateMessage)"
-                :alt="$participantWithPenultimateMessage->getAttributeValue($participantWithPenultimateMessage::getFilamentNameAttribute())"
+                class="fi-converse-conversation-image-image fi-converse-conversation-image-top-avatar"
+                :src="filament()->getUserAvatarUrl($topAvatarParticipant)"
+                :alt="$topAvatarParticipant->getAttributeValue($topAvatarParticipant::getFilamentNameAttribute())"
                 size="md"
             />
             <x-filament::avatar
                 color="primary"
-                class="fi-converse-conversation-list-item-image fi-converse-conversation-list-item-last-avatar"
-                :src="filament()->getUserAvatarUrl($participantWithLatestMessage)"
-                :alt="$participantWithLatestMessage->getAttributeValue($participantWithLatestMessage::getFilamentNameAttribute())"
+                class="fi-converse-conversation-image-image fi-converse-conversation-image-bottom-avatar"
+                :src="filament()->getUserAvatarUrl($bottomAvatarParticipant)"
+                :alt="$bottomAvatarParticipant->getAttributeValue($bottomAvatarParticipant::getFilamentNameAttribute())"
                 size="md"
             />
         @else
             <x-filament::avatar
-                class="fi-converse-conversation-list-item-image"
+                class="fi-converse-conversation-image-image"
                 :src="filament()->getUserAvatarUrl($otherConversationParticipations->first()->participant)"
                 :alt="$conversationName"
                 size="lg"

@@ -62,9 +62,9 @@ trait HasEmptyState
         return $this->evaluate($this->emptyState);
     }
 
-    public function getEmptyStateHeading(): string | Htmlable
+    public function getEmptyStateHeading(): string | Htmlable | null
     {
-        return $this->evaluate($this->emptyStateHeading) ?? __('filament-converse::conversation-list.empty-state.heading');
+        return $this->evaluate($this->emptyStateHeading);
     }
 
     public function getEmptyStateDescription(): string | Htmlable | null

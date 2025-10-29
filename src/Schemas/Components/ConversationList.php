@@ -7,6 +7,8 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 use Closure;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateDirectConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateGroupConversationAction;
 use Filament\Actions\Action;
@@ -18,13 +20,14 @@ use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Support\HtmlString;
 use Livewire\Component as LivewireComponent;
 
 class ConversationList extends Component
 {
     use Concerns\HasConversations;
     use Concerns\HasEmptyState;
-    use Concerns\HasHeader;
     use Concerns\HasSearch;
     use HasKey;
 
@@ -37,7 +40,21 @@ class ConversationList extends Component
      */
     protected string $view = 'filament-converse::conversation-list';
 
-    protected bool | Closure $shouldConversationListOverflow = false;
+    protected string | Htmlable | Closure | null $heading = null;
+
+    protected string | Htmlable | Closure | null $description = null;
+
+    protected bool | Closure $hasHeadingBadge = true;
+
+    protected int | string | Closure | null $headingBadgeState = null;
+
+    protected string | array | Closure | null $headingBadgeColor = null;
+
+    protected string | BackedEnum | Htmlable | Closure | false | null $headingBadgeIcon = null;
+
+    protected ?Closure $getLatestMessageDateTimeUsing = null;
+
+    protected ?Closure $getLatestMessageContentUsing = null;
 
     protected ?Closure $modifyCreateConversationActionUsing = null;
 
@@ -66,6 +83,10 @@ class ConversationList extends Component
 
         $this->searchPlaceholder(__('filament-converse::conversation-list.search.placeholder'));
 
+        $this->emptyStateHeading(static function () {
+            return __('filament-converse::conversation-list.empty-state.heading');
+        });
+
         $this->emptyStateDescription(static function () {
             if (! auth()->user()->participatesInAnyConversation()) {
                 return __('filament-converse::conversation-list.empty-state.description');
@@ -85,19 +106,79 @@ class ConversationList extends Component
             $this->getCreateGroupConversationAction(),
         ], static::CREATE_CONVERSATION_NESTED_ACTIONS_KEY);
 
-        $this->getConversationNameUsing(static function (Conversation $conversation) {
-            return $conversation->getName();
+        $this->getLatestMessageDateTimeUsing(static function (Message $latestMessage) {
+            return $latestMessage->created_at->shortAbsoluteDiffForHumans();
         });
 
-        $this->getConversationImageUsing(static function (Conversation $conversation) {
-            return $conversation->image;
-        });
+        $this->getLatestMessageContentUsing(static function (Conversation $conversation, Message $latestMessage) {
+            $participantWithLatestMessage = $conversation
+                ->participations
+                ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
+                ->participant;
 
+            $messagePrefix = $participantWithLatestMessage->getKey() === auth()->id()
+                ? __('filament-converse::conversation-list.last-message.current-user')
+                : $participantWithLatestMessage->getAttributeValue($participantWithLatestMessage::getFilamentNameAttribute());
+
+            return $messagePrefix . ': ' . $latestMessage->content;
+        });
     }
 
-    public function conversationListOverflow(bool | Closure $condition = true): static
+    public function heading(string | Htmlable | Closure | null $heading): static
     {
-        $this->shouldConversationListOverflow = $condition;
+        $this->heading = $heading;
+
+        return $this;
+    }
+
+    public function description(string | Htmlable | Closure | null $description): static
+    {
+        $this->description = $description;
+
+        return $this;
+    }
+
+    public function headingBadge(bool | Closure $condition = true): static
+    {
+        $this->hasHeadingBadge = $hasBadge;
+
+        return $this;
+    }
+
+    public function headingBadgeState(int | string | Closure | null $state): static
+    {
+        $this->headingBadgeState = $state;
+
+        return $this;
+    }
+
+    /**
+     * @param  string | array<string> | Closure | null  $color
+     */
+    public function headingBadgeColor(string | array | Closure | null $color): static
+    {
+        $this->color = $color;
+
+        return $this;
+    }
+
+    public function headingBadgeIcon(string | BackedEnum | Htmlable | Closure | null $icon): static
+    {
+        $this->icon = filled($icon) ? $icon : false;
+
+        return $this;
+    }
+
+    public function getLatestMessageDateTimeUsing(?Closure $callback = null): static
+    {
+        $this->getLatestMessageDateTimeUsing = $callback;
+
+        return $this;
+    }
+
+    public function getLatestMessageContentUsing(?Closure $callback = null): static
+    {
+        $this->getLatestMessageContentUsing = $callback;
 
         return $this;
     }
@@ -123,14 +204,72 @@ class ConversationList extends Component
         return $this;
     }
 
-    public function shouldConversationListOverflow(): bool
+    public function getHeading(): string | Htmlable
     {
-        return (bool) $this->evaluate($this->shouldConversationListOverflow);
+        return $this->evaluate($this->heading) ?? __('filament-converse::conversation-list.heading');
     }
 
-    public function getLivewire(): LivewireComponent & HasSchemas & HasActions & HasConversationList
+    public function getDescription(): string | Htmlable | null
     {
-        return parent::getLivewire();
+        return $this->evaluate($this->description);
+    }
+
+    public function hasHeadingBadge(): bool
+    {
+        return (bool) $this->evaluate($this->hasHeadingBadge);
+    }
+
+    public function getHeadingBadgeState(): int | string | null
+    {
+        return $this->evaluate($this->headingBadgeState);
+    }
+
+    /**
+     * @return string | array<string> | null
+     */
+    public function getHeadingBadgeColor(): string | array | null
+    {
+        return $this->evaluate($this->headingBadgeColor);
+    }
+
+    public function getHeadingBadgeIcon(): string | BackedEnum | Htmlable | null
+    {
+        $icon = $this->evaluate($this->headingBadgeIcon);
+
+        // https://github.com/filamentphp/filament/pull/13512
+        if ($icon instanceof Renderable) {
+            return new HtmlString($icon->render());
+        }
+
+        if ($icon === false) {
+            return null;
+        }
+
+        return $icon;
+    }
+
+    public function getLatestMessageDateTime(Conversation $conversation, Message $latestMessage): ?string
+    {
+        return $this->evaluate($this->getLatestMessageDateTimeUsing, [
+            'conversation' => $conversation,
+            'latestMessage' => $latestMessage,
+            'message' => $latestMessage,
+        ], [
+            Conversation::class => $conversation,
+            Message::class => $latestMessage,
+        ]);
+    }
+
+    public function getLatestMessageContent(Conversation $conversation, Message $latestMessage): ?string
+    {
+        return $this->evaluate($this->getLatestMessageContentUsing, [
+            'conversation' => $conversation,
+            'latestMessage' => $latestMessage,
+            'message' => $latestMessage,
+        ], [
+            Conversation::class => $conversation,
+            Message::class => $latestMessage,
+        ]);
     }
 
     protected function getCreateConversationAction(): Action
@@ -184,5 +323,10 @@ class ConversationList extends Component
         }
 
         return $action;
+    }
+
+    public function getLivewire(): LivewireComponent & HasSchemas & HasActions & HasConversationList
+    {
+        return parent::getLivewire();
     }
 }

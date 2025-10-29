@@ -1,74 +1,85 @@
 .fi-converse-conversation-thread {
-    @apply rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
+    @apply flex h-full max-h-[85vh] flex-col rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
 
     & .fi-converse-conversation-thread-header {
-        @apply pb-3;
+        @apply min-h-1/8 flex flex-wrap items-center gap-4 border-b border-gray-200 p-6 dark:border-white/10;
 
-        & .fi-converse-conversation-thread-header-avatar {
-            @apply self-end;
+        & .fi-converse-conversation-thread-header-content {
+            @apply flex min-w-0 flex-1 items-center gap-4;
+
+            & .fi-converse-conversation-thread-header-expand-list-button {
+                @apply block flex-shrink-0 lg:hidden;
+            }
+
+            & .fi-converse-conversation-thread-header-heading {
+                @apply truncate text-xl font-bold leading-6 text-gray-950 dark:text-white;
+            }
         }
 
-        & .fi-converse-conversation-thread-header-heading {
-            @apply text-xl font-bold leading-6 text-gray-950 dark:text-white;
+        & .fi-converse-conversation-thread-header-actions {
+            @apply flex items-center gap-2;
         }
     }
 
-    & .fi-converse-conversation-message-area {
-        @apply flex flex-col gap-3 pt-3;
+    & .fi-converse-conversation-thread-message-box {
+        @apply flex-1 flex-col gap-3 p-6;
 
-        & .fi-converse-conversation-thread-message-box {
-            @apply flex flex-col gap-3;
+        & .fi-converse-conversation-thread-message-container {
+            @apply flex gap-2;
 
-            & .fi-converse-conversation-thread-message-container {
-                @apply flex gap-3;
+            & .fi-converse-conversation-thread-message-avatar {
+                @apply self-end;
+            }
 
-                & .fi-converse-conversation-thread-message-avatar {
-                    @apply self-end;
-                }
+            & .fi-converse-conversation-thread-message-content {
+                & .fi-converse-conversation-thread-message-details {
+                    @apply flex gap-3 text-xs text-gray-600 dark:text-gray-400;
 
-                & .fi-converse-conversation-thread-message-content {
-
-                    & .fi-converse-conversation-thread-message-details {
-                        @apply flex gap-3 text-xs  text-gray-600 dark:text-gray-400;
-
-                        & .fi-converse-conversation-thread-message-author {
-                            @apply max-w-1/2;
-                        }
-
-                        & .fi-converse-conversation-thread-message-time {
-                            @apply max-w-1/2;
-                        }
+                    & .fi-converse-conversation-thread-message-author {
+                        @apply max-w-1/2;
                     }
 
-                    & .fi-converse-conversation-thread-message-body {
-                        @apply flex gap-2 items-center;
-
-                        & .fi-converse-conversation-thread-message {
-                            @apply bg-blue-400 break-words whitespace-normal text-sm leading-6 text-gray-950 dark:text-white py-1 px-3 rounded-xl max-w-4/5;
-                        }
+                    & .fi-converse-conversation-thread-message-time {
+                        @apply max-w-1/2;
                     }
                 }
 
-                &.fi-converse-conversation-thread-message-container-reversed {
-                    @apply flex-row-reverse;
+                & .fi-converse-conversation-thread-message-body {
+                    @apply flex items-center gap-2;
 
-                    & .fi-converse-conversation-thread-message-content {
-                        @apply items-end;
+                    & .fi-converse-conversation-thread-message {
+                        @apply bg-primary-200 max-w-4/5 whitespace-normal break-words rounded-xl px-3 py-1 text-sm leading-6 text-gray-950 dark:text-white;
                     }
 
-                    & .fi-converse-conversation-thread-message-details {
-                        @apply flex-row-reverse;
-                    }
-
-                    & .fi-converse-conversation-thread-message-body {
-                        @apply flex-row-reverse;
+                    & .fi-converse-conversation-thread-message-actions {
+                        @apply flex gap-3 opacity-0 group-hover:opacity-100;
                     }
                 }
             }
+
+            &.fi-converse-conversation-thread-message-container-reversed {
+                @apply flex-row-reverse;
+
+                & .fi-converse-conversation-thread-message-content {
+                    @apply items-end;
+                }
+
+                & .fi-converse-conversation-thread-message-details {
+                    @apply flex-row-reverse;
+                }
+
+                & .fi-converse-conversation-thread-message-body {
+                    @apply flex-row-reverse;
+                }
+            }
+        }
+
+        & .fi-converse-conversation-thread-empty-state {
+            @apply flex h-full items-center;
         }
     }
 
     & .fi-converse-conversation-thread-message-input {
-
+        @apply min-h-1/8 flex flex-wrap items-center gap-4 border-t border-gray-200 p-6 dark:border-white/10;
     }
 }

@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models;
 
-use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
-use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
+use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
 
 /**
@@ -20,12 +18,12 @@ use Illuminate\Support\Carbon;
  * @property string|null $image
  * @property string|null $name
  * @property string|null $description
- * @property string $created_by
+ * @property string $creator_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Collection<int, ConversationParticipation> $participations
  * @property Collection<int, ConversationParticipation> $otherParticipations
- * @property ConversationParticipation|null $createdBy
+ * @property ConversationParticipation|null $creator
  */
 class Conversation extends Model
 {
@@ -39,7 +37,7 @@ class Conversation extends Model
         'image',
         'name',
         'description',
-        'created_by',
+        'creator_id',
     ];
 
     /**
@@ -71,9 +69,9 @@ class Conversation extends Model
     /**
      * @return BelongsTo<ConversationParticipation, static>
      */
-    public function createdBy(): BelongsTo
+    public function creator(): BelongsTo
     {
-        return $this->belongsTo(ConversationParticipation::class, 'created_by');
+        return $this->belongsTo(ConversationParticipation::class, 'creator_id');
     }
 
     public function isDirect(): bool
@@ -86,33 +84,27 @@ class Conversation extends Model
         return $this->type === ConversationTypeEnum::GROUP;
     }
 
-    /**
-     * @param  array<string, mixed>  $attributes
-     */
-    public function sendMessage(ConversationParticipation $author, array $attributes): Message
-    {
-        return app(SendMessage::class)->handle($author, $this, $attributes);
-    }
-
-    public function getLatestMessages(): Collection
-    {
-        
-    }
-
     public function getName(): string
     {
         if ($this->name) {
             return $this->name;
         }
 
-        $nameAttribute = FilamentConverseServiceProvider::getFilamentConverseUserModel()::getFilamentNameAttribute();
+        $authenticatedParticipant = auth()->user();
+        FilamentConverseException::validateConversableUser($authenticatedParticipant);
 
-        $participantNames = $this->otherParticipations()
-            ->with([
-                'participant:id,' . $nameAttribute,
-            ])
-            ->get()
-            ->pluck('participant.' . $nameAttribute);
+        $participantNameAttribute = $authenticatedParticipant::getFilamentNameAttribute();
+
+        if ($this->relationLoaded('participations')) {
+            $participantNames = $this->participations
+                ->where('participant_id', '!=', $authenticatedParticipant->getKey())
+                ->pluck('participant.' . $participantNameAttribute);
+        } else {
+            $participantNames = $this->otherParticipations()
+                ->with('participant')
+                ->get()
+                ->pluck('participant.' . $participantNameAttribute);
+        }
 
         return match ($participantNames->count()) {
             0 => '',

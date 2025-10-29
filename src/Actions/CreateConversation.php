@@ -19,15 +19,15 @@ class CreateConversation
      * @param  Collection<int, Model&Authenticatable>|(Model&Authenticatable)  $participants
      * @param  array<string, mixed>  $attributes
      */
-    public function handle(Authenticatable & Model $createdBy, (Authenticatable & Model) | Collection $participants, array $attributes): Conversation
+    public function handle(Authenticatable & Model $creator, (Authenticatable & Model) | Collection $participants, array $attributes): Conversation
     {
         if (! $participants instanceof Collection) {
             $participants = collect([$participants]);
         }
 
         /* @var Conversation */
-        return DB::transaction(function () use ($createdBy, $participants, $attributes) {
-            FilamentConverseException::validateConversableUser($createdBy);
+        return DB::transaction(function () use ($creator, $participants, $attributes) {
+            FilamentConverseException::validateConversableUser($creator);
 
             $timestamp = now()->format('Y-m-d H:i:s');
 
@@ -43,14 +43,14 @@ class CreateConversation
 
             $conversationKey = $conversation->getKey();
 
-            /* @var ConversationParticipation $createdByParticipant */
-            $createdByParticipant = $createdBy->conversationParticipations()->create([
+            /* @var ConversationParticipation $creatorParticipant */
+            $creatorParticipant = $creator->conversationParticipations()->create([
                 'joined_at' => $timestamp,
                 'invited_at' => $timestamp,
                 'conversation_id' => $conversationKey,
             ]);
 
-            $conversation->createdBy()->associate($createdByParticipant)->save();
+            $conversation->creator()->associate($creatorParticipant)->save();
 
             $participants->each(function (Authenticatable & Model $participant) use ($conversationKey, $timestamp) {
                 FilamentConverseException::validateConversableUser($participant);

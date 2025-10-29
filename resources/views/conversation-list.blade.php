@@ -1,12 +1,12 @@
 @php
     use Dvarilek\FilamentConverse\Models\Conversation;
     use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+    use Dvarilek\FilamentConverse\Models\Message;
     use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
     use Filament\Actions\Action;
     use Filament\Actions\ActionGroup;
     use Filament\Support\Icons\Heroicon;
     use Illuminate\Support\Collection;
-    use Dvarilek\FilamentConverse\Models\Message;
     use Illuminate\View\ComponentAttributeBag;
 
     $shouldShowConversationImage = $shouldShowConversationImage();
@@ -19,13 +19,15 @@
 
     $headerActions = array_filter(
         $getChildComponents(ConversationList::HEADER_ACTIONS_KEY),
-        fn (Action | ActionGroup $action) => $action->isVisible()
+        static fn (Action | ActionGroup $action) => $action->isVisible()
     );
-
-    $authenticatedUserKey = auth()->id();
 @endphp
 
-<div class="fi-converse-conversation-list">
+<div
+    class="fi-converse-conversation-list"
+    x-show="!isBelowLg || showConversationListSidebar"
+    x-on:click.away="isBelowLg && (showConversationListSidebar = false)"
+>
     <div class="fi-converse-conversation-list-header">
         <div class="fi-converse-conversation-list-header-top">
             <div class="fi-converse-conversation-list-header-content">
@@ -108,24 +110,21 @@
         </div>
     </div>
 
-    <ul
-        @class([
-            'fi-converse-conversation-list-overflow' => $shouldConversationListOverflow(),
-            'fi-converse-conversation-area',
-        ])
-    >
+    <ul class="fi-converse-conversation-area">
         @forelse ($conversations as $conversation)
             @php
                 $conversationName = $getConversationName($conversation);
                 $conversationKey = $conversation->getKey();
 
                 /* @var Message $latestMessage */
-                $latestMessage = $conversation->participations
+                $latestMessage = $conversation
+                    ->participations
                     ->pluck('latestMessage')
                     ->filter()
                     ->sortByDesc('created_at')
                     ->first();
             @endphp
+
             <li
                 wire:click="updateActiveConversation('{{ $conversationKey }}')"
                 @class([
@@ -152,7 +151,7 @@
                             <p
                                 class="fi-converse-conversation-list-item-time-indicator"
                             >
-                                {{ $latestMessage->created_at }}
+                                {{ $getLatestMessageDateTime($conversation, $latestMessage) }}
                             </p>
                         @endif
                     </div>
@@ -160,18 +159,7 @@
                         class="fi-converse-conversation-list-item-last-message-description"
                     >
                         @if ($latestMessage)
-                            @php
-                                $participantWithLatestMessage = $conversation
-                                    ->participations
-                                    ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
-                                    ->participant;
-
-                                $messagePrefix = $participantWithLatestMessage->getKey() === $authenticatedUserKey
-                                    ? __('filament-converse::conversation-list.last-message.current-user')
-                                    : $participantWithLatestMessage->getAttributeValue($participantWithLatestMessage::getFilamentNameAttribute());
-                            @endphp
-
-                            {{ $messagePrefix }}: {{ $latestMessage->content }}
+                            {{ $getLatestMessageContent($conversation, $latestMessage) }}
                         @else
                             {{ __('filament-converse::conversation-list.last-message.empty-state') }}
                         @endif

@@ -19,7 +19,7 @@ it('can create conversation participation with participant name', function () {
             'type' => ConversationTypeEnum::GROUP,
         ]
     )
-        ->createdBy;
+        ->creator;
 
     expect($firstUserParticipation)->toBeInstanceOf(ConversationParticipation::class)
         ->participant->name->toBe('user name');

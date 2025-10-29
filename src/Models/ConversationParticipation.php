@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models;
 
+use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -66,7 +67,7 @@ class ConversationParticipation extends Model
      */
     public function createdConversations(): HasMany
     {
-        return $this->hasMany(Conversation::class, 'created_by');
+        return $this->hasMany(Conversation::class, 'creator_id');
     }
 
     public function messages(): HasMany
@@ -82,7 +83,7 @@ class ConversationParticipation extends Model
         return $this->hasOne(Message::class, 'author_id')
             ->latestOfMany('created_at');
     }
-    
+
     /**
      * @return BelongsTo<Authenticatable & Model, static>
      */
@@ -94,5 +95,13 @@ class ConversationParticipation extends Model
     public function isPending(): bool
     {
         return $this->joined_at === null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function sendMessage(array $attributes): Message
+    {
+        return app(SendMessage::class)->handle($this, $attributes);
     }
 }
