@@ -4,15 +4,14 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
-use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Schemas\Components\Concerns\BelongsToLivewire;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Schemas\Contracts\HasSchemas;
-use Livewire\Component as LivewireComponent;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
+use Livewire\Component as LivewireComponent;
 
 class ConversationPanel extends Component
 {
@@ -42,7 +41,7 @@ class ConversationPanel extends Component
 
     public static function make(LivewireComponent & HasSchemas & HasConversationList $livewire): static
     {
-        $static = app(static::class, ['livewire' => $livewire]);;
+        $static = app(static::class, ['livewire' => $livewire]);
         $static->configure();
 
         return $static;

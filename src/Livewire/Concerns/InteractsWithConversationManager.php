@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationPanel;
-use Filament\Actions\Concerns\HasAction;
-use Filament\Actions\Concerns\HasSchema;
 
 trait InteractsWithConversationManager
 {

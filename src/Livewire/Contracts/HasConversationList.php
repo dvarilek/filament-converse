@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Livewire\Contracts;
 
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 interface HasConversationList

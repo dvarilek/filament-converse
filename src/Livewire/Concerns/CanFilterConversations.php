@@ -12,8 +12,5 @@ trait CanFilterConversations
     /**
      * @param  Builder<Conversation>  $query
      */
-    public function applyConversationListFilters(Builder $query): void
-    {
-
-    }
+    public function applyConversationListFilters(Builder $query): void {}
 }

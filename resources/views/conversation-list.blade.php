@@ -127,6 +127,7 @@
 
             <li
                 wire:click="updateActiveConversation('{{ $conversationKey }}')"
+                wire:loading.attr="disabled"
                 @class([
                     'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
                     'fi-converse-conversation-list-item-unread' => $hasIsConversationUnreadClosure && $isConversationUnread($conversation),

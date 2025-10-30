@@ -43,26 +43,12 @@ trait HasConversations
     #[Computed(persist: true, key: 'filament-converse::conversations-list-computed-property')]
     public function conversations(): Collection
     {
-        $user = auth()->user();
+        $query = $this->getConversationsBaseQuery();
 
-        if (! in_array(Conversable::class, class_uses_recursive($user))) {
-            FilamentConverseException::throwInvalidConversableUserException($user);
-        }
+        $this->applyConversationListSearch($query);
+        $this->applyConversationListFilters($query);
 
-        /* @var Builder<Conversation> $conversations */
-        $conversations = $user->conversations()
-            ->select('conversations.*')
-            ->getQuery();
-
-        $this->applyConversationListSearch($conversations);
-        $this->applyConversationListFilters($conversations);
-
-        return $conversations
-            ->with([
-                'participations.participant',
-                'participations.latestMessage',
-            ])
-            ->get();
+        return $query->get();
     }
 
     public function updateActiveConversation(string $conversationKey): void
@@ -83,7 +69,19 @@ trait HasConversations
             return null;
         }
 
-        return $this->conversations->firstWhere((new Conversation)->getKeyName(), $this->activeConversationKey);
+        $conversation = $this->conversations
+            ->firstWhere((new Conversation)->getQualifiedKeyName(), $this->activeConversationKey);
+
+        if ($conversation) {
+            return $conversation;
+        }
+
+        if (! $this->getConversationPanel()->getConversationList()->isSearchable()) {
+            return null;
+        }
+
+        return $this->getConversationsBaseQuery()
+            ->firstWhere((new Conversation)->getQualifiedKeyName(), $this->activeConversationKey);
     }
 
     public function resetCachedConversations(): void
@@ -96,5 +94,26 @@ trait HasConversations
         $livewire = md5($this::class);
 
         return "{$livewire}_active_conversation";
+    }
+
+    /**
+     * @return Builder<Conversation>
+     */
+    protected function getConversationsBaseQuery(): Builder
+    {
+        $user = auth()->user();
+
+        if (! in_array(Conversable::class, class_uses_recursive($user))) {
+            FilamentConverseException::throwInvalidConversableUserException($user);
+        }
+
+        /* @var Builder<Conversation> */
+        return $user->conversations()
+            ->select('conversations.*')
+            ->getQuery()
+            ->with([
+                'participations.participant',
+                'participations.latestMessage',
+            ]);
     }
 }

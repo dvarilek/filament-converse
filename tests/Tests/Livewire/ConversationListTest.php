@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
-use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateDirectConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateGroupConversationAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
@@ -83,7 +83,7 @@ describe('search', function () {
             ->toContain($firstUserConversation->getKey(), $secondUserConversation->getKey(), $groupConversation->getKey());
     });
 
-    it('can search conversations by name and description', function () {
+    it('can search conversations by name or description', function () {
         $creator = User::factory()->create();
         $otherUser = User::factory()->create();
 
@@ -121,6 +121,24 @@ describe('search', function () {
             ->pluck($primaryKey)
             ->toContain($secondUserConversation->getKey())
             ->not->toContain($firstUserConversation->getKey());
+    });
+
+    test('search does not affect the active conversation', function () {
+        $creator = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $this->actingAs($creator);
+
+        $conversation = app(CreateConversation::class)->handle($creator, $otherUser, [
+            'type' => ConversationTypeEnum::DIRECT,
+        ]);
+
+        $livewire = livewire(ConversationManager::class)
+            ->set('conversationListSearch', 'This should not affect the active conversation');
+
+        expect($livewire->instance())
+            ->conversations->toHaveCount(0)
+            ->getActiveConversation()->getKey()->toBe($conversation->getKey());
     });
 });
 

@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Livewire;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
-use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Livewire\Livewire;
 
 class FilamentConverseServiceProvider extends PackageServiceProvider
 {

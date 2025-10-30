@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Model;
 
 final class FilamentConverseException extends Exception
 {
-
     /**
      * @param  class-string<Model & Authenticatable>|Model  $user
      */
@@ -22,7 +21,7 @@ final class FilamentConverseException extends Exception
         }
 
         throw new self(
-            "The user model [" . $user . "] must use the [" . Conversable::class . "] trait.",
+            'The user model [' . $user . '] must use the [' . Conversable::class . '] trait.',
         );
     }
 }
