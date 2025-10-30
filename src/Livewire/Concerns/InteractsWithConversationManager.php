@@ -14,7 +14,7 @@ trait InteractsWithConversationManager
 
     protected ConversationPanel $conversationPanel;
 
-    public function bootedInteractsWithConversationManager(): void
+    public function bootInteractsWithConversationManager(): void
     {
         $this->conversationPanel = $this->makeConversationPanel();
     }
