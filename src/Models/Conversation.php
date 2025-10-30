@@ -6,11 +6,13 @@ namespace Dvarilek\FilamentConverse\Models;
 
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
+use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -19,6 +21,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $name
  * @property string|null $description
  * @property string $creator_id
+ * @property int|string|null $subject_id
+ * @property string|null $subject_type
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Collection<int, ConversationParticipation> $participations
@@ -91,7 +95,10 @@ class Conversation extends Model
         }
 
         $authenticatedParticipant = auth()->user();
-        FilamentConverseException::validateConversableUser($authenticatedParticipant);
+
+        if (! in_array(Conversable::class, class_uses_recursive($authenticatedParticipant))) {
+            FilamentConverseException::throwInvalidConversableUserException($authenticatedParticipant);
+        }
 
         $participantNameAttribute = $authenticatedParticipant::getFilamentNameAttribute();
 

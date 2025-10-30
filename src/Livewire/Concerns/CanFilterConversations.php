@@ -14,6 +14,6 @@ trait CanFilterConversations
      */
     public function applyConversationListFilters(Builder $query): void
     {
-        // TODO: Do later, + maybe add more traitsr
+
     }
 }

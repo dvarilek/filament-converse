@@ -20,6 +20,7 @@ return new class extends Migration
             $table->foreignIdFor(ConversationParticipation::class, 'creator_id')
                 ->nullable()->default(null)
                 ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
+            $table->nullableMorphs('subject');
             $table->timestamps();
         });
     }

@@ -3,9 +3,8 @@
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
+use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Schemas\Components\Converse;
-use Filament\Schemas\Components\Component;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -19,22 +18,22 @@ trait HasConversations
 
     public function mountHasConversations(): void
     {
+        $this->conversationPanel = $this->makeConversationPanel();
         $this->resetCachedConversations();
 
-        if ($this->activeConversationKey === null) {
-            if ($converseComponent = $this->getConverseComponent()) {
-                $shouldPersistActiveConversationInSession = $converseComponent->shouldPersistActiveConversationInSession();
-                $activeConversationSessionKey = $this->getActiveConversationSessionKey();
+        $conversationPanel = $this->getConversationPanel();
 
-                if (
-                    $shouldPersistActiveConversationInSession &&
-                    session()->has($activeConversationSessionKey)
-                ) {
-                    $this->activeConversationKey = session()->get($activeConversationSessionKey);
-                } else {
-                    $this->activeConversationKey = $converseComponent->getDefaultActiveConversation()?->getKey();
-                }
-            }
+        $shouldPersistActiveConversationInSession = $conversationPanel->shouldPersistActiveConversationInSession();
+        $activeConversationSessionKey = $this->getActiveConversationSessionKey();
+
+        if (
+            $this->activeConversationKey === null &&
+            $shouldPersistActiveConversationInSession &&
+            session()->has($activeConversationSessionKey)
+        ) {
+            $this->activeConversationKey = session()->get($activeConversationSessionKey);
+        } else {
+            $this->activeConversationKey = $conversationPanel->getDefaultActiveConversation()?->getKey();
         }
     }
 
@@ -45,7 +44,10 @@ trait HasConversations
     public function conversations(): Collection
     {
         $user = auth()->user();
-        FilamentConverseException::validateConversableUser($user);
+
+        if (! in_array(Conversable::class, class_uses_recursive($user))) {
+            FilamentConverseException::throwInvalidConversableUserException($user);
+        }
 
         /* @var Builder<Conversation> $conversations */
         $conversations = $user->conversations()
@@ -63,6 +65,18 @@ trait HasConversations
             ->get();
     }
 
+    public function updateActiveConversation(string $conversationKey): void
+    {
+        $this->activeConversationKey = $conversationKey;
+
+        if ($this->getConversationPanel()->shouldPersistActiveConversationInSession()) {
+            session()->put(
+                $this->getActiveConversationSessionKey(),
+                $this->activeConversationKey,
+            );
+        }
+    }
+
     public function getActiveConversation(): ?Conversation
     {
         if (! $this->activeConversationKey) {
@@ -72,19 +86,9 @@ trait HasConversations
         return $this->conversations->firstWhere((new Conversation)->getKeyName(), $this->activeConversationKey);
     }
 
-    public function updateActiveConversation(string $conversationKey): void
+    public function resetCachedConversations(): void
     {
-        $this->activeConversationKey = $conversationKey;
-
-        if (
-            ($converseComponent = $this->getConverseComponent()) &&
-            $converseComponent->shouldPersistActiveConversationInSession()
-        ) {
-            session()->put(
-                $this->getActiveConversationSessionKey(),
-                $this->activeConversationKey,
-            );
-        }
+        unset($this->conversations);
     }
 
     public function getActiveConversationSessionKey(): string
@@ -92,16 +96,5 @@ trait HasConversations
         $livewire = md5($this::class);
 
         return "{$livewire}_active_conversation";
-    }
-
-    protected function getConverseComponent(): ?Converse
-    {
-        return collect($this->getSchema('content')->getFlatComponents())
-            ->first(fn (Component $component) => $component instanceof Converse);
-    }
-
-    public function resetCachedConversations(): void
-    {
-        unset($this->conversations);
     }
 }

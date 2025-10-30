@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Pages\ConversationPage;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateDirectConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateGroupConversationAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
@@ -28,7 +28,7 @@ describe('render', function () {
         /* @var Conversation $groupConversation */
         $groupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser]), ['type' => ConversationTypeEnum::GROUP]);
 
-        $livewire = livewire(ConversationPage::class);
+        $livewire = livewire(ConversationManager::class);
 
         expect($livewire->instance()->conversations)
             ->toHaveCount(3)
@@ -57,7 +57,7 @@ describe('search', function () {
         $groupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser]), ['type' => ConversationTypeEnum::GROUP]);
 
         $primaryKey = (new Conversation)->getKeyName();
-        $livewire = livewire(ConversationPage::class);
+        $livewire = livewire(ConversationManager::class);
 
         $livewire->set('conversationListSearch', $firstUser->name);
 
@@ -104,7 +104,7 @@ describe('search', function () {
         ]);
 
         $primaryKey = (new Conversation)->getKeyName();
-        $livewire = livewire(ConversationPage::class);
+        $livewire = livewire(ConversationManager::class);
 
         $livewire->set('conversationListSearch', 'Group A');
 
@@ -131,7 +131,7 @@ describe('actions', function () {
 
         $this->actingAs($creator);
 
-        $livewire = livewire(ConversationPage::class)
+        $livewire = livewire(ConversationManager::class)
             ->callAction(TestAction::make(CreateDirectConversationAction::getDefaultName())->schemaComponent('conversation-list'), [
                 'participant' => $otherUser->getKey(),
             ])
@@ -157,7 +157,7 @@ describe('actions', function () {
     it('requires a selected participant to create a new direct conversation', function () {
         $this->actingAs(User::factory()->create());
 
-        livewire(ConversationPage::class)
+        livewire(ConversationManager::class)
             ->callAction(TestAction::make(CreateDirectConversationAction::getDefaultName())->schemaComponent('conversation-list'))
             ->assertHasFormErrors(['participant' => 'required']);
     });
@@ -169,7 +169,7 @@ describe('actions', function () {
 
         $this->actingAs($creator);
 
-        $livewire = livewire(ConversationPage::class)
+        $livewire = livewire(ConversationManager::class)
             ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation-list'), [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
             ])
@@ -199,7 +199,7 @@ describe('actions', function () {
 
         $this->actingAs($creator);
 
-        $livewire = livewire(ConversationPage::class)
+        $livewire = livewire(ConversationManager::class)
             ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation-list'), [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
                 'name' => 'Test conversation',
@@ -227,7 +227,7 @@ describe('actions', function () {
     it('requires selected participants to create a new group conversation', function () {
         $this->actingAs(User::factory()->create());
 
-        livewire(ConversationPage::class)
+        livewire(ConversationManager::class)
             ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation-list'))
             ->assertHasFormErrors(['participants' => 'required']);
     });

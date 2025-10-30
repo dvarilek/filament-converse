@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Actions;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
+use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Exception;
@@ -27,7 +28,9 @@ class CreateConversation
 
         /* @var Conversation */
         return DB::transaction(function () use ($creator, $participants, $attributes) {
-            FilamentConverseException::validateConversableUser($creator);
+            if (! in_array(Conversable::class, class_uses_recursive($creator))) {
+                FilamentConverseException::throwInvalidConversableUserException($creator);
+            }
 
             $timestamp = now()->format('Y-m-d H:i:s');
 
@@ -39,7 +42,13 @@ class CreateConversation
                 'image' => $attributes['image'] ?? null,
             ]);
 
-            $this->validationConversationType($conversation, $participants);
+            if ($participants->isEmpty()) {
+                throw new Exception('A conversation cannot be created without participants.');
+            }
+
+            if ($participants->count() > 1 && $conversation->isDirect()) {
+                throw new Exception('A direct conversation cannot be created with more than one participant');
+            }
 
             $conversationKey = $conversation->getKey();
 
@@ -53,7 +62,9 @@ class CreateConversation
             $conversation->creator()->associate($creatorParticipant)->save();
 
             $participants->each(function (Authenticatable & Model $participant) use ($conversationKey, $timestamp) {
-                FilamentConverseException::validateConversableUser($participant);
+                if (! in_array(Conversable::class, class_uses_recursive($participant))) {
+                    FilamentConverseException::throwInvalidConversableUserException($participant);
+                }
 
                 $participant->conversationParticipations()->create([
                     'joined_at' => $timestamp,
@@ -64,21 +75,5 @@ class CreateConversation
 
             return $conversation;
         });
-    }
-
-    /**
-     * @param  Collection<int, Authenticatable&Model>  $participants
-     */
-    protected function validationConversationType(Conversation $conversation, Collection $participants): void
-    {
-        if ($participants->isEmpty()) {
-            throw new Exception('A conversation cannot be created without participants.');
-        }
-
-        $count = $participants->count();
-
-        if ($count > 1 && $conversation->isDirect()) {
-            throw new Exception('A direct conversation cannot be created with more than one participant');
-        }
     }
 }

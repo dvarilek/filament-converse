@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
+use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Livewire\Livewire;
 
 class FilamentConverseServiceProvider extends PackageServiceProvider
 {
@@ -35,6 +38,11 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
             });
     }
 
+    public function packageBooted(): void
+    {
+        Livewire::component('filament-converse.livewire.conversation-manager', ConversationManager::class);
+    }
+
     /**
      * @return class-string<Authenticatable & Model>
      */
@@ -51,7 +59,9 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
             throw new Exception('The user model must be an instance of [Illuminate\Contracts\Auth\Authenticatable].');
         }
 
-        FilamentConverseException::validateConversableUser($model);
+        if (! in_array(Conversable::class, class_uses_recursive($model))) {
+            FilamentConverseException::throwInvalidConversableUserException($model);
+        }
 
         return $model;
     }

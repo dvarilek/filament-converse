@@ -3,14 +3,20 @@
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
+use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Schemas\Components\Concerns\BelongsToLivewire;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
+use Filament\Schemas\Contracts\HasSchemas;
+use Livewire\Component as LivewireComponent;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
 
-class Converse extends Component
+class ConversationPanel extends Component
 {
+    use BelongsToLivewire;
     use HasKey;
 
     protected ?Closure $modifyConversationListUsing = null;
@@ -27,22 +33,16 @@ class Converse extends Component
 
     protected ?Closure $getConversationImageUsing = null;
 
-    protected string $view = 'filament-converse::converse';
+    protected string $view = 'filament-converse::conversation-panel';
 
-    /**
-     * @param  array<string, ?int> | int | null  $columns
-     */
-    final public function __construct(array | int | null $columns)
+    final public function __construct(LivewireComponent & HasSchemas & HasConversationList $livewire)
     {
-        $this->columns($columns);
+        $this->livewire($livewire);
     }
 
-    /**
-     * @param  array<string, ?int> | int | null  $columns
-     */
-    public static function make(array | int | null $columns = 2): static
+    public static function make(LivewireComponent & HasSchemas & HasConversationList $livewire): static
     {
-        $static = app(static::class, ['columns' => $columns]);
+        $static = app(static::class, ['livewire' => $livewire]);;
         $static->configure();
 
         return $static;

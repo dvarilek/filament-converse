@@ -6,7 +6,7 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 
 use Closure;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Schemas\Components\Converse;
+use Dvarilek\FilamentConverse\Schemas\Components\ConversationPanel;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
 
@@ -99,11 +99,11 @@ trait HasConversations
         return $this->getConverseComponent()->getActiveConversation();
     }
 
-    protected function getConverseComponent(): Converse
+    protected function getConverseComponent(): ConversationPanel
     {
         $component = $this->getContainer()->getParentComponent();
 
-        if (! $component instanceof Converse) {
+        if (! $component instanceof ConversationPanel) {
             // TODO: Exception
         }
 
