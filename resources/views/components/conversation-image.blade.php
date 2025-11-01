@@ -1,7 +1,8 @@
 @props([
     'conversation',
     'conversationName',
-    'conversationImage' => null,
+    'conversationImageUrl' => null,
+    'getDefaultConversationImageData',
 ])
 
 @php
@@ -13,19 +14,19 @@
     /* @var Conversation $conversation */
 @endphp
 
-@if ($conversationImage)
+@if ($conversationImageUrl)
     <div class="fi-converse-conversation-image-container">
         <x-filament::avatar
             class="fi-converse-conversation-image-image"
-            :src="$conversationImage"
+            :src="$conversationImageUrl"
             :alt="$conversationName"
             size="lg"
         />
     </div>
 @else
     @php
-        $hasMultipleAvatarsInConversationImage = $conversation->isGroup() && $conversation->participations->count() > 2;
-        $otherConversationParticipations = $conversation->participations->where('participant_id', '!=', auth()->id());
+        $conversationImageData = $getDefaultConversationImageData($conversation);
+        $hasMultipleAvatarsInConversationImage = count($conversationImageData) === 2;
     @endphp
 
     <div
@@ -36,49 +37,32 @@
     >
         @if ($hasMultipleAvatarsInConversationImage)
             @php
-                /* @var Collection<int, Message> $latestMessages */
-                $latestMessages = $otherConversationParticipations
-                    ->pluck('latestMessage')
-                    ->filter()
-                    ->sortByDesc('created_at');
-
-                if ($latestMessages->isEmpty()) {
-                    [$bottomAvatarParticipant, $topAvatarParticipant] = $otherConversationParticipations->pluck('participant');
-                } else {
-                    $conversationParticipationPrimaryKey = (new ConversationParticipation)->getKeyName();
-
-                    $firstLatestMessage = $latestMessages->first();
-                    $secondLatestMessage = $latestMessages->firstWhere('author_id', '!=', $firstLatestMessage->author_id);
-
-                    $firstParticipationWithLatestMessage = $otherConversationParticipations
-                        ->firstWhere($conversationParticipationPrimaryKey, $firstLatestMessage->author_id);
-
-                    $secondParticipationWithLatestMessage = $otherConversationParticipations
-                        ->firstWhere($conversationParticipationPrimaryKey, $secondLatestMessage?->author_id ?? $firstParticipationWithLatestMessage->getKey());
-
-                    $bottomAvatarParticipant = $firstParticipationWithLatestMessage->participant;
-                    $topAvatarParticipant = $secondParticipationWithLatestMessage->participant;
-                }
+                $topAvatarParticipant = $conversationImageData[0] ?? [];
+                $bottomAvatarParticipant = $conversationImageData[1] ?? [];
             @endphp
 
             <x-filament::avatar
                 class="fi-converse-conversation-image-image fi-converse-conversation-image-top-avatar"
-                :src="filament()->getUserAvatarUrl($topAvatarParticipant)"
-                :alt="$topAvatarParticipant->getAttributeValue($topAvatarParticipant::getFilamentNameAttribute())"
+                :src="$topAvatarParticipant['source'] ?? null"
+                :alt="$topAvatarParticipant['alt'] ?? null"
                 size="md"
             />
             <x-filament::avatar
                 color="primary"
                 class="fi-converse-conversation-image-image fi-converse-conversation-image-bottom-avatar"
-                :src="filament()->getUserAvatarUrl($bottomAvatarParticipant)"
-                :alt="$bottomAvatarParticipant->getAttributeValue($bottomAvatarParticipant::getFilamentNameAttribute())"
+                :src="$bottomAvatarParticipant['source'] ?? null"
+                :alt="$bottomAvatarParticipant['alt'] ?? null"
                 size="md"
             />
         @else
+            @php
+                $otherParticipant = $conversationImageData[0] ?? [];
+            @endphp
+
             <x-filament::avatar
                 class="fi-converse-conversation-image-image"
-                :src="filament()->getUserAvatarUrl($otherConversationParticipations->first()->participant)"
-                :alt="$conversationName"
+                :src="$otherParticipant['source'] ?? null"
+                :alt="$otherParticipant['alt'] ?? null"
                 size="lg"
             />
         @endif

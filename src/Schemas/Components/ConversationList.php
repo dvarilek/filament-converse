@@ -26,7 +26,7 @@ use Livewire\Component as LivewireComponent;
 
 class ConversationList extends Component
 {
-    use Concerns\HasConversations;
+    use Concerns\BelongsToConversationPanel;
     use Concerns\HasEmptyState;
     use Concerns\HasSearch;
     use HasKey;

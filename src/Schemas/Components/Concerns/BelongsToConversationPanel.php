@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 
 use Closure;
+use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationPanel;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
 
-trait HasConversations
+trait BelongsToConversationPanel
 {
     protected bool | Closure | null $shouldShowConversationImage = true;
 
@@ -58,11 +59,6 @@ trait HasConversations
         return $this->isConversationUnread !== null;
     }
 
-    public function hasConversationImageClosure(): bool
-    {
-        return $this->getConverseComponent()->hasConversationImageClosure();
-    }
-
     public function getConversationName(Conversation $conversation): string | Htmlable | null
     {
         $name = $this->getConverseComponent()->getConversationName($conversation);
@@ -81,9 +77,17 @@ trait HasConversations
         return $name;
     }
 
-    public function getConversationImage(Conversation $conversation): ?string
+    public function getConversationImageUrl(Conversation $conversation): ?string
     {
-        return $this->getConverseComponent()->getConversationImage($conversation);
+        return $this->getConverseComponent()->getConversationImageUrl($conversation);
+    }
+
+    /**
+     * @return array<int, array{source: string, alt: string}>
+     */
+    public function getDefaultConversationImageData(Conversation $conversation): array
+    {
+        return $this->getConverseComponent()->getDefaultConversationImageData($conversation);
     }
 
     /**
@@ -104,7 +108,7 @@ trait HasConversations
         $component = $this->getContainer()->getParentComponent();
 
         if (! $component instanceof ConversationPanel) {
-            // TODO: Exception
+            FilamentConverseException::throwInvalidParentComponentException(static::class, $component::class);
         }
 
         return $component;

@@ -1,2 +1,3 @@
 .fi-converse-conversation-manager {
+    @apply h-full;
 }

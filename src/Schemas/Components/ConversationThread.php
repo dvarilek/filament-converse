@@ -14,7 +14,7 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class ConversationThread extends Component
 {
-    use Concerns\HasConversations;
+    use Concerns\BelongsToConversationPanel;
     use Concerns\HasEmptyState;
     use HasKey;
 

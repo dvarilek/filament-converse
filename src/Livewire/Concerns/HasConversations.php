@@ -43,7 +43,7 @@ trait HasConversations
     #[Computed(persist: true, key: 'filament-converse::conversations-list-computed-property')]
     public function conversations(): Collection
     {
-        $query = $this->getConversationsBaseQuery();
+        $query = $this->getBaseConversationsQuery();
 
         $this->applyConversationListSearch($query);
         $this->applyConversationListFilters($query);
@@ -80,7 +80,7 @@ trait HasConversations
             return null;
         }
 
-        return $this->getConversationsBaseQuery()
+        return $this->getBaseConversationsQuery()
             ->firstWhere((new Conversation)->getQualifiedKeyName(), $this->activeConversationKey);
     }
 
@@ -99,7 +99,7 @@ trait HasConversations
     /**
      * @return Builder<Conversation>
      */
-    protected function getConversationsBaseQuery(): Builder
+    protected function getBaseConversationsQuery(): Builder
     {
         $user = auth()->user();
 

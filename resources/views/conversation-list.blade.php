@@ -10,7 +10,6 @@
     use Illuminate\View\ComponentAttributeBag;
 
     $shouldShowConversationImage = $shouldShowConversationImage();
-    $hasConversationImageClosure = $hasConversationImageClosure();
     $hasIsConversationUnreadClosure = $hasIsConversationUnreadClosure();
 
     /* @var Collection<int, Conversation> $conversations */
@@ -138,7 +137,8 @@
                     <x-filament-converse::conversation-image
                         :conversation="$conversation"
                         :conversation-name="$conversationName"
-                        :conversation-image="$hasConversationImageClosure ? $getConversationImage($conversation) : null"
+                        :conversation-image-url="$getConversationImageUrl($conversation)"
+                        :get-default-conversation-image-data="$getDefaultConversationImageData"
                     />
                 @endif
 

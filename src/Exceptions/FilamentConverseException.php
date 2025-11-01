@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Exceptions;
 
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
+use Dvarilek\FilamentConverse\Schemas\Components\ConversationPanel;
 use Exception;
+use Filament\Schemas\Components\Component;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,7 +23,18 @@ final class FilamentConverseException extends Exception
         }
 
         throw new self(
-            'The user model [' . $user . '] must use the [' . Conversable::class . '] trait.',
+            "The user model [{$user}] must use the [" . Conversable::class . '] trait.',
+        );
+    }
+
+    /**
+     * @param  class-string<Component>  $componentClass
+     * @param  class-string<Component>  $parentComponentClass
+     */
+    public static function throwInvalidParentComponentException(string $componentClass, string $parentComponentClass): never
+    {
+        throw new self(
+            "Component [{$componentClass}] must be nested within [" . ConversationPanel::class . "], but found [{$parentComponentClass}] instead."
         );
     }
 }
