@@ -9,6 +9,7 @@ use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationThread;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
@@ -21,11 +22,15 @@ class ConversationManager extends Component implements HasActions, HasConversati
     use InteractsWithConversationManager;
     use InteractsWithSchemas;
 
+    public ?array $data = [];
+
     protected ?string $conversationSchemaConfiguration = null;
 
     public function mount(?string $conversationSchemaConfiguration = null): void
     {
         $this->conversationSchemaConfiguration = $conversationSchemaConfiguration;
+
+        $this->content->fill();
     }
 
     public function content(Schema $schema): Schema
@@ -33,7 +38,8 @@ class ConversationManager extends Component implements HasActions, HasConversati
         return $schema
             ->components([
                 $this->getConversationSchema(),
-            ]);
+            ])
+            ->statePath('data');
     }
 
     public function render(): View

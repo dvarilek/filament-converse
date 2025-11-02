@@ -6,6 +6,8 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
 use Filament\Actions\Action;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Support\Enums\Size;
@@ -21,6 +23,8 @@ class ConversationThread extends Component
 
     const MESSAGE_ACTIONS_KEY = 'message_actions';
 
+    const MESSAGE_INPUT_KEY = 'message_input';
+
     /**
      * @var view-string
      */
@@ -31,6 +35,8 @@ class ConversationThread extends Component
     protected ?Closure $modifyEditMessageActionUsing = null;
 
     protected ?Closure $modifyDeleteMessageActionUsing = null;
+
+    protected ?Closure $modifyMessageInputComponentUsing = null;
 
     public static function make()
     {
@@ -54,10 +60,14 @@ class ConversationThread extends Component
             $this->getEditConversationAction(),
         ], static::HEADER_ACTIONS_KEY);
 
-        $this->childCOmponents(fn () => [
+        $this->childComponents(fn () => [
             $this->getEditMessageAction(),
             $this->getDeleteMessageAction(),
         ], static::MESSAGE_ACTIONS_KEY);
+
+        $this->childComponents(fn () => [
+             $this->getMessageInputComponent()
+        ], static::MESSAGE_INPUT_KEY);
     }
 
     public function editConversationAction(?Closure $callback): static
@@ -77,6 +87,13 @@ class ConversationThread extends Component
     public function deleteMessageAction(?Closure $callback): static
     {
         $this->modifyDeleteMessageActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function messageInputComponent(?Closure $callback): static
+    {
+        $this->modifyMessageInputComponentUsing = $callback;
 
         return $this;
     }
@@ -136,5 +153,23 @@ class ConversationThread extends Component
         }
 
         return $action;
+    }
+
+    protected function getMessageInputComponent(): Component
+    {
+        $component = RichEditor::make('message')
+            ->hiddenLabel()
+            ->columnSpanFull();
+
+        if ($this->modifyMessageInputComponentUsing) {
+            $component = $this->evaluate($this->modifyMessageInputComponentUsing, [
+                'component' => $component,
+            ], [
+                RichEditor::class => $component,
+                Component::class => $component,
+            ]) ?? $component;
+        }
+
+        return $component;
     }
 }

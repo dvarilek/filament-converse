@@ -142,7 +142,15 @@
     </div>
     @if ($conversation)
         <div class="fi-converse-conversation-thread-message-input">
-            Send message
+            <form wire:submit="sendMessage">
+                <div>
+                    {{ $getChildComponents(ConversationThread::MESSAGE_INPUT_KEY)[0] }}
+                </div>
+
+                <div wire:click="sendMessage">
+                    Send message
+                </div>
+            </form>
         </div>
     @endif
 </div>
