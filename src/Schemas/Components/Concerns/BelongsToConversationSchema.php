@@ -7,11 +7,11 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 use Closure;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Schemas\Components\ConversationPanel;
+use Dvarilek\FilamentConverse\Schemas\Components\ConversationSchema;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
 
-trait BelongsToConversationPanel
+trait BelongsToConversationSchema
 {
     protected bool | Closure | null $shouldShowConversationImage = true;
 
@@ -61,7 +61,7 @@ trait BelongsToConversationPanel
 
     public function getConversationName(Conversation $conversation): string | Htmlable | null
     {
-        $name = $this->getConverseComponent()->getConversationName($conversation);
+        $name = $this->getConversationSchema()->getConversationName($conversation);
 
         if ($this->formatConversationNameUsing) {
             $name = $this->evaluate($this->formatConversationNameUsing, [
@@ -79,7 +79,7 @@ trait BelongsToConversationPanel
 
     public function getConversationImageUrl(Conversation $conversation): ?string
     {
-        return $this->getConverseComponent()->getConversationImageUrl($conversation);
+        return $this->getConversationSchema()->getConversationImageUrl($conversation);
     }
 
     /**
@@ -87,7 +87,7 @@ trait BelongsToConversationPanel
      */
     public function getDefaultConversationImageData(Conversation $conversation): array
     {
-        return $this->getConverseComponent()->getDefaultConversationImageData($conversation);
+        return $this->getConversationSchema()->getDefaultConversationImageData($conversation);
     }
 
     /**
@@ -95,19 +95,19 @@ trait BelongsToConversationPanel
      */
     public function getConversations(): Collection
     {
-        return $this->getConverseComponent()->getConversations();
+        return $this->getConversationSchema()->getConversations();
     }
 
     public function getActiveConversation(): ?Conversation
     {
-        return $this->getConverseComponent()->getActiveConversation();
+        return $this->getConversationSchema()->getActiveConversation();
     }
 
-    protected function getConverseComponent(): ConversationPanel
+    protected function getConversationSchema(): ConversationSchema
     {
         $component = $this->getContainer()->getParentComponent();
 
-        if (! $component instanceof ConversationPanel) {
+        if (! $component instanceof ConversationSchema) {
             FilamentConverseException::throwInvalidParentComponentException(static::class, $component::class);
         }
 

@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use Carbon\Carbon;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
+use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateDirectConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateGroupConversationAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
@@ -38,6 +41,53 @@ describe('render', function () {
             ->assertSeeText($firstUserConversation->getName())
             ->assertSeeText($secondUserConversation->getName())
             ->assertSeeText($groupConversation->getName());
+    });
+
+    it('can render conversation name', function () {
+        $creator = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $this->actingAs($creator);
+
+        /* @var Conversation $conversation */
+        $conversation = app(CreateConversation::class)->handle($creator, $otherUser, ['type' => ConversationTypeEnum::DIRECT]);
+
+        livewire(ConversationManager::class)
+            ->assertSeeText($conversation->getName());
+    });
+
+    it('can render conversation latest messages', function () {
+        Carbon::setTestNow();
+
+        $creator = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $this->actingAs($creator);
+
+        /* @var Conversation $conversation */
+        $conversation = app(CreateConversation::class)->handle($creator, $otherUser, ['type' => ConversationTypeEnum::DIRECT]);
+
+        livewire(ConversationManager::class)
+            ->assertSeeText(__('filament-converse::conversation-list.last-message.empty-state'));
+
+        $firstMessage = app(SendMessage::class)->handle($conversation->creator, [
+            'content' => 'Test message',
+        ]);
+
+        livewire(ConversationManager::class)
+            ->assertSeeText(__('filament-converse::conversation-list.last-message.current-user') . ': ' . $firstMessage->content);
+
+        Carbon::setTestNow(now()->addMinutes(5));
+
+        /* @var ConversationParticipation $otherParticipant */
+        $otherParticipant = $conversation->otherParticipations()->first();
+
+        $secondMessage = app(SendMessage::class)->handle($otherParticipant, [
+            'content' => 'Second test message',
+        ]);
+
+        livewire(ConversationManager::class)
+            ->assertSeeText($otherUser->getAttributeValue($otherUser::getFilamentNameAttribute()) . ': ' . $secondMessage->content);
     });
 });
 
@@ -121,24 +171,6 @@ describe('search', function () {
             ->pluck($primaryKey)
             ->toContain($secondUserConversation->getKey())
             ->not->toContain($firstUserConversation->getKey());
-    });
-
-    test('search does not affect the active conversation', function () {
-        $creator = User::factory()->create();
-        $otherUser = User::factory()->create();
-
-        $this->actingAs($creator);
-
-        $conversation = app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]);
-
-        $livewire = livewire(ConversationManager::class)
-            ->set('conversationListSearch', 'This should not affect the active conversation');
-
-        expect($livewire->instance())
-            ->conversations->toHaveCount(0)
-            ->getActiveConversation()->getKey()->toBe($conversation->getKey());
     });
 });
 

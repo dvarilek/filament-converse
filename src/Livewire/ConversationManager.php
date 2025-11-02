@@ -21,12 +21,18 @@ class ConversationManager extends Component implements HasActions, HasConversati
     use InteractsWithConversationManager;
     use InteractsWithSchemas;
 
+    protected ?string $conversationSchemaConfiguration = null;
+
+    public function mount(?string $conversationSchemaConfiguration = null): void
+    {
+        $this->conversationSchemaConfiguration = $conversationSchemaConfiguration;
+    }
+
     public function content(Schema $schema): Schema
     {
-
         return $schema
             ->components([
-                $this->getConversationPanel(),
+                $this->getConversationSchema(),
             ]);
     }
 

@@ -18,12 +18,12 @@ trait HasConversations
 
     public function mountHasConversations(): void
     {
-        $this->conversationPanel = $this->makeConversationPanel();
+        $this->conversationSchema = $this->makeConversationSchema();
         $this->resetCachedConversations();
 
-        $conversationPanel = $this->getConversationPanel();
+        $conversationSchema = $this->getConversationSchema();
 
-        $shouldPersistActiveConversationInSession = $conversationPanel->shouldPersistActiveConversationInSession();
+        $shouldPersistActiveConversationInSession = $conversationSchema->shouldPersistActiveConversationInSession();
         $activeConversationSessionKey = $this->getActiveConversationSessionKey();
 
         if (
@@ -33,7 +33,7 @@ trait HasConversations
         ) {
             $this->activeConversationKey = session()->get($activeConversationSessionKey);
         } else {
-            $this->activeConversationKey = $conversationPanel->getDefaultActiveConversation()?->getKey();
+            $this->activeConversationKey = $conversationSchema->getDefaultActiveConversation()?->getKey();
         }
     }
 
@@ -55,7 +55,7 @@ trait HasConversations
     {
         $this->activeConversationKey = $conversationKey;
 
-        if ($this->getConversationPanel()->shouldPersistActiveConversationInSession()) {
+        if ($this->getConversationSchema()->shouldPersistActiveConversationInSession()) {
             session()->put(
                 $this->getActiveConversationSessionKey(),
                 $this->activeConversationKey,
@@ -76,7 +76,7 @@ trait HasConversations
             return $conversation;
         }
 
-        if (! $this->getConversationPanel()->getConversationList()->isSearchable()) {
+        if (! $this->getConversationSchema()->getConversationList()->isSearchable()) {
             return null;
         }
 

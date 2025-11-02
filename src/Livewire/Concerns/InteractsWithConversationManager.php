@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
-use Dvarilek\FilamentConverse\Schemas\Components\ConversationPanel;
+use Dvarilek\FilamentConverse\Schemas\Components\ConversationSchema;
 
 trait InteractsWithConversationManager
 {
@@ -12,26 +12,30 @@ trait InteractsWithConversationManager
     use CanSearchConversations;
     use HasConversations;
 
-    protected ConversationPanel $conversationPanel;
+    /**
+     * @var class-string|null
+     */
+    protected ConversationSchema $conversationSchema;
 
     public function bootInteractsWithConversationManager(): void
     {
-        $this->conversationPanel = $this->makeConversationPanel();
+        $this->conversationSchema = $this->makeConversationSchema();
     }
 
-    public function conversationPanel(ConversationPanel $conversationPanel): ConversationPanel
+    public function getConversationSchema(): ConversationSchema
     {
-        return $conversationPanel;
+        return $this->conversationSchema;
     }
 
-    public function getConversationPanel(): ConversationPanel
+    protected function makeConversationSchema(): ConversationSchema
     {
-        return $this->conversationPanel;
-    }
+        $conversationSchema = ConversationSchema::make($this);
 
-    protected function makeConversationPanel(): ConversationPanel
-    {
-        return ConversationPanel::make($this);
+        if ($this->conversationSchemaConfiguration && method_exists($this->conversationSchemaConfiguration, 'configure')) {
+            return $this->conversationSchemaConfiguration::configure($conversationSchema) ?? $conversationSchema;
+        }
+
+        return $conversationSchema;
     }
 
     public function resetCachedConversations(): void

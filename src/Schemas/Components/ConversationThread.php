@@ -10,11 +10,10 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Contracts\Support\Htmlable;
 
 class ConversationThread extends Component
 {
-    use Concerns\BelongsToConversationPanel;
+    use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
     use HasKey;
 
@@ -27,25 +26,15 @@ class ConversationThread extends Component
      */
     protected string $view = 'filament-converse::conversation-thread';
 
-    protected string | Htmlable | Closure | null $heading = null;
-
     protected ?Closure $modifyEditConversationActionUsing = null;
 
     protected ?Closure $modifyEditMessageActionUsing = null;
 
     protected ?Closure $modifyDeleteMessageActionUsing = null;
 
-    /**
-     * @param  array<string, mixed> | Closure  $data
-     */
-    public function __construct(string | Htmlable | Closure | null $heading)
+    public static function make()
     {
-        $this->heading($heading);
-    }
-
-    public static function make(string | Htmlable | Closure | null $heading = null)
-    {
-        $static = app(static::class, ['heading' => $heading]);
+        $static = app(static::class);
         $static->configure();
 
         return $static;
@@ -71,13 +60,6 @@ class ConversationThread extends Component
         ], static::MESSAGE_ACTIONS_KEY);
     }
 
-    public function heading(string | Htmlable | Closure | null $heading): static
-    {
-        $this->heading = $heading;
-
-        return $this;
-    }
-
     public function editConversationAction(?Closure $callback): static
     {
         $this->modifyEditConversationActionUsing = $callback;
@@ -97,11 +79,6 @@ class ConversationThread extends Component
         $this->modifyDeleteMessageActionUsing = $callback;
 
         return $this;
-    }
-
-    public function getHeading(): string | Htmlable
-    {
-        return $this->evaluate($this->heading) ?? __('filament-converse::conversation-thread.heading');
     }
 
     protected function getEditConversationAction(): Action
