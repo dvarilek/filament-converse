@@ -125,6 +125,7 @@
             @endphp
 
             <li
+                wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}"
                 wire:click="updateActiveConversation('{{ $conversationKey }}')"
                 wire:loading.attr="disabled"
                 @class([

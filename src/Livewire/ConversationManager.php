@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Livewire;
 
 use Dvarilek\FilamentConverse\Livewire\Concerns\InteractsWithConversationManager;
-use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
-use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationThread;
+use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
-use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Illuminate\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-class ConversationManager extends Component implements HasActions, HasConversationList, HasConversationThread, HasSchemas
+class ConversationManager extends Component implements HasActions, HasConversationSchema, HasSchemas
 {
     use InteractsWithActions;
     use InteractsWithConversationManager;
@@ -24,7 +23,8 @@ class ConversationManager extends Component implements HasActions, HasConversati
 
     public ?array $data = [];
 
-    protected ?string $conversationSchemaConfiguration = null;
+    #[Locked]
+    public ?string $conversationSchemaConfiguration = null;
 
     public function mount(?string $conversationSchemaConfiguration = null): void
     {

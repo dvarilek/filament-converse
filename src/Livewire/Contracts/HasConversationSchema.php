@@ -7,7 +7,7 @@ namespace Dvarilek\FilamentConverse\Livewire\Contracts;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Illuminate\Support\Collection;
 
-interface HasConversationList
+interface HasConversationSchema
 {
     /* @return Collection<int, Conversation> */
     public function conversations(): Collection;

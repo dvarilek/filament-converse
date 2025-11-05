@@ -19,6 +19,7 @@ class SendMessage
         return DB::transaction(static fn () => $author->messages()->create([
             'content' => $attributes['content'] ?? null,
             'attachments' => $attributes['attachments'] ?? [],
+            'attachment_file_names' => $attributes['attachment_file_names'] ?? [],
             'reply_to_message_id' => $attributes['reply_to_message_id'] ?? null,
             'author_id' => $author->getKey(),
         ]));

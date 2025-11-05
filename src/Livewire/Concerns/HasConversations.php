@@ -5,6 +5,7 @@ namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -69,8 +70,10 @@ trait HasConversations
             return null;
         }
 
+        $qualifiedConversationKeyName = (new Conversation)->getQualifiedKeyName();
+
         $conversation = $this->conversations
-            ->firstWhere((new Conversation)->getQualifiedKeyName(), $this->activeConversationKey);
+            ->firstWhere($qualifiedConversationKeyName, $this->activeConversationKey);
 
         if ($conversation) {
             return $conversation;
@@ -81,7 +84,7 @@ trait HasConversations
         }
 
         return $this->getBaseConversationsQuery()
-            ->firstWhere((new Conversation)->getQualifiedKeyName(), $this->activeConversationKey);
+            ->firstWhere($qualifiedConversationKeyName, $this->activeConversationKey);
     }
 
     public function resetCachedConversations(): void
@@ -91,9 +94,13 @@ trait HasConversations
 
     public function getActiveConversationSessionKey(): string
     {
-        $livewire = md5($this::class);
+        $identifier = md5($this::class);
 
-        return "{$livewire}_active_conversation";
+        if ($this->conversationSchemaConfiguration) {
+            $identifier .= '_' . $this->conversationSchemaConfiguration;
+        }
+
+        return "{$identifier}_active_conversation";
     }
 
     /**
@@ -115,5 +122,25 @@ trait HasConversations
                 'participations.participant',
                 'participations.latestMessage',
             ]);
+    }
+
+    public function getActiveConversationAuthenticatedUserParticipation(): ConversationParticipation
+    {
+        $user = auth()->user();
+
+        if (! in_array(Conversable::class, class_uses_recursive($user))) {
+            FilamentConverseException::throwInvalidConversableUserException($user);
+        }
+
+        /* @var ConversationParticipation|null $authenticatedUserParticipation */
+        $authenticatedUserParticipation = $this->getActiveConversation()
+            ->participations
+            ->firstWhere('participant_id', $user->getKey());
+
+        if (! $authenticatedUserParticipation) {
+            throw new \Exception('The authenticated user is not participating in the active conversation.');
+        }
+
+        return $authenticatedUserParticipation;
     }
 }

@@ -9,4 +9,15 @@ return [
         'heading' => 'Zatím tu nejsou žádné zprávy',
 
     ],
+
+    'message-actions' => [
+
+        'delete-label' => 'Odstranit',
+
+        'edit-message' => [
+
+            'label' => 'Upravit',
+
+        ],
+    ],
 ];

@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Support\Enums\Size;
@@ -23,7 +24,7 @@ class ConversationThread extends Component
 
     const MESSAGE_ACTIONS_KEY = 'message_actions';
 
-    const MESSAGE_INPUT_KEY = 'message_input';
+    const MESSAGE_INPUT_FIELD_KEY = 'message_input_field';
 
     /**
      * @var view-string
@@ -36,7 +37,7 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyDeleteMessageActionUsing = null;
 
-    protected ?Closure $modifyMessageInputComponentUsing = null;
+    protected ?Closure $modifyMessageInputFieldUsing = null;
 
     public static function make()
     {
@@ -66,8 +67,8 @@ class ConversationThread extends Component
         ], static::MESSAGE_ACTIONS_KEY);
 
         $this->childComponents(fn () => [
-             $this->getMessageInputComponent()
-        ], static::MESSAGE_INPUT_KEY);
+            $this->getMessageInputField(),
+        ], static::MESSAGE_INPUT_FIELD_KEY);
     }
 
     public function editConversationAction(?Closure $callback): static
@@ -91,9 +92,9 @@ class ConversationThread extends Component
         return $this;
     }
 
-    public function messageInputComponent(?Closure $callback): static
+    public function messageInputField(?Closure $callback): static
     {
-        $this->modifyMessageInputComponentUsing = $callback;
+        $this->modifyMessageInputFieldUsing = $callback;
 
         return $this;
     }
@@ -120,15 +121,13 @@ class ConversationThread extends Component
 
     protected function getEditMessageAction(): Action
     {
-        $action = Action::make('editMessage')
-            ->iconButton()
-            ->icon(Heroicon::OutlinedPencil)
-            ->action(fn () => dd('editMessage'));
+        $action = EditMessageAction::make();
 
         if ($this->modifyEditMessageActionUsing) {
             $action = $this->evaluate($this->modifyEditMessageActionUsing, [
                 'action' => $action,
             ], [
+                EditMessageAction::class => $action,
                 Action::class => $action,
             ]) ?? $action;
         }
@@ -138,16 +137,13 @@ class ConversationThread extends Component
 
     protected function getDeleteMessageAction(): Action
     {
-        $action = Action::make('deleteMessage')
-            ->iconButton()
-            ->color('danger')
-            ->icon(Heroicon::OutlinedTrash)
-            ->action(fn () => dd('deleteMessage'));
+        $action = DeleteMessageAction::make();
 
         if ($this->modifyDeleteMessageActionUsing) {
             $action = $this->evaluate($this->modifyDeleteMessageActionUsing, [
                 'action' => $action,
             ], [
+                DeleteMessageAction::class => $action,
                 Action::class => $action,
             ]) ?? $action;
         }
@@ -155,14 +151,18 @@ class ConversationThread extends Component
         return $action;
     }
 
-    protected function getMessageInputComponent(): Component
+    protected function getMessageInputField(): Component
     {
-        $component = RichEditor::make('message')
-            ->hiddenLabel()
-            ->columnSpanFull();
+        $component = RichEditor::make('content')
+            ->toolbarButtons([
+                ['bold', 'highlight'],
+                ['h2', 'h3'],
+                ['bulletList', 'orderedList'],
+            ])
+            ->hiddenLabel();
 
-        if ($this->modifyMessageInputComponentUsing) {
-            $component = $this->evaluate($this->modifyMessageInputComponentUsing, [
+        if ($this->modifyMessageInputFieldUsing) {
+            $component = $this->evaluate($this->modifyMessageInputFieldUsing, [
                 'component' => $component,
             ], [
                 RichEditor::class => $component,

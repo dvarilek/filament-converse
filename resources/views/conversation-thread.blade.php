@@ -17,10 +17,7 @@
         static fn (Action | ActionGroup $action) => $action->isVisible()
     );
 
-    $messageActions = array_filter(
-        $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY),
-        static fn (Action | ActionGroup $action) => $action->isVisible()
-    );
+    $messageActions = $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY);
 @endphp
 
 <div class="fi-converse-conversation-thread">
@@ -109,11 +106,22 @@
                             {{ $message->content }}
                         </div>
 
-                        @if (count($messageActions))
+                        @php
+                            $filteredMessageActions = array_filter(
+                                $messageActions,
+                                static function (Action | ActionGroup $action) use ($message) {
+                                    $action->record($message)->arguments(['record' => $message->getKey()]);
+
+                                    return $action->isVisible();
+                                }
+                            )
+                        @endphp
+
+                        @if (count($filteredMessageActions))
                             <div
                                 class="fi-converse-conversation-thread-message-actions"
                             >
-                                @foreach ($messageActions as $action)
+                                @foreach ($filteredMessageActions as $action)
                                     {{ $action }}
                                 @endforeach
                             </div>
@@ -141,16 +149,14 @@
         @endforelse
     </div>
     @if ($conversation)
-        <div class="fi-converse-conversation-thread-message-input">
-            <form wire:submit="sendMessage">
-                <div>
-                    {{ $getChildComponents(ConversationThread::MESSAGE_INPUT_KEY)[0] }}
-                </div>
+        @php
+            $messageInputField = $getChildComponents(ConversationThread::MESSAGE_INPUT_FIELD_KEY)[0] ?? null;
+        @endphp
 
-                <div wire:click="sendMessage">
-                    Send message
-                </div>
-            </form>
-        </div>
+        @if ($messageInputField && $messageInputField->isVisible())
+            <div class="fi-converse-conversation-thread-message-input-container">
+                {{ $messageInputField }}
+            </div>
+        @endif
     @endif
 </div>

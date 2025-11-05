@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\Create;
+namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList;
 
 use Closure;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
-use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
+use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\View\FilamentConverseIconAlias;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
@@ -54,7 +54,7 @@ class CreateGroupConversationAction extends CreateConversationAction
             $this->getConversationImageComponent(),
         ]);
 
-        $this->action(function (CreateGroupConversationAction $action, HasConversationList $livewire, array $data) {
+        $this->action(function (CreateGroupConversationAction $action, HasConversationSchema $livewire, array $data) {
             $user = auth()->user();
 
             $conversation = app(CreateConversation::class)->handle(

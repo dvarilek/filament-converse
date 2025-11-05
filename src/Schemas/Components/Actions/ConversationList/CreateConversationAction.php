@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\Create;
+namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList;
 
 use Closure;
 use Filament\Actions\Action;

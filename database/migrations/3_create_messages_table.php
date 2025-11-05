@@ -16,6 +16,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->text('content')->nullable()->default(null);
             $table->json('attachments')->nullable()->default(null);
+            $table->json('attachment_file_names')->nullable()->default(null);
             $table->foreignIdFor(Message::class, 'reply_to_message_id')
                 ->nullable()->default(null)
                 ->constrained()->nullOnDelete()->cascadeOnUpdate();

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
-use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
+use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateDirectConversationAction;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateGroupConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateDirectConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateGroupConversationAction;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Components\Component;
@@ -93,7 +93,7 @@ class ConversationList extends Component
             }
         });
 
-        $this->headingBadgeState(static function (HasConversationList $livewire) {
+        $this->headingBadgeState(static function (HasConversationSchema $livewire) {
             return $livewire->conversations->count();
         });
 
@@ -110,7 +110,7 @@ class ConversationList extends Component
             return $latestMessage->created_at->shortAbsoluteDiffForHumans();
         });
 
-        $this->getLatestMessageContentUsing(static function (Conversation $conversation, Message $latestMessage) {
+        $this->getLatestMessageContentUsing(static function (Conversation $conversation, Message $latestMessage, HasConversationSchema $livewire) {
             $participantWithLatestMessage = $conversation
                 ->participations
                 ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
@@ -303,6 +303,7 @@ class ConversationList extends Component
             $action = $this->evaluate($this->modifyCreateDirectConversationActionUsing, [
                 'action' => $action,
             ], [
+                CreateDirectConversationAction::class => $action,
                 Action::class => $action,
             ]) ?? $action;
         }
@@ -318,6 +319,7 @@ class ConversationList extends Component
             $action = $this->evaluate($this->modifyCreateGroupConversationActionUsing, [
                 'action' => $action,
             ], [
+                CreateGroupConversationAction::class => $action,
                 Action::class => $action,
             ]) ?? $action;
         }
@@ -325,7 +327,7 @@ class ConversationList extends Component
         return $action;
     }
 
-    public function getLivewire(): LivewireComponent & HasSchemas & HasActions & HasConversationList
+    public function getLivewire(): LivewireComponent & HasSchemas & HasActions & HasConversationSchema
     {
         return parent::getLivewire();
     }

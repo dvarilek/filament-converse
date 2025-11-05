@@ -13,7 +13,8 @@ use Illuminate\Support\Collection;
 
 /**
  * @property string|null $content
- * @property list<string> $attachments
+ * @property list<string>|null $attachments
+ * @property list<string>|null $attachment_file_names
  * @property string $conversation_id
  * @property int|string $author_id
  * @property string|null $reply_to_message_id
@@ -34,6 +35,7 @@ class Message extends Model
     protected $fillable = [
         'content',
         'attachments',
+        'attachment_file_names',
         'reply_to_message_id',
         'author_id',
     ];
@@ -44,6 +46,7 @@ class Message extends Model
     protected $casts = [
         'id' => 'string',
         'attachments' => 'array',
+        'attachment_file_names' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

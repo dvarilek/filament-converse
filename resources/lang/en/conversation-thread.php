@@ -9,4 +9,16 @@ return [
         'heading' => 'No messages yet',
 
     ],
+
+    'message-actions' => [
+
+        'delete-label' => 'Delete',
+
+        'edit-message' => [
+
+            'label' => 'Edit',
+
+        ],
+
+    ],
 ];

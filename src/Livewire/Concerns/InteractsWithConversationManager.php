@@ -11,7 +11,6 @@ trait InteractsWithConversationManager
     use CanFilterConversations;
     use CanSearchConversations;
     use HasConversations;
-    use HasMessages;
 
     /**
      * @var class-string|null

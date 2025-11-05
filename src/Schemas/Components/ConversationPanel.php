@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
-use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
-use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationThread;
+use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Filament\Schemas\Components\Component;
 
@@ -25,7 +24,7 @@ class ConversationPanel extends Component
     protected array | Closure $data = [];
 
     /**
-     * @var class-string<HasConversationList&HasConversationThread>|Closure | null
+     * @var class-string<HasConversationSchema>|Closure | null
      */
     protected string | Closure $component;
 
@@ -58,7 +57,7 @@ class ConversationPanel extends Component
     }
 
     /**
-     * @param  class-string<HasConversationList&HasConversationThread>|Closure  $component
+     * @param  class-string<HasConversationSchema>|Closure  $component
      */
     public function component(string | Closure $component): static
     {
@@ -68,7 +67,7 @@ class ConversationPanel extends Component
     }
 
     /**
-     * @return class-string<HasConversationList&HasConversationThread>
+     * @return class-string<HasConversationSchema>
      */
     public function getComponent(): string
     {

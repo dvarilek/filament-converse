@@ -3,7 +3,7 @@
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
-use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationList;
+use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Schemas\Components\Concerns\BelongsToLivewire;
 use Filament\Schemas\Components\Component;
@@ -46,12 +46,12 @@ class ConversationSchema extends Component
 
     protected string $view = 'filament-converse::conversation-schema';
 
-    final public function __construct(LivewireComponent & HasSchemas & HasConversationList $livewire)
+    final public function __construct(LivewireComponent & HasSchemas & HasConversationSchema $livewire)
     {
         $this->livewire($livewire);
     }
 
-    public static function make(LivewireComponent & HasSchemas & HasConversationList $livewire): static
+    public static function make(LivewireComponent & HasSchemas & HasConversationSchema $livewire): static
     {
         $static = app(static::class, ['livewire' => $livewire]);
         $static->configure();

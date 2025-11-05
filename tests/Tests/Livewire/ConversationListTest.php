@@ -9,8 +9,8 @@ use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateDirectConversationAction;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\Create\CreateGroupConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateDirectConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateGroupConversationAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Filament\Actions\Testing\TestAction;
 
