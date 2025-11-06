@@ -80,6 +80,6 @@
     }
 
     & .fi-converse-conversation-thread-message-input-container {
-        @apply min-h-1/8 flex flex-1 border-t border-gray-200 p-6 dark:border-white/10;
+        @apply min-h-1/8 flex flex-col border-t border-gray-200 p-6 dark:border-white/10;
     }
 }

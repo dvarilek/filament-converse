@@ -153,13 +153,7 @@ class ConversationThread extends Component
 
     protected function getMessageInputField(): Component
     {
-        $component = RichEditor::make('content')
-            ->toolbarButtons([
-                ['bold', 'highlight'],
-                ['h2', 'h3'],
-                ['bulletList', 'orderedList'],
-            ])
-            ->hiddenLabel();
+        $component = MessageInput::make('content');
 
         if ($this->modifyMessageInputFieldUsing) {
             $component = $this->evaluate($this->modifyMessageInputFieldUsing, [

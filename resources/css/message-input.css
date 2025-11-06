@@ -1,0 +1,17 @@
+.fi-converse-message-input-wrapper {
+    & .fi-converse-message-input-header {
+        @apply bg-red-600 p-3;
+    }
+
+    & .fi-converse-message-input-footer {
+        @apply flex items-center justify-between p-3;
+
+        & .fi-converse-message-input-footer-left-actions {
+            @apply flex items-center gap-3;
+        }
+
+        & .fi-converse-message-input-footer-right-actions {
+            @apply flex items-center gap-3;
+        }
+    }
+}
