@@ -8,7 +8,6 @@ use Closure;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
-use Filament\Forms\Components\RichEditor;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Support\Enums\Size;
@@ -106,7 +105,7 @@ class ConversationThread extends Component
             ->color('gray')
             ->icon(Heroicon::OutlinedCog6Tooth)
             ->size(Size::ExtraLarge)
-            ->action(fn () => dd('editConversation'));
+            ->action(fn () => dd($this->getLivewire()->content->getState()));
 
         if ($this->modifyEditConversationActionUsing) {
             $action = $this->evaluate($this->modifyEditConversationActionUsing, [
@@ -151,15 +150,15 @@ class ConversationThread extends Component
         return $action;
     }
 
-    protected function getMessageInputField(): Component
+    protected function getMessageInputField(): MessageInput
     {
-        $component = MessageInput::make('content');
+        $component = MessageInput::make('message_content');
 
         if ($this->modifyMessageInputFieldUsing) {
             $component = $this->evaluate($this->modifyMessageInputFieldUsing, [
                 'component' => $component,
             ], [
-                RichEditor::class => $component,
+                MessageInput::class => $component,
                 Component::class => $component,
             ]) ?? $component;
         }
