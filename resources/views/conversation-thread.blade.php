@@ -6,6 +6,10 @@
     use Filament\Actions\ActionGroup;
     use Illuminate\Support\Collection;
 
+    $key = $getKey();
+    $statePath = $getStatePath();
+    $hasFileAttachments = $hasFileAttachments();
+
     /* @var Conversation | null $conversation */
     $conversation = $getActiveConversation();
 
@@ -20,7 +24,122 @@
     $messageActions = $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY);
 @endphp
 
-<div class="fi-converse-conversation-thread">
+<div
+    class="fi-converse-conversation-thread"
+
+    @if ($hasFileAttachments)
+        @php
+            $fileAttachmentsAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
+            $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
+            $fileAttachmentsAcceptedFileTypesMessage = __('filament-forms::components.markdown_editor.file_attachments_accepted_file_types_message', ['values' => implode(', ', $fileAttachmentsAcceptedFileTypes)]);
+            $fileAttachmentsMaxSizeMessage = trans_choice('filament-forms::components.markdown_editor.file_attachments_max_size_message', $fileAttachmentsMaxSize, ['max' => $fileAttachmentsMaxSize]);
+
+            // TODO: Add methods for this, handle upload, loading, failure, add modal content, + configuration methods, refactor into overlay
+        @endphp
+        x-bind:class="{'fi-converse-conversation-thread-attachment-dragging-active': isDraggingOver}"
+        x-data="{
+            isDraggingOver: false,
+
+            statePath: @js($statePath),
+
+            key: @js($key),
+
+            fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
+
+            fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
+
+            fileAttachmentsAcceptedFileTypesMessage: @js($fileAttachmentsAcceptedFileTypesMessage),
+
+            fileAttachmentsMaxSizeMessage: @js($fileAttachmentsMaxSizeMessage),
+
+            init() {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName =>
+                    this.$el.addEventListener(eventName, eventName => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }, false)
+                );
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    this.$el.addEventListener(eventName, () => {
+                        this.isDraggingOver = true;
+                    }, false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    this.$el.addEventListener(eventName, event => {
+                        if (!this.$el.contains(event.relatedTarget)) {
+                            this.isDraggingOver = false;
+                        }
+                    }, false);
+                });
+
+                this.$el.addEventListener('drop', event => {
+                    this.isDraggingOver = false;
+
+                    const files = Array.from((event.dataTransfer && event.dataTransfer.files) || []);
+                    if (files.length === 0) return;
+
+                    files.forEach(this.handleUpload);
+                }, false);
+            },
+
+            handleUpload(file) {
+                if (this.fileAttachmentAcceptedFileTypes && !this.fileAttachmentAcceptedFileTypes.includes(file.type)) {
+                    return this.onError(this.fileAttachmentAcceptedFileTypes ? this.fileAttachmentsAcceptedFileTypesMessage : null);
+                }
+
+                if (this.fileAttachmentMaxSize && file.size > +this.fileAttachmentMaxSize * 1024) {
+                    return this.onError(this.fileAttachmentMaxSize ? this.fileAttachmentsMaxSizeMessage : null);
+                }
+
+                $wire.upload('componentFileAttachments.' + this.statePath, file, () => {
+                    $wire
+                        .callSchemaComponentMethod(
+                            this.key,
+                            'saveUploadedFileAttachmentAndGetUrl',
+                        )
+                        .then((url) => {
+                            if (!url) {
+                                return this.onError();
+                            }
+
+                            this.onSuccess(url);
+                        });
+                });
+            },
+
+            onError() {
+                console.error('Upload error');
+            },
+
+            onSuccess(url) {
+                console.log('Upload success:', url);
+            }
+        }"
+    @endif
+>
+
+    @if ($hasFileAttachments)
+        <div
+            x-cloak
+            x-show="isDraggingOver"
+            class="fi-converse-conversation-thread-attachment-modal"
+        >
+            <div>
+                ICON
+            </div>
+            <div>
+                <h4>
+                    HEADING
+                </h4>
+                <p>
+                    DESCRIPTION
+                </p>
+            </div>
+        </div>
+    @endif
+
     <div class="fi-converse-conversation-thread-header">
         @if ($conversation)
             @php

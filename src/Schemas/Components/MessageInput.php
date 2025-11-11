@@ -21,13 +21,9 @@ class MessageInput extends MarkdownEditor
         $this->hiddenLabel();
 
         $this->autofocus();
-    }
 
-    /**
-     * @return list<TemporaryUploadedFile>
-     */
-    public function getUploadedFileAttachments(): array
-    {
-        return data_get($this->getLivewire(), "componentFileAttachments.{$this->getStatePath()}");
+        $this->fileAttachmentsAcceptedFileTypes([
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ]);
     }
 }

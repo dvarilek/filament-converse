@@ -1,6 +1,10 @@
-.fi-converse-message-input-wrapper {
+.fi-converse-message-input {
     & .fi-converse-message-input-header {
         @apply bg-red-600 p-3;
+
+        & .fi-converse-message-input-header-item {
+
+        }
     }
 
     & .fi-converse-message-input-footer {

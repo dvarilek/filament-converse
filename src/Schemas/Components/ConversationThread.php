@@ -8,6 +8,7 @@ use Closure;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Concerns\HasFileAttachments;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Support\Enums\Size;
@@ -17,6 +18,7 @@ class ConversationThread extends Component
 {
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
+    use HasFileAttachments;
     use HasKey;
 
     const HEADER_ACTIONS_KEY = 'header_actions';

@@ -1,4 +1,7 @@
 @php
+    use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+    use Illuminate\Support\Arr;
+
     $id = $getId();
     $fieldWrapperView = $getFieldWrapperView();
     $extraAttributeBag = $getExtraAttributeBag();
@@ -6,6 +9,9 @@
     $statePath = $getStatePath();
     $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
     $fileAttachmentsAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
+
+    /* @var list<TemporaryUploadedFile> $uploadedFileAttachments */
+    $uploadedFileAttachments = Arr::wrap(data_get($getLivewire(), "componentFileAttachments.{$statePath}")) ?? [];
 @endphp
 
 <x-dynamic-component :component="$fieldWrapperView" :field="$field">
@@ -18,9 +24,21 @@
             :valid="! $errors->has($statePath)"
             :attributes="
                 \Filament\Support\prepare_inherited_attributes($extraAttributeBag)
-                    ->class(['fi-fo-markdown-editor'])
+                    ->class(['fi-fo-markdown-editor fi-converse-message-input'])
             "
         >
+            @if (count($uploadedFileAttachments))
+                <ul class="fi-converse-message-input-header">
+                    @foreach($uploadedFileAttachments as $fileAttachment)
+                        <li class="fi-converse-message-input-header-item">
+                            {{ $fileAttachment->getFileName() }}
+
+                            {{ $fileAttachment->getMimeType() }}
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+
             <div
                 aria-labelledby="{{ $id }}-label"
                 id="{{ $id }}"
@@ -28,7 +46,7 @@
                 x-load
                 x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('markdown-editor', 'filament/forms') }}"
                 x-data="markdownEditorFormComponent({
-                            canAttachFiles: @js($hasToolbarButton('attachFiles')),
+                            canAttachFiles: false,
                             isLiveDebounced: @js($isLiveDebounced()),
                             isLiveOnBlur: @js($isLiveOnBlur()),
                             liveDebounce: @js($getNormalizedLiveDebounce()),
@@ -70,32 +88,19 @@
                 wire:ignore
                 {{ $getExtraAlpineAttributeBag() }}
             >
-
-                @if (filled($fileAttachments = $getUploadedFileAttachments()))
-                    <ul class="fi-converse-message-input-header">
-                        @foreach($fileAttachments as $fileAttachment)
-                            <li>
-                                {{ $fileAttachment->getFileName() }}
-
-                                {{ $fileAttachment->getMimeType() }}
-                            </li>
-                        @endforeach
-                    </ul>
-                @endif
-
                 <textarea x-ref="editor" x-cloak></textarea>
+            </div>
 
-                <div class="fi-converse-message-input-footer">
-                    <div class="fi-converse-message-input-footer-left-actions">
-                        <x-filament::icon-button icon="heroicon-m-plus" />
-                        <x-filament::icon-button icon="heroicon-m-paper-clip" />
-                    </div>
+            <div class="fi-converse-message-input-footer">
+                <div class="fi-converse-message-input-footer-left-actions">
+                    <x-filament::icon-button icon="heroicon-m-plus" />
+                    <x-filament::icon-button icon="heroicon-m-paper-clip" />
+                </div>
 
-                    <div class="fi-converse-message-input-footer-right-actions">
-                        <x-filament::icon-button
-                            icon="heroicon-m-paper-airplane"
-                        />
-                    </div>
+                <div class="fi-converse-message-input-footer-right-actions">
+                    <x-filament::icon-button
+                        icon="heroicon-m-paper-airplane"
+                    />
                 </div>
             </div>
         </x-filament::input.wrapper>
