@@ -124,16 +124,16 @@
         <div
             x-cloak
             x-show="isDraggingOver"
-            class="fi-converse-conversation-thread-attachment-modal"
+            class="fi-converse-attachment-modal"
         >
-            <div>
+            <div class="fi-converse-attachment-modal-header">
                 ICON
             </div>
-            <div>
-                <h4>
+            <div class="fi-converse-attachment-modal-content">
+                <h4 class="fi-converse-attachment-modal-heading">
                     HEADING
                 </h4>
-                <p>
+                <p class="fi-converse-attachment-modal-description">
                     DESCRIPTION
                 </p>
             </div>

@@ -4,9 +4,24 @@
     &.fi-converse-conversation-thread-attachment-dragging-active {
         @apply ring-2 ring-primary-700 dark:ring-primary-500 opacity-70 relative;
 
-        & .fi-converse-conversation-thread-attachment-modal {
-            @apply absolute inset-0 flex flex-col items-center justify-center;
+        & .fi-converse-attachment-modal {
+            @apply absolute inset-0 px-6 flex flex-col items-center justify-center rounded-xl bg-white shadow-xl ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
 
+            & .fi-converse-attachment-modal-header {
+                @apply flex pt-6 items-center;
+            }
+
+            & .fi-converse-attachment-modal-content {
+                @apply flex flex-col gap-y-4;
+
+                & .fi-converse-attachment-modal-heading {
+                    @apply text-base leading-6 font-semibold text-gray-950 dark:text-white;
+                }
+
+                & .fi-converse-attachment-modal-description {
+                    @apply mt-2 text-sm text-gray-500 dark:text-gray-400;
+                }
+            }
         }
     }
 
