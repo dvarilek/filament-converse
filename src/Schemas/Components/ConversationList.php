@@ -83,9 +83,7 @@ class ConversationList extends Component
 
         $this->searchPlaceholder(__('filament-converse::conversation-list.search.placeholder'));
 
-        $this->emptyStateHeading(static function () {
-            return __('filament-converse::conversation-list.empty-state.heading');
-        });
+        $this->emptyStateHeading(__('filament-converse::conversation-list.empty-state.heading'));
 
         $this->emptyStateDescription(static function () {
             if (! auth()->user()->participatesInAnyConversation()) {
@@ -157,14 +155,14 @@ class ConversationList extends Component
      */
     public function headingBadgeColor(string | array | Closure | null $color): static
     {
-        $this->color = $color;
+        $this->headingBadgeColor = $color;
 
         return $this;
     }
 
     public function headingBadgeIcon(string | BackedEnum | Htmlable | Closure | null $icon): static
     {
-        $this->icon = filled($icon) ? $icon : false;
+        $this->headingBadgeIcon = filled($icon) ? $icon : false;
 
         return $this;
     }
@@ -275,6 +273,7 @@ class ConversationList extends Component
     protected function getCreateConversationAction(): Action
     {
         $action = Action::make('createConversation')
+            ->modalIcon(Heroicon::Plus)
             ->label(__('filament-converse::conversation-list.actions.create.label'))
             ->icon(Heroicon::Plus)
             ->modalAlignment(Alignment::Center)

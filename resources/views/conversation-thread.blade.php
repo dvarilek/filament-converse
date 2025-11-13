@@ -5,6 +5,9 @@
     use Filament\Actions\Action;
     use Filament\Actions\ActionGroup;
     use Illuminate\Support\Collection;
+    use Illuminate\View\ComponentAttributeBag;
+    use Filament\Support\View\Components\ModalComponent\IconComponent;
+    use Filament\Support\Icons\Heroicon;
 
     $key = $getKey();
     $statePath = $getStatePath();
@@ -29,12 +32,15 @@
 
     @if ($hasFileAttachments)
         @php
+            $attachmentModalIconColor = $getAttachmentModalIconColor();
+            $attachmentModalIcon = $getAttachmentModalIcon();
+            $attachmentModalHeading = $getAttachmentModalHeading();
+            $attachmentModalDescription = $getAttachmentModalDescription();
+
             $fileAttachmentsAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
             $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
-            $fileAttachmentsAcceptedFileTypesMessage = __('filament-forms::components.markdown_editor.file_attachments_accepted_file_types_message', ['values' => implode(', ', $fileAttachmentsAcceptedFileTypes)]);
-            $fileAttachmentsMaxSizeMessage = trans_choice('filament-forms::components.markdown_editor.file_attachments_max_size_message', $fileAttachmentsMaxSize, ['max' => $fileAttachmentsMaxSize]);
-
-            // TODO: Add methods for this, handle upload, loading, failure, add modal content, + configuration methods, refactor into overlay
+            $fileAttachmentsAcceptedFileTypesMessage = $getAttachmentsAcceptedFileTypesErrorMessage($fileAttachmentsAcceptedFileTypes);
+            $fileAttachmentsMaxSizeMessage = $getAttachmentsMaxFileSizeErrorMessage($fileAttachmentsMaxSize);
         @endphp
         x-bind:class="{'fi-converse-conversation-thread-attachment-dragging-active': isDraggingOver}"
         x-data="{
@@ -42,7 +48,7 @@
 
             statePath: @js($statePath),
 
-            key: @js($key),
+            componentKey: @js($key),
 
             fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
 
@@ -51,6 +57,8 @@
             fileAttachmentsAcceptedFileTypesMessage: @js($fileAttachmentsAcceptedFileTypesMessage),
 
             fileAttachmentsMaxSizeMessage: @js($fileAttachmentsMaxSizeMessage),
+
+            fileAttachmentUploadFailureMessage: null,
 
             init() {
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName =>
@@ -80,42 +88,48 @@
                     const files = Array.from((event.dataTransfer && event.dataTransfer.files) || []);
                     if (files.length === 0) return;
 
-                    files.forEach(this.handleUpload);
+                    files.forEach(file => this.handleUpload(file));
                 }, false);
             },
 
             handleUpload(file) {
                 if (this.fileAttachmentAcceptedFileTypes && !this.fileAttachmentAcceptedFileTypes.includes(file.type)) {
-                    return this.onError(this.fileAttachmentAcceptedFileTypes ? this.fileAttachmentsAcceptedFileTypesMessage : null);
+                    this.updateFileAttachmentUploadFailureMessage(this.fileAttachmentsAcceptedFileTypesMessage);
+
+                    return;
                 }
 
                 if (this.fileAttachmentMaxSize && file.size > +this.fileAttachmentMaxSize * 1024) {
-                    return this.onError(this.fileAttachmentMaxSize ? this.fileAttachmentsMaxSizeMessage : null);
+                    this.updateFileAttachmentUploadFailureMessage(this.fileAttachmentsMaxSizeMessage);
+
+                    return;
                 }
 
                 $wire.upload('componentFileAttachments.' + this.statePath, file, () => {
                     $wire
                         .callSchemaComponentMethod(
-                            this.key,
+                            this.componentKey,
                             'saveUploadedFileAttachmentAndGetUrl',
                         )
                         .then((url) => {
                             if (!url) {
-                                return this.onError();
+                                 $wire.callSchemaComponentMethod(this.componentKey, 'callAfterAttachmentUploadFailed');
+
+                                 return;
                             }
 
-                            this.onSuccess(url);
+                            $wire.callSchemaComponentMethod(this.componentKey, 'callAfterAttachmentUploaded');
                         });
                 });
             },
 
-            onError() {
-                console.error('Upload error');
-            },
+            updateFileAttachmentUploadFailureMessage(message) {
+                this.fileAttachmentUploadFailureMessage = message;
 
-            onSuccess(url) {
-                console.log('Upload success:', url);
-            }
+                setTimeout(() => {
+                    this.fileAttachmentUploadFailureMessage = null;
+                }, 5000);
+            },
         }"
     @endif
 >
@@ -124,18 +138,28 @@
         <div
             x-cloak
             x-show="isDraggingOver"
-            class="fi-converse-attachment-modal"
+            class="fi-converse-attachment-modal-overlay"
         >
-            <div class="fi-converse-attachment-modal-header">
-                ICON
-            </div>
-            <div class="fi-converse-attachment-modal-content">
-                <h4 class="fi-converse-attachment-modal-heading">
-                    HEADING
-                </h4>
-                <p class="fi-converse-attachment-modal-description">
-                    DESCRIPTION
-                </p>
+            <div class="fi-converse-attachment-modal-backdrop"></div>
+
+            <div class="fi-converse-attachment-modal">
+                <div class="fi-converse-attachment-modal-header">
+                    <div
+                        {{ (new ComponentAttributeBag)->color(IconComponent::class, $attachmentModalIconColor, 'primary')->class(['fi-converse-attachment-modal-icon-bg']) }}
+                    >
+                        {{ \Filament\Support\generate_icon_html($attachmentModalIcon, size: \Filament\Support\Enums\IconSize::Large) }}
+                    </div>
+                </div>
+                <div class="fi-converse-attachment-modal-content">
+                    <h2 class="fi-converse-attachment-modal-heading">
+                        {{ $attachmentModalHeading }}
+                    </h2>
+                    @if (filled($attachmentModalDescription))
+                        <p class="fi-converse-attachment-modal-description">
+                            {{ $attachmentModalDescription }}
+                        </p>
+                    @endif
+                </div>
             </div>
         </div>
     @endif
@@ -177,6 +201,19 @@
             @endif
         @endif
     </div>
+
+    @if($hasFileAttachments)
+        <div
+            x-cloak
+            x-show="fileAttachmentUploadFailureMessage"
+            class="fi-converse-conversation-thread-upload-failute-message-container"
+        >
+            <p x-text="fileAttachmentUploadFailureMessage" class="fi-converse-conversation-thread-upload-failute-message">
+
+            </p>
+        </div>
+    @endif
+
     <div class="fi-converse-conversation-thread-message-box">
         @forelse ($messages as $message)
             @php

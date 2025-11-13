@@ -1,3 +1,9 @@
 .fi-converse-conversation-manager {
     @apply h-full;
 }
+
+@media (max-width: 1023px) {
+    .fi-converse-conversation-manager {
+        @apply relative;
+    }
+}

@@ -50,8 +50,23 @@
                 @endif
             </div>
 
+            <x-filament::icon-button
+                color="gray"
+                x-show="isBelowLg"
+                :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
+                :icon-alias="\Filament\Support\View\SupportIconAlias::MODAL_CLOSE_BUTTON"
+                icon-size="lg"
+                :label="__('filament::components/modal.actions.close.label')"
+                tabindex="-1"
+                x-on:click="showConversationListSidebar = false"
+                class="fi-converse-conversation-list-header-close-button"
+            />
+
             @if (count($headerActions))
-                <div class="fi-converse-conversation-list-header-actions">
+                <div
+                    class="fi-converse-conversation-list-header-actions"
+                    x-bind:class="{ 'fi-converse-actions-full-width': isBelowLg }"
+                >
                     @foreach ($headerActions as $action)
                         {{ $action }}
                     @endforeach

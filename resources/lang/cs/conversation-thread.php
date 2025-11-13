@@ -10,6 +10,18 @@ return [
 
     ],
 
+    'attachment-modal' => [
+
+        'heading' => 'Přetáhněte přílohy sem',
+
+        'description' => 'Pusťte přílohy pro přidání ke zprávě.',
+
+        'file-attachments-accepted-file-types-message' => 'Nahrané soubory musí být typu: :values.',
+
+        'file-attachments-max-size-message' => 'Nahrané soubory nesmí být větší než :max kilobajtů.',
+
+    ],
+
     'message-actions' => [
 
         'delete-label' => 'Odstranit',
