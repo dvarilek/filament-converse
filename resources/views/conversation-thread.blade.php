@@ -39,98 +39,19 @@
 
             $fileAttachmentsAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
             $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
-            $fileAttachmentsAcceptedFileTypesMessage = $getAttachmentsAcceptedFileTypesErrorMessage($fileAttachmentsAcceptedFileTypes);
-            $fileAttachmentsMaxSizeMessage = $getAttachmentsMaxFileSizeErrorMessage($fileAttachmentsMaxSize);
         @endphp
-        x-bind:class="{'fi-converse-conversation-thread-attachment-dragging-active': isDraggingOver}"
-        x-data="{
-            isDraggingOver: false,
-
+        x-load
+        x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
+        x-data="conversationThread({
             statePath: @js($statePath),
-
             componentKey: @js($key),
-
             fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
-
             fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
-
-            fileAttachmentsAcceptedFileTypesMessage: @js($fileAttachmentsAcceptedFileTypesMessage),
-
-            fileAttachmentsMaxSizeMessage: @js($fileAttachmentsMaxSizeMessage),
-
-            fileAttachmentUploadFailureMessage: null,
-
-            init() {
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName =>
-                    this.$el.addEventListener(eventName, eventName => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }, false)
-                );
-
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    this.$el.addEventListener(eventName, () => {
-                        this.isDraggingOver = true;
-                    }, false);
-                });
-
-                ['dragleave', 'drop'].forEach(eventName => {
-                    this.$el.addEventListener(eventName, event => {
-                        if (!this.$el.contains(event.relatedTarget)) {
-                            this.isDraggingOver = false;
-                        }
-                    }, false);
-                });
-
-                this.$el.addEventListener('drop', event => {
-                    this.isDraggingOver = false;
-
-                    const files = Array.from((event.dataTransfer && event.dataTransfer.files) || []);
-                    if (files.length === 0) return;
-
-                    files.forEach(file => this.handleUpload(file));
-                }, false);
-            },
-
-            handleUpload(file) {
-                if (this.fileAttachmentAcceptedFileTypes && !this.fileAttachmentAcceptedFileTypes.includes(file.type)) {
-                    this.updateFileAttachmentUploadFailureMessage(this.fileAttachmentsAcceptedFileTypesMessage);
-
-                    return;
-                }
-
-                if (this.fileAttachmentMaxSize && file.size > +this.fileAttachmentMaxSize * 1024) {
-                    this.updateFileAttachmentUploadFailureMessage(this.fileAttachmentsMaxSizeMessage);
-
-                    return;
-                }
-
-                $wire.upload('componentFileAttachments.' + this.statePath, file, () => {
-                    $wire
-                        .callSchemaComponentMethod(
-                            this.componentKey,
-                            'saveUploadedFileAttachmentAndGetUrl',
-                        )
-                        .then((url) => {
-                            if (!url) {
-                                 $wire.callSchemaComponentMethod(this.componentKey, 'callAfterAttachmentUploadFailed');
-
-                                 return;
-                            }
-
-                            $wire.callSchemaComponentMethod(this.componentKey, 'callAfterAttachmentUploaded');
-                        });
-                });
-            },
-
-            updateFileAttachmentUploadFailureMessage(message) {
-                this.fileAttachmentUploadFailureMessage = message;
-
-                setTimeout(() => {
-                    this.fileAttachmentUploadFailureMessage = null;
-                }, 5000);
-            },
-        }"
+            fileAttachmentsAcceptedFileTypesMessage: @js($getAttachmentsAcceptedFileTypesErrorMessage($fileAttachmentsAcceptedFileTypes)),
+            fileAttachmentsMaxSizeMessage: @js($getAttachmentsMaxFileSizeErrorMessage($fileAttachmentsMaxSize)),
+            $wire
+        })"
+        x-bind:class="{'fi-converse-conversation-thread-attachment-dragging-active': isDraggingOver}"
     @endif
 >
 

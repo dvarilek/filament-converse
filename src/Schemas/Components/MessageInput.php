@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Filament\Forms\Components\MarkdownEditor;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class MessageInput extends MarkdownEditor
 {
@@ -23,7 +22,7 @@ class MessageInput extends MarkdownEditor
         $this->autofocus();
 
         $this->fileAttachmentsAcceptedFileTypes([
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ]);
     }
 }

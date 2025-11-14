@@ -4,23 +4,22 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
+use BackedEnum;
 use Closure;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Concerns\HasFileAttachments;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
-use Filament\Notifications\Notification;
-use BackedEnum;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\HtmlString;
 use Livewire\Attributes\Renderless;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ConversationThread extends Component
 {
@@ -275,12 +274,18 @@ class ConversationThread extends Component
 
     public function getAttachmentsAcceptedFileTypesErrorMessage(array $fileAttachmentsAcceptedFileTypes): string | Htmlable
     {
-        return $this->evaluate($this->attachmentsAcceptedFileTypesErrorMessage) ?? __('filament-converse::conversation-thread.attachment-modal.file-attachments-accepted-file-types-message', ['values' => implode(', ', $fileAttachmentsAcceptedFileTypes)]);
+        return $this->evaluate($this->attachmentsAcceptedFileTypesErrorMessage, [
+            'fileAttachmentsAcceptedFileTypes' => $fileAttachmentsAcceptedFileTypes,
+            'acceptedFileTypes' => $fileAttachmentsAcceptedFileTypes,
+        ]) ?? __('filament-converse::conversation-thread.attachment-modal.file-attachments-accepted-file-types-message', ['values' => implode(', ', $fileAttachmentsAcceptedFileTypes)]);
     }
 
     public function getAttachmentsMaxFileSizeErrorMessage(string $fileAttachmentsMaxSize): string | Htmlable
     {
-        return $this->evaluate($this->attachmentsMaxFileSizeErrorMessage) ?? trans_choice('filament-converse::conversation-thread.attachment-modal.max-file-size-error-message', $fileAttachmentsMaxSize, ['max' => $fileAttachmentsMaxSize]);
+        return $this->evaluate($this->attachmentsMaxFileSizeErrorMessage, [
+            'fileAttachmentMaxSize' => $fileAttachmentsMaxSize,
+            'maxSize' => $fileAttachmentsMaxSize,
+        ]) ?? trans_choice('filament-converse::conversation-thread.attachment-modal.max-file-size-error-message', $fileAttachmentsMaxSize, ['max' => $fileAttachmentsMaxSize]);
     }
 
     protected function getMessageInputField(): MessageInput

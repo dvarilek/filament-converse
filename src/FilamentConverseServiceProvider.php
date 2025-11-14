@@ -8,6 +8,8 @@ use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Exception;
+use Filament\Support\Assets\AlpineComponent;
+use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Livewire\Livewire;
@@ -41,6 +43,10 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         Livewire::component('filament-converse.livewire.conversation-manager', ConversationManager::class);
+
+        FilamentAsset::register([
+            AlpineComponent::make('conversation-thread', __DIR__ . '/../resources/js/dist/conversation-thread.js'),
+        ], 'dvarilek/filament-converse');
     }
 
     /**

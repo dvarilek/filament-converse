@@ -1,6 +1,6 @@
 @php
-    use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
     use Illuminate\Support\Arr;
+    use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
     $id = $getId();
     $fieldWrapperView = $getFieldWrapperView();
@@ -29,7 +29,7 @@
         >
             @if (count($uploadedFileAttachments))
                 <ul class="fi-converse-message-input-header">
-                    @foreach($uploadedFileAttachments as $fileAttachment)
+                    @foreach ($uploadedFileAttachments as $fileAttachment)
                         <li class="fi-converse-message-input-header-item">
                             {{ $fileAttachment->getFileName() }}
 
@@ -98,9 +98,7 @@
                 </div>
 
                 <div class="fi-converse-message-input-footer-right-actions">
-                    <x-filament::icon-button
-                        icon="heroicon-m-paper-airplane"
-                    />
+                    <x-filament::icon-button icon="heroicon-m-paper-airplane" />
                 </div>
             </div>
         </x-filament::input.wrapper>
