@@ -10,16 +10,14 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\Dele
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Concerns\HasFileAttachments;
-use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
-use Filament\Support\Components\Attributes\ExposedLivewireMethod;
+use Filament\Schemas\Components\Icon;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\HtmlString;
-use Livewire\Attributes\Renderless;
 
 class ConversationThread extends Component
 {
@@ -57,15 +55,13 @@ class ConversationThread extends Component
 
     protected string | Htmlable | Closure | null $attachmentsMaxFileSizeErrorMessage = null;
 
+    protected ?Closure $getAttachmentIconUsing = null;
+
+    protected ?Closure $getAttachmentFormattedMimeTypeUsing = null;
+
     // TODO: Look into this: + add more validation message, maybe extend from BaseFileUplaod here
 
     protected ?Closure $modifyMessageInputFieldUsing = null;
-
-    protected ?Closure $afterAttachmentUploaded = null;
-
-    protected ?Closure $afterAttachmentUploadFailed = null;
-
-    protected ?Closure $modifyAttachmentUploadedNotification = null;
 
     public static function make()
     {
@@ -85,17 +81,71 @@ class ConversationThread extends Component
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
-        $this->childComponents(fn () => [
-            $this->getEditConversationAction(),
+        $this->fileAttachmentsAcceptedFileTypes([
+            'image/png',
+            'image/jpeg',
+            'audio/mpeg',
+            'video/mp4',
+            'video/mpeg',
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/csv',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        ]);
+
+        $this->getAttachmentIconUsing(static function (string $mimeType) {
+            return match ($mimeType) {
+                'image/png',
+                'image/jpeg' => Heroicon::OutlinedPhoto,
+                'audio/mpeg' => Heroicon::OutlinedSpeakerWave,
+                'video/mp4',
+                'video/mpeg' => Heroicon::OutlinedVideoCamera,
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => Heroicon::OutlinedDocumentText,
+                'text/csv',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => Heroicon::OutlinedDocumentCurrencyEuro,
+                'application/vnd.ms-powerpoint',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation' => Heroicon::OutlinedPresentationChartBar,
+                default => Heroicon::OutlinedDocumentText,
+            };
+        });
+
+        $this->getAttachmentFormattedMimeTypeUsing(static function (string $mimeType) {
+            return match ($mimeType) {
+                'image/png',
+                'image/jpeg' => __('filament-converse::conversation-thread.attachment-area.mime-type.image'),
+                'audio/mpeg' => __('filament-converse::conversation-thread.attachment-area.mime-type.audio'),
+                'video/mp4',
+                'video/mpeg' => __('filament-converse::conversation-thread.attachment-area.mime-type.video'),
+                'application/pdf' => __('filament-converse::conversation-thread.attachment-area.mime-type.pdf'),
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => __('filament-converse::conversation-thread.attachment-area.mime-type.document'),
+                'text/csv',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => __('filament-converse::conversation-thread.attachment-area.mime-type.spreadsheet'),
+                'application/vnd.ms-powerpoint',
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation' => __('filament-converse::conversation-thread.attachment-area.mime-type.presentation'),
+                default => null,
+            };
+        });
+
+        $this->childComponents(static fn (ConversationThread $component) => [
+            $component->getEditConversationAction(),
         ], static::HEADER_ACTIONS_KEY);
 
-        $this->childComponents(fn () => [
-            $this->getEditMessageAction(),
-            $this->getDeleteMessageAction(),
+        $this->childComponents(static fn (ConversationThread $component) => [
+            $component->getEditMessageAction(),
+            $component->getDeleteMessageAction(),
         ], static::MESSAGE_ACTIONS_KEY);
 
-        $this->childComponents(fn () => [
-            $this->getMessageInputField(),
+        $this->childComponents(static fn (ConversationThread $component) => [
+            $component->getMessageInputField(),
         ], static::MESSAGE_INPUT_FIELD_KEY);
     }
 
@@ -165,23 +215,23 @@ class ConversationThread extends Component
         return $this;
     }
 
+    public function getAttachmentIconUsing(?Closure $callback = null): static
+    {
+        $this->getAttachmentIconUsing = $callback;
+
+        return $this;
+    }
+
+    public function getAttachmentFormattedMimeTypeUsing(?Closure $callback = null): static
+    {
+        $this->getAttachmentFormattedMimeTypeUsing = $callback;
+
+        return $this;
+    }
+
     public function messageInputField(?Closure $callback): static
     {
         $this->modifyMessageInputFieldUsing = $callback;
-
-        return $this;
-    }
-
-    public function afterAttachmentUploaded(?Closure $callback): static
-    {
-        $this->afterAttachmentUploaded = $callback;
-
-        return $this;
-    }
-
-    public function afterAttachmentUploadFailed(?Closure $callback): static
-    {
-        $this->afterAttachmentUploadFailed = $callback;
 
         return $this;
     }
@@ -288,6 +338,26 @@ class ConversationThread extends Component
         ]) ?? trans_choice('filament-converse::conversation-thread.attachment-modal.max-file-size-error-message', $fileAttachmentsMaxSize, ['max' => $fileAttachmentsMaxSize]);
     }
 
+    public function getAttachmentIcon(string $mimeType): Htmlable | Icon | null
+    {
+        $icon = $this->evaluate($this->getAttachmentIconUsing, [
+            'mimeType' => $mimeType,
+        ]);
+
+        if (is_string($icon) || $icon instanceof BackedEnum) {
+            return Icon::make($icon);
+        }
+
+        return $icon;
+    }
+
+    public function getAttachmentFormattedMimeType(string $mimeType): string | Htmlable | null
+    {
+        return $this->evaluate($this->getAttachmentFormattedMimeTypeUsing, [
+            'mimeType' => $mimeType,
+        ]);
+    }
+
     protected function getMessageInputField(): MessageInput
     {
         $component = MessageInput::make('message_content');
@@ -302,48 +372,5 @@ class ConversationThread extends Component
         }
 
         return $component;
-    }
-
-    #[ExposedLivewireMethod]
-    #[Renderless]
-    public function callAfterAttachmentUploaded(): void
-    {
-        if (! $this->hasFileAttachments()) {
-            return;
-        }
-
-        $this->getAfterAttachmentUploadedNotification()?->send();
-
-        if ($this->afterAttachmentUploaded) {
-            $this->evaluate($this->afterAttachmentUploaded);
-        }
-    }
-
-    #[ExposedLivewireMethod]
-    #[Renderless]
-    public function callAfterAttachmentUploadFailed(): void
-    {
-        if (! $this->hasFileAttachments()) {
-            return;
-        }
-
-        if ($this->afterAttachmentUploadFailed) {
-            $this->evaluate($this->afterAttachmentUploadFailed);
-        }
-    }
-
-    protected function getAfterAttachmentUploadedNotification(): ?Notification
-    {
-        $notification = Notification::make();
-
-        if ($this->modifyAttachmentUploadedNotification) {
-            $notification = $this->evaluate($this->modifyAttachmentUploadedNotification, [
-                'notification' => $notification,
-            ], [
-                Notification::class => $notification,
-            ]);
-        }
-
-        return $notification;
     }
 }

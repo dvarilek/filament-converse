@@ -14,6 +14,8 @@ use Filament\Schemas\Schema;
 use Illuminate\View\View;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ConversationManager extends Component implements HasActions, HasConversationSchema, HasSchemas
 {
@@ -40,6 +42,27 @@ class ConversationManager extends Component implements HasActions, HasConversati
                 $this->getConversationSchema(),
             ])
             ->statePath('data');
+    }
+
+    public function _finishUpload($name, $tmpPath, $isMultiple)
+    {
+        if (FileUploadConfiguration::shouldCleanupOldUploads()) {
+            $this->cleanupOldUploads();
+        }
+
+        if ($isMultiple) {
+            $file = collect($tmpPath)->map(function ($i) {
+                return TemporaryUploadedFile::createFromLivewire($i);
+            })->toArray();
+            $this->dispatch('upload:finished', name: $name, tmpFilenames: collect($file)->map->getFilename()->toArray())->self();
+        } else {
+            $file = TemporaryUploadedFile::createFromLivewire($tmpPath[0]);
+            $this->dispatch('upload:finished', name: $name, tmpFilenames: [$file->getFilename()])->self();
+        }
+
+        $file = array_merge($this->getPropertyValue($name) ?? [], $file);
+
+        app('livewire')->updateProperty($this, $name, $file);
     }
 
     public function render(): View

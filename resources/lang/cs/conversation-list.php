@@ -6,6 +6,8 @@ return [
 
     'heading' => 'Konverzace',
 
+    'list-close-button-label' => 'Zavřít',
+
     'search' => [
 
         'label' => 'Hledat',

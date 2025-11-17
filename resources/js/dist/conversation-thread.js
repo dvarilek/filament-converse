@@ -1,1 +1,70 @@
-function h({statePath:n,componentKey:r,fileAttachmentAcceptedFileTypes:l,fileAttachmentMaxSize:s,fileAttachmentsAcceptedFileTypesMessage:i,fileAttachmentsMaxSizeMessage:d,$wire:t}){return{isDraggingOver:!1,fileAttachmentUploadFailureMessage:null,init(){["dragenter","dragover","dragleave","drop"].forEach(e=>this.$el.addEventListener(e,a=>{a.preventDefault(),a.stopPropagation()},!1)),["dragenter","dragover"].forEach(e=>{this.$el.addEventListener(e,()=>{this.isDraggingOver=!0},!1)}),["dragleave","drop"].forEach(e=>{this.$el.addEventListener(e,a=>{this.$el.contains(a.relatedTarget)||(this.isDraggingOver=!1)},!1)}),this.$el.addEventListener("drop",e=>{this.isDraggingOver=!1;let a=Array.from(e.dataTransfer&&e.dataTransfer.files||[]);a.length!==0&&a.forEach(o=>this.handleUpload(o))},!1)},handleUpload(e){if(l&&!l.includes(e.type)){this.updateFileAttachmentUploadFailureMessage(i);return}if(s&&e.size>+s*1024){this.updateFileAttachmentUploadFailureMessage(d);return}t.upload("componentFileAttachments."+n,e,()=>{t.callSchemaComponentMethod(r,"saveUploadedFileAttachmentAndGetUrl").then(a=>{if(!a){t.callSchemaComponentMethod(r,"callAfterAttachmentUploadFailed");return}t.callSchemaComponentMethod(r,"callAfterAttachmentUploaded")})})},updateFileAttachmentUploadFailureMessage(e){this.fileAttachmentUploadFailureMessage=e,setTimeout(()=>{this.fileAttachmentUploadFailureMessage=null},5e3)}}}export{h as conversationThread};
+function g({
+    statePath: l,
+    fileAttachmentAcceptedFileTypes: t,
+    fileAttachmentMaxSize: r,
+    fileAttachmentsAcceptedFileTypesMessage: n,
+    fileAttachmentsMaxSizeMessage: d,
+    $wire: o,
+}) {
+    return {
+        isDraggingOver: !1,
+        fileAttachmentUploadFailureMessage: null,
+        init() {
+            ;(new Set(['dragenter', 'dragover', 'dragleave', 'drop']).forEach(
+                (e) =>
+                    this.$el.addEventListener(
+                        e,
+                        (a) => {
+                            ;(a.preventDefault(), a.stopPropagation())
+                        },
+                        !1,
+                    ),
+            ),
+                new Set(['dragenter', 'dragover']).forEach((e) => {
+                    this.$el.addEventListener(
+                        e,
+                        () => {
+                            this.isDraggingOver = !0
+                        },
+                        !1,
+                    )
+                }),
+                new Set(['dragleave', 'drop']).forEach((e) => {
+                    this.$el.addEventListener(
+                        e,
+                        (a) => {
+                            this.$el.contains(a.relatedTarget) ||
+                                (this.isDraggingOver = !1)
+                        },
+                        !1,
+                    )
+                }),
+                this.$el.addEventListener('drop', (e) => {
+                    this.isDraggingOver = !1
+                    let a = null,
+                        s = Array.from(
+                            (e.dataTransfer && e.dataTransfer.files) || [],
+                        ).filter((i) =>
+                            t && !t.includes(i.type)
+                                ? ((a = n), !1)
+                                : r && i.size > +r * 1024
+                                  ? ((a = d), !1)
+                                  : !0,
+                        )
+                    ;(a && this.updateFileAttachmentUploadFailureMessage(a),
+                        s.length !== 0 &&
+                            o.uploadMultiple(
+                                'componentFileAttachments.' + l,
+                                s,
+                            ))
+                }))
+        },
+        updateFileAttachmentUploadFailureMessage(e) {
+            ;((this.fileAttachmentUploadFailureMessage = e),
+                setTimeout(() => {
+                    this.fileAttachmentUploadFailureMessage = null
+                }, 5e3))
+        },
+    }
+}
+export { g as conversationThread }

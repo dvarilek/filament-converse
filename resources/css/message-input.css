@@ -1,20 +1,52 @@
-.fi-converse-message-input {
-    & .fi-converse-message-input-header {
-        @apply bg-red-600 p-3;
+& .fi-converse-attachment-area {
+    @apply flex flex-wrap gap-3 p-3;
 
-        & .fi-converse-message-input-header-item {
-        }
+    & .fi-converse-image-attachment {
+        @apply h-16 w-16 rounded-xl object-cover;
     }
 
-    & .fi-converse-message-input-footer {
-        @apply flex items-center justify-between p-3;
+    & .fi-converse-attachment-container {
+        @apply w-86 flex h-16 gap-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
 
-        & .fi-converse-message-input-footer-left-actions {
-            @apply flex items-center gap-3;
+        & .fi-converse-attachment-icon {
+            @apply rounded-full bg-gray-100 p-3 dark:bg-white/5;
         }
 
-        & .fi-converse-message-input-footer-right-actions {
-            @apply flex items-center gap-3;
+        & .fi-converse-attachment-information-container {
+            @apply flex w-full min-w-0;
+
+            &.fi-converse-attachment-has-formatted-mime-type-name {
+                @apply flex-col gap-2;
+
+                & .fi-converse-attachment-formatted-mime-type-badge {
+                    @apply w-fit;
+                }
+            }
+
+            &:not(.fi-converse-attachment-has-formatted-mime-type-name) {
+                @apply items-center;
+            }
+
+            & .fi-converse-attachment-name {
+                @apply truncate text-sm leading-6 text-gray-950 dark:text-white;
+            }
         }
+    }
+}
+
+& .fi-converse-conversation-thread-message-input-container {
+    & > .fi-input-wrp {
+    }
+}
+
+& .fi-converse-message-input-footer {
+    @apply flex items-center justify-between rounded-b-lg border-b border-l border-r border-gray-950/10 bg-white p-3 shadow-sm transition duration-75 dark:border-white/20 dark:bg-white/5;
+
+    & .fi-converse-message-input-footer-left-actions {
+        @apply flex items-center gap-3;
+    }
+
+    & .fi-converse-message-input-footer-right-actions {
+        @apply flex items-center gap-3;
     }
 }

@@ -32,4 +32,28 @@ return [
 
         ],
     ],
+
+    'attachment-area' => [
+
+        'remove-button-label' => 'Odstranit',
+
+        'mime-type' => [
+
+            'image' => 'Obrázek',
+
+            'audio' => 'Audio',
+
+            'video' => 'Video',
+
+            'pdf' => 'PDF',
+
+            'document' => 'Dokument',
+
+            'spreadsheet' => 'Tabulka',
+
+            'presentation' => 'Prezentace',
+
+        ],
+
+    ],
 ];

@@ -21,8 +21,12 @@ class MessageInput extends MarkdownEditor
 
         $this->autofocus();
 
-        $this->fileAttachmentsAcceptedFileTypes([
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        $this->minHeight('2rem');
+
+        $this->disableToolbarButtons([
+            'codeBlock',
         ]);
+
+        $this->fileAttachments(false);
     }
 }

@@ -32,11 +32,6 @@
 
     @if ($hasFileAttachments)
         @php
-            $attachmentModalIconColor = $getAttachmentModalIconColor();
-            $attachmentModalIcon = $getAttachmentModalIcon();
-            $attachmentModalHeading = $getAttachmentModalHeading();
-            $attachmentModalDescription = $getAttachmentModalDescription();
-
             $fileAttachmentsAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
             $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
         @endphp
@@ -44,7 +39,6 @@
         x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
         x-data="conversationThread({
             statePath: @js($statePath),
-            componentKey: @js($key),
             fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
             fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
             fileAttachmentsAcceptedFileTypesMessage: @js($getAttachmentsAcceptedFileTypesErrorMessage($fileAttachmentsAcceptedFileTypes)),
@@ -66,16 +60,16 @@
             <div class="fi-converse-attachment-modal">
                 <div class="fi-converse-attachment-modal-header">
                     <div
-                        {{ (new ComponentAttributeBag)->color(IconComponent::class, $attachmentModalIconColor, 'primary')->class(['fi-converse-attachment-modal-icon-bg']) }}
+                        {{ (new ComponentAttributeBag)->color(IconComponent::class, $getAttachmentModalIconColor(), 'primary')->class(['fi-converse-attachment-modal-icon-bg']) }}
                     >
-                        {{ \Filament\Support\generate_icon_html($attachmentModalIcon, size: \Filament\Support\Enums\IconSize::Large) }}
+                        {{ \Filament\Support\generate_icon_html($getAttachmentModalIcon(), size: \Filament\Support\Enums\IconSize::Large) }}
                     </div>
                 </div>
                 <div class="fi-converse-attachment-modal-content">
                     <h2 class="fi-converse-attachment-modal-heading">
-                        {{ $attachmentModalHeading }}
+                        {{ $getAttachmentModalHeading() }}
                     </h2>
-                    @if (filled($attachmentModalDescription))
+                    @if (filled($attachmentModalDescription = $getAttachmentModalDescription()))
                         <p class="fi-converse-attachment-modal-description">
                             {{ $attachmentModalDescription }}
                         </p>
@@ -225,6 +219,7 @@
             @endif
         @endforelse
     </div>
+
     @if ($conversation)
         @php
             $messageInputField = $getChildComponents(ConversationThread::MESSAGE_INPUT_FIELD_KEY)[0] ?? null;
@@ -232,7 +227,93 @@
 
         @if ($messageInputField && $messageInputField->isVisible())
             <div class="fi-converse-conversation-thread-message-input-container">
+                @if (count($uploadedFileAttachments = (Arr::wrap(data_get($getLivewire(), "componentFileAttachments.data")) ?? [])))
+                    <div class="fi-converse-attachment-area">
+                        @foreach ($uploadedFileAttachments as $fileAttachment)
+                            @php
+                                /* @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile $fileAttachment */
+                                $mimeType = $fileAttachment->getMimeType();
+                                $attachmentOriginalName = $fileAttachment->getClientOriginalName();
+                            @endphp
+
+                            @if (str_starts_with($mimeType, 'image/'))
+                                <img
+                                    src="{{ $fileAttachment->temporaryUrl() }}"
+                                    alt="{{ $attachmentOriginalName }}"
+                                    draggable="false"
+                                    class="fi-converse-image-attachment"
+                                >
+                            @else
+                                @php
+                                    $formattedMimeType = $getAttachmentFormattedMimeType($mimeType);
+                                    $hasFormattedMimeType = filled($formattedMimeType);
+                                @endphp
+
+                                <div class="fi-converse-attachment-container">
+                                    @if (filled($attachmentIcon = $getAttachmentIcon($mimeType)))
+                                        @if (! $attachmentIcon instanceof \Filament\Schemas\Components\Icon)
+                                            {{ $attachmentIcon }}
+                                        @else
+                                            <div class="fi-converse-attachment-icon">
+                                                {{ $attachmentIcon }}
+                                            </div>
+                                        @endif
+                                    @endif
+                                    <div
+                                        @class([
+                                            "fi-converse-attachment-information-container",
+                                            "fi-converse-attachment-has-formatted-mime-type-name" => $hasFormattedMimeType
+                                        ])
+                                        x-tooltip="{
+                                    content: @js($attachmentOriginalName),
+                                    theme: $store.theme,
+                                    allowHTML: @js($attachmentOriginalName instanceof \Illuminate\Contracts\Support\Htmlable),
+                                }"
+                                    >
+                                        <p class="fi-converse-attachment-name">
+                                            {{ $attachmentOriginalName }}
+                                        </p>
+
+                                        @if ($hasFormattedMimeType)
+                                            @if ($formattedMimeType instanceof \Illuminate\Contracts\Support\Htmlable)
+                                                {{ $formattedMimeType }}
+                                            @else
+                                                <x-filament::badge
+                                                    size="xd"
+                                                    color="gray"
+                                                    class="fi-converse-attachment-formatted-mime-type-badge"
+                                                >
+                                                    {{ $formattedMimeType }}
+                                                </x-filament::badge>
+                                            @endif
+                                        @endif
+                                    </div>
+
+                                    <x-filament::icon-button
+                                        color="gray"
+                                        :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
+                                        icon-size="md"
+                                        :label="__('filament-converse::conversation-thread.attachment-area.remove-button-label')"
+                                        x-on:click="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
+                                    />
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+
                 {{ $messageInputField }}
+
+                    <div class="fi-converse-message-input-footer">
+                        <div class="fi-converse-message-input-footer-left-actions">
+                            <x-filament::icon-button icon="heroicon-m-plus" />
+                            <x-filament::icon-button icon="heroicon-m-paper-clip" />
+                        </div>
+
+                        <div class="fi-converse-message-input-footer-right-actions">
+                            <x-filament::icon-button icon="heroicon-m-paper-airplane" />
+                        </div>
+                    </div>
             </div>
         @endif
     @endif

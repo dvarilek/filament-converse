@@ -6,6 +6,8 @@ return [
 
     'heading' => 'Conversations',
 
+    'list-close-button-label' => 'Close',
+
     'search' => [
 
         'label' => 'Search',

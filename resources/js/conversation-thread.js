@@ -1,6 +1,5 @@
 export function conversationThread({
     statePath,
-    componentKey,
     fileAttachmentAcceptedFileTypes,
     fileAttachmentMaxSize,
     fileAttachmentsAcceptedFileTypesMessage,
@@ -13,7 +12,7 @@ export function conversationThread({
         fileAttachmentUploadFailureMessage: null,
 
         init() {
-            ;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(
+            new Set(['dragenter', 'dragover', 'dragleave', 'drop']).forEach(
                 (eventName) =>
                     this.$el.addEventListener(
                         eventName,
@@ -25,7 +24,7 @@ export function conversationThread({
                     ),
             )
 
-            ;['dragenter', 'dragover'].forEach((eventName) => {
+            new Set(['dragenter', 'dragover']).forEach((eventName) => {
                 this.$el.addEventListener(
                     eventName,
                     () => {
@@ -35,7 +34,7 @@ export function conversationThread({
                 )
             })
 
-            ;['dragleave', 'drop'].forEach((eventName) => {
+            new Set(['dragleave', 'drop']).forEach((eventName) => {
                 this.$el.addEventListener(
                     eventName,
                     (event) => {
@@ -47,66 +46,51 @@ export function conversationThread({
                 )
             })
 
-            this.$el.addEventListener(
-                'drop',
-                (event) => {
-                    this.isDraggingOver = false
+            this.$el.addEventListener('drop', (event) => {
+                this.isDraggingOver = false
 
-                    const files = Array.from(
-                        (event.dataTransfer && event.dataTransfer.files) || [],
+                let fileAttachmentUploadFailureMessage = null
+
+                const files = Array.from(
+                    (event.dataTransfer && event.dataTransfer.files) || [],
+                ).filter((file) => {
+                    if (
+                        fileAttachmentAcceptedFileTypes &&
+                        !fileAttachmentAcceptedFileTypes.includes(file.type)
+                    ) {
+                        fileAttachmentUploadFailureMessage =
+                            fileAttachmentsAcceptedFileTypesMessage
+
+                        return false
+                    }
+
+                    if (
+                        fileAttachmentMaxSize &&
+                        file.size > +fileAttachmentMaxSize * 1024
+                    ) {
+                        fileAttachmentUploadFailureMessage =
+                            fileAttachmentsMaxSizeMessage
+
+                        return false
+                    }
+
+                    return true
+                })
+
+                if (fileAttachmentUploadFailureMessage) {
+                    this.updateFileAttachmentUploadFailureMessage(
+                        fileAttachmentUploadFailureMessage,
                     )
-                    if (files.length === 0) return
+                }
 
-                    files.forEach((file) => this.handleUpload(file))
-                },
-                false,
-            )
-        },
+                if (files.length === 0) {
+                    return
+                }
 
-        handleUpload(file) {
-            if (
-                fileAttachmentAcceptedFileTypes &&
-                !fileAttachmentAcceptedFileTypes.includes(file.type)
-            ) {
-                this.updateFileAttachmentUploadFailureMessage(
-                    fileAttachmentsAcceptedFileTypesMessage,
+                $wire.uploadMultiple(
+                    'componentFileAttachments.' + statePath,
+                    files,
                 )
-
-                return
-            }
-
-            if (
-                fileAttachmentMaxSize &&
-                file.size > +fileAttachmentMaxSize * 1024
-            ) {
-                this.updateFileAttachmentUploadFailureMessage(
-                    fileAttachmentsMaxSizeMessage,
-                )
-
-                return
-            }
-
-            $wire.upload('componentFileAttachments.' + statePath, file, () => {
-                $wire
-                    .callSchemaComponentMethod(
-                        componentKey,
-                        'saveUploadedFileAttachmentAndGetUrl',
-                    )
-                    .then((url) => {
-                        if (!url) {
-                            $wire.callSchemaComponentMethod(
-                                componentKey,
-                                'callAfterAttachmentUploadFailed',
-                            )
-
-                            return
-                        }
-
-                        $wire.callSchemaComponentMethod(
-                            componentKey,
-                            'callAfterAttachmentUploaded',
-                        )
-                    })
             })
         },
 

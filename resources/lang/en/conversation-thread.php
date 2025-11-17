@@ -33,4 +33,27 @@ return [
         ],
 
     ],
+
+    'attachment-area' => [
+
+        'remove-button-label' => 'Remove',
+
+        'mime-type' => [
+
+            'image' => 'Image',
+
+            'audio' => 'Audio',
+
+            'video' => 'Video',
+
+            'pdf' => 'PDF',
+
+            'document' => 'Document',
+
+            'spreadsheet' => 'Spreadsheet',
+
+            'presentation' => 'Presentation',
+        ],
+
+    ],
 ];
