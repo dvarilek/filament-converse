@@ -17,7 +17,11 @@ use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ConversationThread extends Component
 {
@@ -43,6 +47,9 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyDeleteMessageActionUsing = null;
 
+    // ------------------------------------------------------
+    protected int | Closure | null $maxFileAttachments = null;
+
     protected string | array | Closure | null $attachmentModalIconColor = null;
 
     protected string | BackedEnum | Htmlable | Closure | false | null $attachmentModalIcon = null;
@@ -51,17 +58,21 @@ class ConversationThread extends Component
 
     protected string | Htmlable | Closure | null $attachmentModalDescription = null;
 
-    protected string | Htmlable | Closure | null $attachmentsAcceptedFileTypesErrorMessage = null;
+    protected string | Closure | null $attachmentsAcceptedFileTypesValidationMessage = null;
 
-    protected string | Htmlable | Closure | null $attachmentsMaxFileSizeErrorMessage = null;
+    protected string | Closure | null $attachmentsMaxFileSizeValidationMessage = null;
+
+    protected string | Closure | null $maxFileAttachmentsValidationMessage = null;
+
+    protected ?Closure $formatFileAttachmentNameUsing = null;
 
     protected ?Closure $getAttachmentIconUsing = null;
 
     protected ?Closure $getAttachmentFormattedMimeTypeUsing = null;
 
-    // TODO: Look into this: + add more validation message, maybe extend from BaseFileUplaod here
-
     protected ?Closure $modifyMessageInputFieldUsing = null;
+
+    // protected bool | Closure $shouldOnlyShowAttachmentIcon = false;
 
     public static function make()
     {
@@ -93,8 +104,6 @@ class ConversationThread extends Component
             'text/csv',
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-powerpoint',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
         ]);
 
         $this->getAttachmentIconUsing(static function (string $mimeType) {
@@ -110,8 +119,6 @@ class ConversationThread extends Component
                 'text/csv',
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => Heroicon::OutlinedDocumentCurrencyEuro,
-                'application/vnd.ms-powerpoint',
-                'application/vnd.openxmlformats-officedocument.presentationml.presentation' => Heroicon::OutlinedPresentationChartBar,
                 default => Heroicon::OutlinedDocumentText,
             };
         });
@@ -129,8 +136,6 @@ class ConversationThread extends Component
                 'text/csv',
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => __('filament-converse::conversation-thread.attachment-area.mime-type.spreadsheet'),
-                'application/vnd.ms-powerpoint',
-                'application/vnd.openxmlformats-officedocument.presentationml.presentation' => __('filament-converse::conversation-thread.attachment-area.mime-type.presentation'),
                 default => null,
             };
         });
@@ -170,6 +175,13 @@ class ConversationThread extends Component
         return $this;
     }
 
+    public function maxFileAttachments(int | Closure | null $maxFileAttachments): static
+    {
+        $this->maxFileAttachments = $maxFileAttachments;
+
+        return $this;
+    }
+
     /**
      * @param  string | array<string> | Closure | null  $color
      */
@@ -201,16 +213,30 @@ class ConversationThread extends Component
         return $this;
     }
 
-    public function attachmentsAcceptedFileTypesErrorMessage(string | Htmlable | Closure | null $errorMessage): static
+    public function attachmentsAcceptedFileTypesValidationMessage(string | Closure | null $validationMessage): static
     {
-        $this->attachmentsAcceptedFileTypesErrorMessage = $errorMessage;
+        $this->attachmentsAcceptedFileTypesValidationMessage = $validationMessage;
 
         return $this;
     }
 
-    public function attachmentsMaxFileSizeErrorMessage(string | Htmlable | Closure | null $errorMessage): static
+    public function attachmentsMaxFileSizeValidationMessage(string | Closure | null $validationMessage): static
     {
-        $this->attachmentsMaxFileSizeErrorMessage = $errorMessage;
+        $this->attachmentsMaxFileSizeValidationMessage = $validationMessage;
+
+        return $this;
+    }
+
+    public function maxFileAttachmentsValidationMessage(string | Closure | null $validationMessage): static
+    {
+        $this->maxFileAttachmentsValidationMessage = $validationMessage;
+
+        return $this;
+    }
+
+    public function formatFileAttachmentNameUsing(?Closure $callback = null): static
+    {
+        $this->formatFileAttachmentNameUsing = $callback;
 
         return $this;
     }
@@ -236,6 +262,47 @@ class ConversationThread extends Component
         return $this;
     }
 
+    public function getUploadedFileAttachments(): array
+    {
+        return Arr::wrap(data_get($this->getLivewire(), 'componentFileAttachments.' . $this->getStatepath())) ?? [];
+    }
+
+    public function getUploadedFileAttachment(TemporaryUploadedFile | string | null $attachment = null): ?TemporaryUploadedFile
+    {
+        if (is_string($attachment)) {
+            $attachment = data_get($this->getLivewire(), "componentFileAttachments.{$this->getStatePath()}.{$attachment}");
+        } elseif (! $attachment) {
+            $attachment = data_get($this->getLivewire(), "componentFileAttachments.{$this->getStatePath()}");
+        }
+
+        if ($attachment instanceof TemporaryUploadedFile) {
+            $maxSize = $this->getFileAttachmentsMaxSize();
+            $acceptedFileTypes = $this->getFileAttachmentsAcceptedFileTypes();
+            $maxFileAttachments = $this->getMaxFileAttachments(); // TODO: Actually test later
+
+            try {
+                Validator::validate(
+                    ['file' => $attachment],
+                    rules: [
+                        'file' => [
+                            'file' => [
+                                'array',
+                                ...($maxFileAttachments ? ["max:{$maxFileAttachments}"] : []),
+                            ],
+                            'file.*',
+                            ...($maxSize ? ["max:{$maxSize}"] : []),
+                            ...($acceptedFileTypes ? ['mimetypes:' . implode(',', $acceptedFileTypes)] : []),
+                        ],
+                    ],
+                );
+            } catch (ValidationException $exception) {
+                return null;
+            }
+        }
+
+        return $attachment;
+    }
+
     protected function getEditConversationAction(): Action
     {
         $action = Action::make('editConversation')
@@ -243,7 +310,7 @@ class ConversationThread extends Component
             ->color('gray')
             ->icon(Heroicon::OutlinedCog6Tooth)
             ->size(Size::ExtraLarge)
-            ->action(fn () => dd($this->getLivewire()->content->getState()));
+            ->action(fn () => dd($this->getLivewire()->content->getState(), $this->getLivewire()->componentFileAttachments));
 
         if ($this->modifyEditConversationActionUsing) {
             $action = $this->evaluate($this->modifyEditConversationActionUsing, [
@@ -288,6 +355,23 @@ class ConversationThread extends Component
         return $action;
     }
 
+    public function formatFileAttachmentName(?string $fileAttachmentName): string | Htmlable | null
+    {
+        if ($this->formatFileAttachmentNameUsing) {
+            $fileAttachmentName = $this->evaluate($this->formatFileAttachmentNameUsing, [
+                'name' => $fileAttachmentName,
+                'fileAttachmentName' => $fileAttachmentName,
+            ]);
+        }
+
+        return $fileAttachmentName;
+    }
+
+    public function getMaxFileAttachments(): ?int
+    {
+        return $this->evaluate($this->maxFileAttachments);
+    }
+
     /**
      * @return string | array<string>
      */
@@ -322,20 +406,36 @@ class ConversationThread extends Component
         return $this->evaluate($this->attachmentModalDescription);
     }
 
-    public function getAttachmentsAcceptedFileTypesErrorMessage(array $fileAttachmentsAcceptedFileTypes): string | Htmlable
+    public function getAttachmentsAcceptedFileTypesValidationMessage(array $fileAttachmentsAcceptedFileTypes): string
     {
-        return $this->evaluate($this->attachmentsAcceptedFileTypesErrorMessage, [
+        return $this->evaluate($this->attachmentsAcceptedFileTypesValidationMessage, [
             'fileAttachmentsAcceptedFileTypes' => $fileAttachmentsAcceptedFileTypes,
             'acceptedFileTypes' => $fileAttachmentsAcceptedFileTypes,
-        ]) ?? __('filament-converse::conversation-thread.attachment-modal.file-attachments-accepted-file-types-message', ['values' => implode(', ', $fileAttachmentsAcceptedFileTypes)]);
+        ]) ?? __('filament-converse::conversation-thread.attachment-modal.file-attachments-accepted-file-types-validation-message', ['values' => implode(', ', $fileAttachmentsAcceptedFileTypes)]);
     }
 
-    public function getAttachmentsMaxFileSizeErrorMessage(string $fileAttachmentsMaxSize): string | Htmlable
+    public function getAttachmentsMaxFileSizeValidationMessage(string $fileAttachmentsMaxSize): string
     {
-        return $this->evaluate($this->attachmentsMaxFileSizeErrorMessage, [
+        return $this->evaluate($this->attachmentsMaxFileSizeValidationMessage, [
             'fileAttachmentMaxSize' => $fileAttachmentsMaxSize,
             'maxSize' => $fileAttachmentsMaxSize,
-        ]) ?? trans_choice('filament-converse::conversation-thread.attachment-modal.max-file-size-error-message', $fileAttachmentsMaxSize, ['max' => $fileAttachmentsMaxSize]);
+        ]) ?? __('filament-converse::conversation-thread.attachment-modal.file-attachments-max-size-validation-message', ['max' => $fileAttachmentsMaxSize]);
+    }
+
+    public function getMaxFileAttachmentsValidationMessage(?int $maxFileAttachments = null): ?string
+    {
+        if ($maxFileAttachments === null) {
+            return null;
+        }
+
+        return $this->evaluate($this->maxFileAttachmentsValidationMessage, [
+            'maxFileAttachments' => $maxFileAttachments,
+            'maxFiles' => $maxFileAttachments,
+        ]) ?? trans_choice(
+            'filament-converse::conversation-thread.attachment-modal.max-file-attachments-validation-message',
+            $maxFileAttachments,
+            ['count' => $maxFileAttachments],
+        );
     }
 
     public function getAttachmentIcon(string $mimeType): Htmlable | Icon | null

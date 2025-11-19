@@ -16,9 +16,11 @@ return [
 
         'description' => 'Pusťte přílohy pro přidání ke zprávě.',
 
-        'file-attachments-accepted-file-types-message' => 'Nahrané soubory musí být typu: :values.',
+        'file-attachments-accepted-file-types-validation-message' => 'Nahrané soubory musí být typu: :values.',
 
-        'file-attachments-max-size-message' => 'Nahrané soubory nesmí být větší než :max kilobajtů.',
+        'file-attachments-max-size-validation-message' => 'Nahrané soubory nesmí být větší než :max kilobajtů.',
+
+        'max-file-attachments-validation-message' => '{1} Můžete nahrát maximálně :count soubor.|[2,4] Můžete nahrát maximálně :count soubory.|[5,*] Můžete nahrát maximálně :count souborů.',
 
     ],
 
@@ -50,8 +52,6 @@ return [
             'document' => 'Dokument',
 
             'spreadsheet' => 'Tabulka',
-
-            'presentation' => 'Prezentace',
 
         ],
 

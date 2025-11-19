@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
+use Filament\Forms\Components\Contracts\CanBeLengthConstrained as CanBeLengthConstrainedContract;
 use Filament\Forms\Components\MarkdownEditor;
 
-class MessageInput extends MarkdownEditor
+class MessageInput extends MarkdownEditor implements CanBeLengthConstrainedContract
 {
     /**
      * @var view-string
@@ -23,10 +24,10 @@ class MessageInput extends MarkdownEditor
 
         $this->minHeight('2rem');
 
+        $this->fileAttachments(false);
+
         $this->disableToolbarButtons([
             'codeBlock',
         ]);
-
-        $this->fileAttachments(false);
     }
 }

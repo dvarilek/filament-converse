@@ -15,6 +15,10 @@
 
     /* @var Conversation | null $conversation */
     $conversation = $getActiveConversation();
+    $hasConversation = filled($conversation);
+
+    $messageInputField = $getChildComponents(ConversationThread::MESSAGE_INPUT_FIELD_KEY)[0] ?? null;
+    $canUploadFileAttachments = $messageInputField && ! $messageInputField->isDisabled() && $messageInputField->isVisible() && $hasFileAttachments;
 
     /* @var Collection<int, Message> */
     $messages = $conversation?->participations?->flatMap?->messages?->sortBy('created_at') ?? []; // temp
@@ -30,10 +34,11 @@
 <div
     class="fi-converse-conversation-thread"
 
-    @if ($hasFileAttachments)
+    @if ($hasConversation)
         @php
             $fileAttachmentsAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
             $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
+            $maxFileAttachments = $getMaxFileAttachments();
         @endphp
         x-load
         x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
@@ -41,15 +46,26 @@
             statePath: @js($statePath),
             fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
             fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
-            fileAttachmentsAcceptedFileTypesMessage: @js($getAttachmentsAcceptedFileTypesErrorMessage($fileAttachmentsAcceptedFileTypes)),
-            fileAttachmentsMaxSizeMessage: @js($getAttachmentsMaxFileSizeErrorMessage($fileAttachmentsMaxSize)),
+            maxFileAttachments: @js($maxFileAttachments),
+            fileAttachmentsAcceptedFileTypesValidationMessage: @js($getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentsAcceptedFileTypes)),
+            fileAttachmentsMaxSizeValidationMessage: @js($getAttachmentsMaxFileSizeValidationMessage($fileAttachmentsMaxSize)),
+            maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
             $wire
         })"
         x-bind:class="{'fi-converse-conversation-thread-attachment-dragging-active': isDraggingOver}"
     @endif
 >
 
-    @if ($hasFileAttachments)
+    @if ($canUploadFileAttachments)
+        <input
+            type="file"
+            @if (count($getUploadedFileAttachments()) !== 1)
+                multiple
+            @endif
+            x-ref="fileInput"
+            class="hidden"
+            x-on:change="handleAttachmentUpload($event.target.files)"
+        >
         <div
             x-cloak
             x-show="isDraggingOver"
@@ -80,7 +96,7 @@
     @endif
 
     <div class="fi-converse-conversation-thread-header">
-        @if ($conversation)
+        @if ($hasConversation)
             @php
                 $conversationName = $getConversationName($conversation);
             @endphp
@@ -117,19 +133,36 @@
         @endif
     </div>
 
-    @if($hasFileAttachments)
-        <div
-            x-cloak
-            x-show="fileAttachmentUploadFailureMessage"
-            class="fi-converse-conversation-thread-upload-failute-message-container"
-        >
-            <p x-text="fileAttachmentUploadFailureMessage" class="fi-converse-conversation-thread-upload-failute-message">
+    <div @class([
+        "fi-converse-conversation-thread-message-box",
+        "fi-converse-relative" => $canUploadFileAttachments
+    ])>
+        @php
+            // TODO: Add translations, apply correct color and tweak stuling, make message input doesn't deform when there is too much text
+        @endphp
+        @if ($canUploadFileAttachments)
+            <div
+                x-cloak
+                x-show="isFileAttachmentUploading || fileAttachmentUploadValidationMessage ||isFileAttachmentSuccessfullyUploaded "
+                class="fi-converse-conversation-thread-upload-message-container"
+                x-bind:class="{
+                    'fi-converse-conversation-thread-uploading-message': isFileAttachmentUploading,
+                    'fi-converse-conversation-thread-upload-successfully-finished-message': isFileAttachmentSuccessfullyUploaded && !isFileAttachmentUploading,
+                    'fi-converse-conversation-thread-upload-validation-message': fileAttachmentUploadValidationMessage,
+                }"
+            >
+                <p
+                    x-text="isFileAttachmentUploading
+                        ? 'Uploading file...'
+                        : (fileAttachmentUploadValidationMessage
+                            ? fileAttachmentUploadValidationMessage
+                            : 'Upload complete!')"
+                    class="fi-converse-conversation-thread-upload-message-description"
+                >
+                </p>
+            </div>
+        @endif
 
-            </p>
-        </div>
-    @endif
-
-    <div class="fi-converse-conversation-thread-message-box">
         @forelse ($messages as $message)
             @php
                 $messageAuthor = $message->author->participant;
@@ -220,101 +253,16 @@
         @endforelse
     </div>
 
-    @if ($conversation)
-        @php
-            $messageInputField = $getChildComponents(ConversationThread::MESSAGE_INPUT_FIELD_KEY)[0] ?? null;
-        @endphp
-
-        @if ($messageInputField && $messageInputField->isVisible())
-            <div class="fi-converse-conversation-thread-message-input-container">
-                @if (count($uploadedFileAttachments = (Arr::wrap(data_get($getLivewire(), "componentFileAttachments.data")) ?? [])))
-                    <div class="fi-converse-attachment-area">
-                        @foreach ($uploadedFileAttachments as $fileAttachment)
-                            @php
-                                /* @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile $fileAttachment */
-                                $mimeType = $fileAttachment->getMimeType();
-                                $attachmentOriginalName = $fileAttachment->getClientOriginalName();
-                            @endphp
-
-                            @if (str_starts_with($mimeType, 'image/'))
-                                <img
-                                    src="{{ $fileAttachment->temporaryUrl() }}"
-                                    alt="{{ $attachmentOriginalName }}"
-                                    draggable="false"
-                                    class="fi-converse-image-attachment"
-                                >
-                            @else
-                                @php
-                                    $formattedMimeType = $getAttachmentFormattedMimeType($mimeType);
-                                    $hasFormattedMimeType = filled($formattedMimeType);
-                                @endphp
-
-                                <div class="fi-converse-attachment-container">
-                                    @if (filled($attachmentIcon = $getAttachmentIcon($mimeType)))
-                                        @if (! $attachmentIcon instanceof \Filament\Schemas\Components\Icon)
-                                            {{ $attachmentIcon }}
-                                        @else
-                                            <div class="fi-converse-attachment-icon">
-                                                {{ $attachmentIcon }}
-                                            </div>
-                                        @endif
-                                    @endif
-                                    <div
-                                        @class([
-                                            "fi-converse-attachment-information-container",
-                                            "fi-converse-attachment-has-formatted-mime-type-name" => $hasFormattedMimeType
-                                        ])
-                                        x-tooltip="{
-                                    content: @js($attachmentOriginalName),
-                                    theme: $store.theme,
-                                    allowHTML: @js($attachmentOriginalName instanceof \Illuminate\Contracts\Support\Htmlable),
-                                }"
-                                    >
-                                        <p class="fi-converse-attachment-name">
-                                            {{ $attachmentOriginalName }}
-                                        </p>
-
-                                        @if ($hasFormattedMimeType)
-                                            @if ($formattedMimeType instanceof \Illuminate\Contracts\Support\Htmlable)
-                                                {{ $formattedMimeType }}
-                                            @else
-                                                <x-filament::badge
-                                                    size="xd"
-                                                    color="gray"
-                                                    class="fi-converse-attachment-formatted-mime-type-badge"
-                                                >
-                                                    {{ $formattedMimeType }}
-                                                </x-filament::badge>
-                                            @endif
-                                        @endif
-                                    </div>
-
-                                    <x-filament::icon-button
-                                        color="gray"
-                                        :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
-                                        icon-size="md"
-                                        :label="__('filament-converse::conversation-thread.attachment-area.remove-button-label')"
-                                        x-on:click="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
-                                    />
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                @endif
-
-                {{ $messageInputField }}
-
-                    <div class="fi-converse-message-input-footer">
-                        <div class="fi-converse-message-input-footer-left-actions">
-                            <x-filament::icon-button icon="heroicon-m-plus" />
-                            <x-filament::icon-button icon="heroicon-m-paper-clip" />
-                        </div>
-
-                        <div class="fi-converse-message-input-footer-right-actions">
-                            <x-filament::icon-button icon="heroicon-m-paper-airplane" />
-                        </div>
-                    </div>
-            </div>
-        @endif
+    @if ($hasConversation && $messageInputField && $messageInputField->isVisible())
+        <div class="fi-converse-conversation-thread-message-input-container">
+            {{ $messageInputField->viewData([
+                'getAttachmentIcon' => $getAttachmentIcon,
+                'formatFileAttachmentName' => $formatFileAttachmentName,
+                'getAttachmentFormattedMimeType' => $getAttachmentFormattedMimeType,
+                'conversationThreadStatePath' => $statePath,
+                'hasFileAttachments' => $hasFileAttachments,
+                'uploadedFileAttachments' => $getUploadedFileAttachments()
+            ]) }}
+        </div>
     @endif
 </div>

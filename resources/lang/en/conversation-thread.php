@@ -16,9 +16,11 @@ return [
 
         'description' => 'Drop your attachments here to add them to your message.',
 
-        'file-attachments-accepted-file-types-message' => 'Uploaded files must be of type: :values.',
+        'file-attachments-accepted-file-types-validation-message' => 'Uploaded files must be of type: :values.',
 
-        'file-attachments-max-size-message' => 'Uploaded files must not be greater than :max kilobytes.',
+        'file-attachments-max-size-validation-message' => 'Uploaded files must not be greater than :max kilobytes.',
+
+        'max-file-attachments-validation-message' => '{1} You can only upload a maximum of :count attachment.|[2,*] You can only upload a maximum of :count attachments.',
 
     ],
 
@@ -52,7 +54,6 @@ return [
 
             'spreadsheet' => 'Spreadsheet',
 
-            'presentation' => 'Presentation',
         ],
 
     ],

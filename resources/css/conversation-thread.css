@@ -8,7 +8,7 @@
             @apply absolute inset-0 flex items-start justify-center pt-40;
 
             & .fi-converse-attachment-modal-backdrop {
-                @apply absolute inset-0 rounded-xl bg-gray-950/20 dark:bg-gray-950/50;
+                @apply absolute inset-0 z-10 rounded-xl bg-gray-950/20 dark:bg-gray-950/50;
             }
 
             & .fi-converse-attachment-modal {
@@ -69,16 +69,32 @@
         }
     }
 
-    & .fi-converse-conversation-thread-upload-failute-message-container {
-        @apply justify-center bg-red-100 px-6 py-1.5 dark:bg-red-500/20;
-
-        & .fi-converse-conversation-thread-upload-failute-message {
-            @apply w-full break-words text-sm text-gray-500 dark:text-gray-400;
-        }
-    }
-
     & .fi-converse-conversation-thread-message-box {
         @apply flex flex-1 flex-col gap-3 p-6;
+
+        &.fi-converse-relative {
+            @apply relative;
+        }
+
+        & .fi-converse-conversation-thread-upload-message-container {
+            @apply absolute left-0 right-0 top-0 flex w-full items-center justify-center px-6 py-1.5;
+
+            &.fi-converse-conversation-thread-upload-validation-message {
+                @apply bg-red-100/95 dark:bg-red-500/30;
+            }
+
+            &.fi-converse-conversation-thread-uploading-message {
+                @apply bg-blue-100/95 dark:bg-blue-500/30;
+            }
+
+            &.fi-converse-conversation-thread-upload-successfully-finished-message {
+                @apply bg-green-100/95 dark:bg-green-500/30;
+            }
+
+            & .fi-converse-conversation-thread-upload-message-description {
+                @apply w-full break-words text-center text-sm text-gray-500 dark:text-gray-400;
+            }
+        }
 
         & .fi-converse-conversation-thread-message-container {
             @apply flex gap-2;

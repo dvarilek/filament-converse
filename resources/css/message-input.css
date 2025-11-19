@@ -1,12 +1,34 @@
-& .fi-converse-attachment-area {
-    @apply flex flex-wrap gap-3 p-3;
+& .fi-converse-message-input {
+    & .CodeMirror-scroll {
+        max-height: 8rem;
+        overflow-y: auto;
+    }
+}
 
-    & .fi-converse-image-attachment {
-        @apply h-16 w-16 rounded-xl object-cover;
+& .fi-converse-attachment-area {
+    @apply max-h-22 grid gap-3 overflow-y-auto p-3;
+    grid-template-columns: repeat(auto-fill, minmax(4rem, 1fr));
+
+    & .fi-converse-attachment-image-container {
+        @apply relative h-16 w-16;
+        grid-column: span 1;
+
+        & .fi-converse-attachment-image {
+            @apply h-full w-full rounded-xl object-cover;
+        }
+
+        & .fi-converse-attachment-image-remove-button {
+            @apply absolute right-1 top-1 text-white;
+        }
     }
 
-    & .fi-converse-attachment-container {
-        @apply w-86 flex h-16 gap-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
+    & .fi-converse-attachment-item-container {
+        @apply flex h-16 gap-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
+        grid-column: span 3;
+
+        & .fi-converse-attachment-item-image {
+            @apply w-12 rounded-xl object-cover;
+        }
 
         & .fi-converse-attachment-icon {
             @apply rounded-full bg-gray-100 p-3 dark:bg-white/5;
@@ -35,8 +57,6 @@
 }
 
 & .fi-converse-conversation-thread-message-input-container {
-    & > .fi-input-wrp {
-    }
 }
 
 & .fi-converse-message-input-footer {
