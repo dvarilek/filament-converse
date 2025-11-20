@@ -26,8 +26,31 @@
                     ->class(['fi-converse-message-input fi-fo-markdown-editor'])
             "
         >
-            @if ($hasFileAttachments && count($uploadedFileAttachments))
-                <div class="fi-converse-attachment-area">
+            @if ($hasFileAttachments)
+                <div
+                    class="fi-converse-attachment-area"
+                    x-bind:class="{'fi-converse-attachment-area-has-content': isUploadingFileAttachment() || {{ count($uploadedFileAttachments) }} > 0}"
+                >
+                    <template x-for="file in uploadingFileAttachments">
+                        <div>
+                            <div
+                                x-cloak
+                                x-show="file.type.startsWith('image/')"
+                                class="fi-converse-attachment-image-container fi-converse-attachment-skeleton"
+                            >
+                                Image
+                            </div>
+
+                            <div
+                                x-cloak
+                                x-show="! file.type.startsWith('image/')"
+                                class="fi-converse-attachment-item-container fi-converse-attachment-skeleton"
+                            >
+                                Content
+                            </div>
+                        </div>
+                    </template>
+
                     @foreach (array_reverse($uploadedFileAttachments) as $fileAttachment)
                         @php
                             /* @var TemporaryUploadedFile $fileAttachment */

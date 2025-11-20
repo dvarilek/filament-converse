@@ -52,7 +52,7 @@
             maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
             $wire
         })"
-        x-bind:class="{'fi-converse-conversation-thread-attachment-dragging-active': isDraggingOver}"
+        x-bind:class="{'fi-converse-highlight-conversation-thread': isDraggingFileAttachment}"
     @endif
 >
 
@@ -68,12 +68,16 @@
         >
         <div
             x-cloak
-            x-show="isDraggingOver"
+            x-show="isDraggingFileAttachment"
             class="fi-converse-attachment-modal-overlay"
         >
             <div class="fi-converse-attachment-modal-backdrop"></div>
 
-            <div class="fi-converse-attachment-modal">
+            <div
+                x-cloak
+                x-show="isDraggingFileAttachment"
+                class="fi-converse-attachment-modal"
+            >
                 <div class="fi-converse-attachment-modal-header">
                     <div
                         {{ (new ComponentAttributeBag)->color(IconComponent::class, $getAttachmentModalIconColor(), 'primary')->class(['fi-converse-attachment-modal-icon-bg']) }}
@@ -137,29 +141,13 @@
         "fi-converse-conversation-thread-message-box",
         "fi-converse-relative" => $canUploadFileAttachments
     ])>
-        @php
-            // TODO: Add translations, apply correct color and tweak stuling, make message input doesn't deform when there is too much text
-        @endphp
         @if ($canUploadFileAttachments)
             <div
                 x-cloak
-                x-show="isFileAttachmentUploading || fileAttachmentUploadValidationMessage ||isFileAttachmentSuccessfullyUploaded "
-                class="fi-converse-conversation-thread-upload-message-container"
-                x-bind:class="{
-                    'fi-converse-conversation-thread-uploading-message': isFileAttachmentUploading,
-                    'fi-converse-conversation-thread-upload-successfully-finished-message': isFileAttachmentSuccessfullyUploaded && !isFileAttachmentUploading,
-                    'fi-converse-conversation-thread-upload-validation-message': fileAttachmentUploadValidationMessage,
-                }"
+                x-show="fileAttachmentUploadValidationMessage"
+                class="fi-converse-conversation-thread-upload-validation-message-container"
             >
-                <p
-                    x-text="isFileAttachmentUploading
-                        ? 'Uploading file...'
-                        : (fileAttachmentUploadValidationMessage
-                            ? fileAttachmentUploadValidationMessage
-                            : 'Upload complete!')"
-                    class="fi-converse-conversation-thread-upload-message-description"
-                >
-                </p>
+                <p x-text="fileAttachmentUploadValidationMessage"></p>
             </div>
         @endif
 

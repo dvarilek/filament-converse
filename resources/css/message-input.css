@@ -6,12 +6,14 @@
 }
 
 & .fi-converse-attachment-area {
-    @apply max-h-22 grid gap-3 overflow-y-auto p-3;
-    grid-template-columns: repeat(auto-fill, minmax(4rem, 1fr));
+    @apply max-h-22 flex flex-wrap gap-3 overflow-y-auto;
+
+    &.fi-converse-attachment-area-has-content {
+        @apply p-3;
+    }
 
     & .fi-converse-attachment-image-container {
         @apply relative h-16 w-16;
-        grid-column: span 1;
 
         & .fi-converse-attachment-image {
             @apply h-full w-full rounded-xl object-cover;
@@ -23,8 +25,7 @@
     }
 
     & .fi-converse-attachment-item-container {
-        @apply flex h-16 gap-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
-        grid-column: span 3;
+        @apply w-full sm:w-[calc((100%_-_theme(spacing.3))_/_2)] md:w-[calc((100%_-_theme(spacing.3))_/_2)] lg:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)] xl:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)] flex h-16 gap-3 rounded-xl bg-white p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
 
         & .fi-converse-attachment-item-image {
             @apply w-12 rounded-xl object-cover;

@@ -1,19 +1,17 @@
 export function conversationThread({
-    statePath,
-    fileAttachmentAcceptedFileTypes,
-    fileAttachmentMaxSize,
-    maxFileAttachments,
-    fileAttachmentsAcceptedFileTypesValidationMessage,
-    fileAttachmentsMaxSizeValidationMessage,
-    maxFileAttachmentsValidationMessage,
-    $wire,
-}) {
+                                       statePath,
+                                       fileAttachmentAcceptedFileTypes,
+                                       fileAttachmentMaxSize,
+                                       maxFileAttachments,
+                                       fileAttachmentsAcceptedFileTypesValidationMessage,
+                                       fileAttachmentsMaxSizeValidationMessage,
+                                       maxFileAttachmentsValidationMessage,
+                                       $wire,
+                                   }) {
     return {
-        isDraggingOver: false,
+        isDraggingFileAttachment: false,
 
-        isFileAttachmentUploading: false,
-
-        isFileAttachmentSuccessfullyUploaded: false,
+        uploadingFileAttachments: [],
 
         fileAttachmentUploadValidationMessage: null,
 
@@ -34,7 +32,7 @@ export function conversationThread({
                 this.$el.addEventListener(
                     eventName,
                     () => {
-                        this.isDraggingOver = true
+                        this.isDraggingFileAttachment = true
                     },
                     false,
                 )
@@ -42,19 +40,21 @@ export function conversationThread({
 
             this.$el.addEventListener('dragleave', (event) => {
                 if (!this.$el.contains(event.relatedTarget)) {
-                    this.isDraggingOver = false
+                    this.isDraggingFileAttachment = false
                 }
             })
 
             this.$el.addEventListener('drop', async (event) => {
-                this.isDraggingOver = false
-
-                console.log('drop', event)
+                this.isDraggingFileAttachment = false
 
                 await this.handleAttachmentUpload(
                     (event.dataTransfer && event.dataTransfer.files) || [],
                 )
             })
+        },
+
+        isUploadingFileAttachment() {
+            return this.uploadingFileAttachments.length > 0
         },
 
         async handleAttachmentUpload(files) {
@@ -116,22 +116,13 @@ export function conversationThread({
                 return
             }
 
-            this.isFileAttachmentUploading = true
+            this.uploadingFileAttachments.push(...validFiles)
 
             await $wire.uploadMultiple(
                 'componentFileAttachments.' + statePath,
                 validFiles,
-                () => {
-                    this.isFileAttachmentSuccessfullyUploaded = true
-                    this.isFileAttachmentUploading = false
-
-                    setTimeout(
-                        () =>
-                            (this.isFileAttachmentSuccessfullyUploaded = false),
-                        1500,
-                    )
-                },
-                () => (this.isFileAttachmentUploading = false),
+                () => (this.uploadingFileAttachments = []),
+                () => (this.uploadingFileAttachments = []),
             )
         },
     }
