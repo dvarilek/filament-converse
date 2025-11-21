@@ -32,11 +32,12 @@
                     x-bind:class="{'fi-converse-attachment-area-has-content': isUploadingFileAttachment() || {{ count($uploadedFileAttachments) }} > 0}"
                 >
                     <template x-for="file in uploadingFileAttachments">
-                        <div>
+                        <div
+                            x-bind:class="file.type.startsWith('image/') ? 'fi-converse-attachment-image-container' : 'fi-converse-attachment-item-container'"
+                        >
                             <div
                                 x-cloak
                                 x-show="file.type.startsWith('image/')"
-                                class="fi-converse-attachment-image-container fi-converse-attachment-skeleton"
                             >
                                 Image
                             </div>
@@ -44,7 +45,6 @@
                             <div
                                 x-cloak
                                 x-show="! file.type.startsWith('image/')"
-                                class="fi-converse-attachment-item-container fi-converse-attachment-skeleton"
                             >
                                 Content
                             </div>
