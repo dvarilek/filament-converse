@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
 
 /**
@@ -26,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Collection<int, ConversationParticipation> $participations
  * @property Collection<int, ConversationParticipation> $otherParticipations
+ * @property Collection<int, Message> $messages
  * @property ConversationParticipation|null $creator
  */
 class Conversation extends Model
@@ -67,6 +69,18 @@ class Conversation extends Model
     public function otherParticipations(): HasMany
     {
         return $this->participations()->whereNot('participant_id', auth()->id());
+    }
+
+    public function messages(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Message::class,
+            ConversationParticipation::class,
+            'conversation_id',
+            'author_id',
+            'id',
+            'id'
+        );
     }
 
     /**

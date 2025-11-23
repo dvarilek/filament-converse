@@ -6,48 +6,61 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use BackedEnum;
 use Closure;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Concerns\CanBeLengthConstrained;
 use Filament\Forms\Components\Concerns\HasFileAttachments;
-use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\Concerns\HasKey;
+use Filament\Forms\Components\Concerns\HasMaxHeight;
+use Filament\Forms\Components\Concerns\HasMinHeight;
+use Filament\Forms\Components\Concerns\InteractsWithToolbarButtons;
+use Filament\Forms\Components\Contracts\CanBeLengthConstrained as CanBeLengthConstrainedContract;
+use Filament\Forms\Components\Field;
 use Filament\Schemas\Components\Icon;
+use Filament\Support\Concerns\CanConfigureCommonMark;
+use Filament\Support\Concerns\HasExtraAlpineAttributes;
+use Filament\Support\Concerns\HasPlaceholder;
+use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class ConversationThread extends Component
+class ConversationThread extends Field implements CanBeLengthConstrainedContract
 {
+    use CanBeLengthConstrained;
+    use CanConfigureCommonMark;
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
+    use HasExtraAlpineAttributes;
     use HasFileAttachments;
-    use HasKey;
+    use HasMaxHeight;
+    use HasMinHeight;
+    use HasPlaceholder;
+    use InteractsWithToolbarButtons;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
 
     const MESSAGE_ACTIONS_KEY = 'message_actions';
-
-    const MESSAGE_INPUT_FIELD_KEY = 'message_input_field';
 
     /**
      * @var view-string
      */
     protected string $view = 'filament-converse::conversation-thread';
 
-    protected ?Closure $modifyEditConversationActionUsing = null;
+    protected int | Closure | null $defaultLoadedMessagesCount = 15;
 
-    protected ?Closure $modifyEditMessageActionUsing = null;
+    protected int | Closure | null $messagesPerPageLoad = 15;
 
-    protected ?Closure $modifyDeleteMessageActionUsing = null;
+    protected ?Closure $modifyMessagesQueryUsing = null;
 
-    // ------------------------------------------------------
     protected int | Closure | null $maxFileAttachments = null;
 
     protected string | array | Closure | null $attachmentModalIconColor = null;
@@ -64,29 +77,62 @@ class ConversationThread extends Component
 
     protected string | Closure | null $maxFileAttachmentsValidationMessage = null;
 
-    protected ?Closure $formatFileAttachmentNameUsing = null;
+    protected bool | Closure $hideAttachmentDetailsForImage = true;
 
-    protected ?Closure $getAttachmentIconUsing = null;
+    protected bool | Closure $previewImageAttachment = true;
 
-    protected ?Closure $getAttachmentFormattedMimeTypeUsing = null;
+    protected ?Closure $fileAttachmentName = null;
 
-    protected ?Closure $modifyMessageInputFieldUsing = null;
+    protected ?Closure $fileAttachmentToolbar = null;
 
-    // protected bool | Closure $shouldOnlyShowAttachmentIcon = false;
+    protected string | BackedEnum | Htmlable | Closure | null $fileAttachmentIcon = null;
 
-    public static function make()
+    /**
+     * @param  string | array<string> | Closure | null  $fileAttachmentIconColor
+     */
+    protected string | array | Closure | null $fileAttachmentIconColor = 'primary';
+
+    protected ?Closure $fileAttachmentMimeTypeBadgeLabel = null;
+
+    protected string | BackedEnum | Closure | null $fileAttachmentMimeTypeBadgeIcon = null;
+
+    /**
+     * @param  string | array<string> | Closure | null  $fileAttachmentMimeTypeBadgeColor
+     */
+    protected string | array | Closure | null $fileAttachmentMimeTypeBadgeColor = 'gray';
+
+    protected ?Closure $modifyEditConversationActionUsing = null;
+
+    protected ?Closure $modifyEditMessageActionUsing = null;
+
+    protected ?Closure $modifyDeleteMessageActionUsing = null;
+
+    protected ?Closure $modifySendMessageActionUsing = null;
+
+    protected ?Closure $modifyUploadAttachmentActionUsing = null;
+
+    public static function getDefaultName(): ?string
     {
-        $static = app(static::class);
-        $static->configure();
-
-        return $static;
+        return 'conversation_thread';
     }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->key('conversation-thread');
+        $this->hiddenLabel();
+
+        $this->autofocus();
+
+        $this->maxLength(65535);
+
+        $this->minHeight('2rem');
+
+        $this->live();
+
+        $this->disableToolbarButtons([
+            'codeBlock',
+        ]);
 
         $this->attachmentModalDescription(__('filament-converse::conversation-thread.attachment-modal.description'));
 
@@ -106,8 +152,12 @@ class ConversationThread extends Component
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
 
-        $this->getAttachmentIconUsing(static function (string $mimeType) {
-            return match ($mimeType) {
+        $this->fileAttachmentName(static function (?TemporaryUploadedFile $attachment = null) {
+            return $attachment?->getClientOriginalName();
+        });
+
+        $this->fileAttachmentIcon(static function (?TemporaryUploadedFile $attachment = null) {
+            return match ($attachment?->getMimeType()) {
                 'image/png',
                 'image/jpeg' => Heroicon::OutlinedPhoto,
                 'audio/mpeg' => Heroicon::OutlinedSpeakerWave,
@@ -123,8 +173,18 @@ class ConversationThread extends Component
             };
         });
 
-        $this->getAttachmentFormattedMimeTypeUsing(static function (string $mimeType) {
-            return match ($mimeType) {
+        $this->fileAttachmentIconColor(static function (?TemporaryUploadedFile $attachment = null) {
+            return match ($attachment?->getMimeType()) {
+                'application/pdf', => 'danger',
+                'text/csv',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'success',
+                default => 'primary',
+            };
+        });
+
+        $this->fileAttachmentMimeTypeBadgeLabel(static function (?TemporaryUploadedFile $attachment = null) {
+            return match ($attachment?->getMimeType()) {
                 'image/png',
                 'image/jpeg' => __('filament-converse::conversation-thread.attachment-area.mime-type.image'),
                 'audio/mpeg' => __('filament-converse::conversation-thread.attachment-area.mime-type.audio'),
@@ -149,28 +209,29 @@ class ConversationThread extends Component
             $component->getDeleteMessageAction(),
         ], static::MESSAGE_ACTIONS_KEY);
 
-        $this->childComponents(static fn (ConversationThread $component) => [
-            $component->getMessageInputField(),
-        ], static::MESSAGE_INPUT_FIELD_KEY);
+        $this->registerActions([
+            static fn (ConversationThread $component) => $component->getSendMessageAction(),
+            static fn (ConversationThread $component) => $component->getUploadAttachmentAction(),
+        ]);
     }
 
-    public function editConversationAction(?Closure $callback): static
+    public function defaultLoadedMessagesCount(int | Closure | null $count): static
     {
-        $this->modifyEditConversationActionUsing = $callback;
+        $this->defaultLoadedMessagesCount = $count;
 
         return $this;
     }
 
-    public function editMessageAction(?Closure $callback): static
+    public function messagesPerPageLoad(int | Closure | null $count): static
     {
-        $this->modifyEditMessageActionUsing = $callback;
+        $this->messagesPerPageLoad = $count;
 
         return $this;
     }
 
-    public function deleteMessageAction(?Closure $callback): static
+    public function modifyMessagesQueryUsing(?Closure $callback): static
     {
-        $this->modifyDeleteMessageActionUsing = $callback;
+        $this->modifyMessagesQueryUsing = $callback;
 
         return $this;
     }
@@ -234,137 +295,168 @@ class ConversationThread extends Component
         return $this;
     }
 
-    public function formatFileAttachmentNameUsing(?Closure $callback = null): static
+    public function hideAttachmentDetailsForImage(bool | Closure $condition = true): static
     {
-        $this->formatFileAttachmentNameUsing = $callback;
+        $this->hideAttachmentDetailsForImage = $condition;
 
         return $this;
     }
 
-    public function getAttachmentIconUsing(?Closure $callback = null): static
+    public function previewImageAttachment(bool | Closure $condition = true): static
     {
-        $this->getAttachmentIconUsing = $callback;
+        $this->previewImageAttachment = $condition;
 
         return $this;
     }
 
-    public function getAttachmentFormattedMimeTypeUsing(?Closure $callback = null): static
+    public function fileAttachmentName(?Closure $callback = null): static
     {
-        $this->getAttachmentFormattedMimeTypeUsing = $callback;
+        $this->fileAttachmentName = $callback;
 
         return $this;
     }
 
-    public function messageInputField(?Closure $callback): static
+    public function fileAttachmentToolbar(?Closure $callback = null): static
     {
-        $this->modifyMessageInputFieldUsing = $callback;
+        $this->fileAttachmentToolbar = $callback;
 
         return $this;
     }
 
-    public function getUploadedFileAttachments(): array
+    public function fileAttachmentIcon(string | BackedEnum | Htmlable | Closure | null $fileAttachmentIcon = null): static
     {
-        return Arr::wrap(data_get($this->getLivewire(), 'componentFileAttachments.' . $this->getStatepath())) ?? [];
+        $this->fileAttachmentIcon = $fileAttachmentIcon;
+
+        return $this;
     }
 
-    public function getUploadedFileAttachment(TemporaryUploadedFile | string | null $attachment = null): ?TemporaryUploadedFile
+    /**
+     * @param  string | array<string> | Closure | null  $fileAttachmentIconColor
+     */
+    public function fileAttachmentIconColor(string | array | Closure | null $fileAttachmentIconColor = null): static
     {
-        if (is_string($attachment)) {
-            $attachment = data_get($this->getLivewire(), "componentFileAttachments.{$this->getStatePath()}.{$attachment}");
-        } elseif (! $attachment) {
-            $attachment = data_get($this->getLivewire(), "componentFileAttachments.{$this->getStatePath()}");
+        $this->fileAttachmentIconColor = $fileAttachmentIconColor;
+
+        return $this;
+    }
+
+    public function fileAttachmentMimeTypeBadgeLabel(?Closure $callback = null): static
+    {
+        $this->fileAttachmentMimeTypeBadgeLabel = $callback;
+
+        return $this;
+    }
+
+    public function fileAttachmentMimeTypeBadgeIcon(string | BackedEnum | Closure | null $fileAttachmentMimeTypeBadgeIcon = null): static
+    {
+        $this->fileAttachmentMimeTypeBadgeIcon = $fileAttachmentMimeTypeBadgeIcon;
+
+        return $this;
+    }
+
+    /**
+     * @param  string | array<string> | Closure | null  $fileAttachmentMimeTypeBadgeColor
+     */
+    public function fileAttachmentMimeTypeBadgeColor(string | array | Closure | null $fileAttachmentMimeTypeBadgeColor = null): static
+    {
+        $this->fileAttachmentMimeTypeBadgeColor = $fileAttachmentMimeTypeBadgeColor;
+
+        return $this;
+    }
+
+    public function editConversationAction(?Closure $callback): static
+    {
+        $this->modifyEditConversationActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function editMessageAction(?Closure $callback): static
+    {
+        $this->modifyEditMessageActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function deleteMessageAction(?Closure $callback): static
+    {
+        $this->modifyDeleteMessageActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function sendMessageAction(?Closure $callback): static
+    {
+        $this->modifySendMessageActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function uploadAttachmentAction(?Closure $callback): static
+    {
+        $this->modifyUploadAttachmentActionUsing = $callback;
+
+        return $this;
+    }
+
+    /**
+     * @return array<string | array<string>>
+     */
+    public function getDefaultToolbarButtons(): array
+    {
+        return [
+            ['bold', 'italic', 'strike', 'link'],
+            ['heading'],
+            ['blockquote', 'codeBlock', 'bulletList', 'orderedList'],
+            ['table'],
+            ['undo', 'redo'],
+        ];
+    }
+
+    public function getDefaultLoadedMessagesCount(): int
+    {
+        return $this->evaluate($this->defaultLoadedMessagesCount) ?? 15;
+    }
+
+    public function getMessagesPerPageLoad(): int
+    {
+        return $this->evaluate($this->messagesPerPageLoad) ?? 15;
+    }
+
+    /**
+     * @return Builder<Message>|null
+     */
+    public function getMessagesQuery(bool $shouldPaginate = true): ?Builder
+    {
+        /* @var ConversationManager $livewire */
+        $livewire = $this->getLivewire();
+        $conversation = $livewire->getActiveConversation();
+
+        if (! $conversation) {
+            return null;
         }
 
-        if ($attachment instanceof TemporaryUploadedFile) {
-            $maxSize = $this->getFileAttachmentsMaxSize();
-            $acceptedFileTypes = $this->getFileAttachmentsAcceptedFileTypes();
-            $maxFileAttachments = $this->getMaxFileAttachments(); // TODO: Actually test later
+        /* @var Builder<Message> $query */
+        $query = $conversation->messages()
+            ->getQuery()
+            ->orderBy('created_at', 'desc');
 
-            try {
-                Validator::validate(
-                    ['file' => $attachment],
-                    rules: [
-                        'file' => [
-                            'file' => [
-                                'array',
-                                ...($maxFileAttachments ? ["max:{$maxFileAttachments}"] : []),
-                            ],
-                            'file.*',
-                            ...($maxSize ? ["max:{$maxSize}"] : []),
-                            ...($acceptedFileTypes ? ['mimetypes:' . implode(',', $acceptedFileTypes)] : []),
-                        ],
-                    ],
-                );
-            } catch (ValidationException $exception) {
-                return null;
-            }
+        if ($shouldPaginate) {
+            $limit = $this->getDefaultLoadedMessagesCount()
+                + (($livewire->getActiveConversationMessagesPage() - 1) * $this->getMessagesPerPageLoad());
+
+            $query->limit($limit);
         }
 
-        return $attachment;
-    }
-
-    protected function getEditConversationAction(): Action
-    {
-        $action = Action::make('editConversation')
-            ->iconButton()
-            ->color('gray')
-            ->icon(Heroicon::OutlinedCog6Tooth)
-            ->size(Size::ExtraLarge)
-            ->action(fn () => dd($this->getLivewire()->content->getState(), $this->getLivewire()->componentFileAttachments));
-
-        if ($this->modifyEditConversationActionUsing) {
-            $action = $this->evaluate($this->modifyEditConversationActionUsing, [
-                'action' => $action,
+        if ($this->modifyMessagesQueryUsing) {
+            $query = $this->evaluate($this->modifyMessagesQueryUsing, [
+                'query' => $query,
             ], [
-                Action::class => $action,
-            ]) ?? $action;
+                Builder::class => $query,
+            ]) ?? $query;
         }
 
-        return $action;
-    }
-
-    protected function getEditMessageAction(): Action
-    {
-        $action = EditMessageAction::make();
-
-        if ($this->modifyEditMessageActionUsing) {
-            $action = $this->evaluate($this->modifyEditMessageActionUsing, [
-                'action' => $action,
-            ], [
-                EditMessageAction::class => $action,
-                Action::class => $action,
-            ]) ?? $action;
-        }
-
-        return $action;
-    }
-
-    protected function getDeleteMessageAction(): Action
-    {
-        $action = DeleteMessageAction::make();
-
-        if ($this->modifyDeleteMessageActionUsing) {
-            $action = $this->evaluate($this->modifyDeleteMessageActionUsing, [
-                'action' => $action,
-            ], [
-                DeleteMessageAction::class => $action,
-                Action::class => $action,
-            ]) ?? $action;
-        }
-
-        return $action;
-    }
-
-    public function formatFileAttachmentName(?string $fileAttachmentName): string | Htmlable | null
-    {
-        if ($this->formatFileAttachmentNameUsing) {
-            $fileAttachmentName = $this->evaluate($this->formatFileAttachmentNameUsing, [
-                'name' => $fileAttachmentName,
-                'fileAttachmentName' => $fileAttachmentName,
-            ]);
-        }
-
-        return $fileAttachmentName;
+        return $query;
     }
 
     public function getMaxFileAttachments(): ?int
@@ -382,7 +474,7 @@ class ConversationThread extends Component
 
     public function getAttachmentModalIcon(): string | BackedEnum | Htmlable | null
     {
-        $icon = $this->evaluate($this->attachmentModalIcon) ?? Heroicon::OutlinedPaperClip;
+        $icon = $this->evaluate($this->attachmentModalIcon) ?? Heroicon::PaperClip;
 
         // https://github.com/filamentphp/filament/pull/13512
         if ($icon instanceof Renderable) {
@@ -438,39 +530,263 @@ class ConversationThread extends Component
         );
     }
 
-    public function getAttachmentIcon(string $mimeType): Htmlable | Icon | null
+    public function shouldHideAttachmentDetailsForImage(?TemporaryUploadedFile $attachment = null): bool
     {
-        $icon = $this->evaluate($this->getAttachmentIconUsing, [
-            'mimeType' => $mimeType,
+        return (bool) $this->evaluate($this->hideAttachmentDetailsForImage, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
+        ]);
+    }
+
+    public function shouldPreviewImageAttachment(?TemporaryUploadedFile $attachment = null): bool
+    {
+        return (bool) $this->evaluate($this->previewImageAttachment, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
+        ]);
+    }
+
+    public function getFileAttachmentName(?TemporaryUploadedFile $attachment = null): string | Htmlable | null
+    {
+        return $this->evaluate($this->fileAttachmentName, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
+        ]);
+    }
+
+    public function getFileAttachmentToolbar(?TemporaryUploadedFile $attachment = null): string | Htmlable | null
+    {
+        return $this->evaluate($this->fileAttachmentToolbar, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
+        ]);
+    }
+
+    public function getFileAttachmentIcon(?TemporaryUploadedFile $attachment = null): Htmlable | Icon | null
+    {
+        $icon = $this->evaluate($this->fileAttachmentIcon, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
         ]);
 
+        if ($icon instanceof Renderable) {
+            return new HtmlString($icon->render());
+        }
+
         if (is_string($icon) || $icon instanceof BackedEnum) {
-            return Icon::make($icon);
+            $icon = Icon::make($icon);
+        }
+
+        if ($icon instanceof Icon) {
+            $icon->color($this->getFileAttachmentIconColor($attachment));
         }
 
         return $icon;
     }
 
-    public function getAttachmentFormattedMimeType(string $mimeType): string | Htmlable | null
+    public function getFileAttachmentIconColor(?TemporaryUploadedFile $attachment = null): string | array
     {
-        return $this->evaluate($this->getAttachmentFormattedMimeTypeUsing, [
-            'mimeType' => $mimeType,
+        return $this->evaluate($this->fileAttachmentIconColor, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
+        ]) ?? 'primary';
+    }
+
+    public function getFileAttachmentMimeTypeBadgeLabel(?TemporaryUploadedFile $attachment = null): string | Htmlable | null
+    {
+        return $this->evaluate($this->fileAttachmentMimeTypeBadgeLabel, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
         ]);
     }
 
-    protected function getMessageInputField(): MessageInput
+    public function getFileAttachmentMimeTypeBadgeIcon(?TemporaryUploadedFile $attachment = null): string | BackedEnum | null
     {
-        $component = MessageInput::make('message_content');
+        return $this->evaluate($this->fileAttachmentMimeTypeBadgeIcon, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
+        ]);
+    }
 
-        if ($this->modifyMessageInputFieldUsing) {
-            $component = $this->evaluate($this->modifyMessageInputFieldUsing, [
-                'component' => $component,
+    public function getFileAttachmentMimeTypeBadgeColor(?TemporaryUploadedFile $attachment = null): string | array
+    {
+        return $this->evaluate($this->fileAttachmentMimeTypeBadgeColor, [
+            'attachment' => $attachment,
+        ], [
+            TemporaryUploadedFile::class => $attachment,
+        ]) ?? 'gray';
+    }
+
+    protected function getEditConversationAction(): Action
+    {
+        $action = Action::make('editConversation')
+            ->iconButton()
+            ->color('gray')
+            ->icon(Heroicon::OutlinedCog6Tooth)
+            ->size(Size::ExtraLarge)
+            ->action(fn () => dd('editConversation'));
+
+        if ($this->modifyEditConversationActionUsing) {
+            $action = $this->evaluate($this->modifyEditConversationActionUsing, [
+                'action' => $action,
             ], [
-                MessageInput::class => $component,
-                Component::class => $component,
-            ]) ?? $component;
+                Action::class => $action,
+            ]) ?? $action;
         }
 
-        return $component;
+        return $action;
+    }
+
+    protected function getEditMessageAction(): Action
+    {
+        $action = EditMessageAction::make();
+
+        if ($this->modifyEditMessageActionUsing) {
+            $action = $this->evaluate($this->modifyEditMessageActionUsing, [
+                'action' => $action,
+            ], [
+                EditMessageAction::class => $action,
+                Action::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+
+    protected function getDeleteMessageAction(): Action
+    {
+        $action = DeleteMessageAction::make();
+
+        if ($this->modifyDeleteMessageActionUsing) {
+            $action = $this->evaluate($this->modifyDeleteMessageActionUsing, [
+                'action' => $action,
+            ], [
+                DeleteMessageAction::class => $action,
+                Action::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+
+    /**
+     * @return list<TemporaryUploadedFile>
+     */
+    public function getUploadedFileAttachments(): array
+    {
+        return Arr::wrap(data_get($this->getLivewire(), 'componentFileAttachments.' . $this->getStatepath())) ?? [];
+    }
+
+    /**
+     * @return list<TemporaryUploadedFile>
+     */
+    public function getValidUploadedFileAttachments(): array
+    {
+        $attachments = $this->getUploadedFileAttachments();
+
+        if (count($attachments) === 0) {
+            return [];
+        }
+
+        $maxFileAttachments = $this->getMaxFileAttachments();
+
+        if ($maxFileAttachments && count($attachments) > $maxFileAttachments) {
+            return [];
+        }
+
+        $maxSize = $this->getFileAttachmentsMaxSize();
+        $acceptedFileTypes = $this->getFileAttachmentsAcceptedFileTypes();
+
+        try {
+            foreach ($attachments as $attachment) {
+                Validator::validate(
+                    ['file' => $attachment],
+                    rules: [
+                        'file' => [
+                            'file',
+                            ...($maxSize ? ["max:{$maxSize}"] : []),
+                            ...($acceptedFileTypes ? ['mimetypes:' . implode(',', $acceptedFileTypes)] : []),
+                        ],
+                    ],
+                );
+            }
+        } catch (ValidationException $exception) {
+            return [];
+        }
+
+        return $attachments;
+    }
+
+    protected function getSendMessageAction(): Action
+    {
+        $action = Action::make('sendMessage')
+            ->label(__('filament-converse::conversation-thread.footer-actions.send-message-label'))
+            ->iconButton()
+            ->iconSize(IconSize::Large)
+            ->icon(Heroicon::PaperAirplane)
+            ->action(static function (ConversationThread $component, ConversationManager $livewire) {
+                $state = $livewire->content->getState();
+
+                $message = $state[$component->getName()];
+                $uploadedFileAttachments = $component->getValidUploadedFileAttachments();
+
+                if (blank($message) && blank($uploadedFileAttachments)) {
+                    return;
+                }
+
+                $attachments = $attachmentFileNames = [];
+
+                foreach ($uploadedFileAttachments as $attachment) {
+                    $attachments[] = $component->saveUploadedFileAttachment($attachment);
+                    $attachmentFileNames[] = $attachment->getClientOriginalName();
+                }
+
+                $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage([
+                    'content' => $message,
+                    'attachments' => $attachments,
+                    'attachment_file_names' => $attachmentFileNames,
+                ]);
+
+                $livewire->content->fill();
+                $livewire->componentFileAttachments = [];
+            });
+
+        if ($this->modifySendMessageActionUsing) {
+            $action = $this->evaluate($this->modifySendMessageActionUsing, [
+                'action' => $action,
+            ], [
+                Action::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+
+    protected function getUploadAttachmentAction(): Action
+    {
+        $action = Action::make('uploadAttachment')
+            ->label(__('filament-converse::conversation-thread.footer-actions.upload-attachment-label'))
+            ->iconButton()
+            ->iconSize(IconSize::Large)
+            ->icon(Heroicon::PaperClip)
+            ->alpineClickHandler('$refs.fileInput.click()');
+
+        if ($this->modifyUploadAttachmentActionUsing) {
+            $action = $this->evaluate($this->modifyUploadAttachmentActionUsing, [
+                'action' => $action,
+            ], [
+                Action::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
     }
 }

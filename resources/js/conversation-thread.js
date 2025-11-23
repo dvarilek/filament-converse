@@ -1,13 +1,13 @@
 export function conversationThread({
-                                       statePath,
-                                       fileAttachmentAcceptedFileTypes,
-                                       fileAttachmentMaxSize,
-                                       maxFileAttachments,
-                                       fileAttachmentsAcceptedFileTypesValidationMessage,
-                                       fileAttachmentsMaxSizeValidationMessage,
-                                       maxFileAttachmentsValidationMessage,
-                                       $wire,
-                                   }) {
+    statePath,
+    fileAttachmentAcceptedFileTypes,
+    fileAttachmentMaxSize,
+    maxFileAttachments,
+    fileAttachmentsAcceptedFileTypesValidationMessage,
+    fileAttachmentsMaxSizeValidationMessage,
+    maxFileAttachmentsValidationMessage,
+    $wire,
+}) {
     return {
         isDraggingFileAttachment: false,
 
@@ -51,6 +51,10 @@ export function conversationThread({
                     (event.dataTransfer && event.dataTransfer.files) || [],
                 )
             })
+        },
+
+        scrollToBottom() {
+            this.$refs.messageBoxEndMarker.scrollIntoView()
         },
 
         isUploadingFileAttachment() {

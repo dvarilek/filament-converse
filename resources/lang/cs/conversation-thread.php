@@ -33,6 +33,15 @@ return [
             'label' => 'Upravit',
 
         ],
+
+    ],
+
+    'footer-actions' => [
+
+        'upload-attachment-label' => 'Nahrát přílohu',
+
+        'send-message-label' => 'Poslat zprávu',
+
     ],
 
     'attachment-area' => [

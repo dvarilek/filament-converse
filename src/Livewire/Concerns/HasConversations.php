@@ -17,6 +17,8 @@ trait HasConversations
 {
     public ?string $activeConversationKey = null;
 
+    public int $activeConversationMessagesPage = 1;
+
     public function mountHasConversations(): void
     {
         $this->conversationSchema = $this->makeConversationSchema();
@@ -41,7 +43,7 @@ trait HasConversations
     /**
      * @return Collection<int, Conversation>
      */
-    #[Computed(persist: true, key: 'filament-converse::conversations-list-computed-property')]
+    #[Computed(persist: true, key: 'filament-converse::conversations-computed-property')]
     public function conversations(): Collection
     {
         $query = $this->getBaseConversationsQuery();
@@ -55,6 +57,7 @@ trait HasConversations
     public function updateActiveConversation(string $conversationKey): void
     {
         $this->activeConversationKey = $conversationKey;
+        $this->activeConversationMessagesPage = 1;
 
         if ($this->getConversationSchema()->shouldPersistActiveConversationInSession()) {
             session()->put(
@@ -85,6 +88,11 @@ trait HasConversations
 
         return $this->getBaseConversationsQuery()
             ->firstWhere($qualifiedConversationKeyName, $this->activeConversationKey);
+    }
+
+    public function getActiveConversationMessagesPage(): int
+    {
+        return $this->activeConversationMessagesPage;
     }
 
     public function resetCachedConversations(): void

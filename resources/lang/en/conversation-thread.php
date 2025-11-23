@@ -36,6 +36,14 @@ return [
 
     ],
 
+    'footer-actions' => [
+
+        'upload-attachment-label' => 'Upload Attachments',
+
+        'send-message-label' => 'Send Message',
+
+    ],
+
     'attachment-area' => [
 
         'remove-button-label' => 'Remove',

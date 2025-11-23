@@ -7,21 +7,26 @@
     use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
     use Filament\Support\View\Components\ModalComponent\IconComponent;
-    use Filament\Support\Icons\Heroicon;
+    use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+    use Filament\Schemas\Components\Icon;
 
+    $id = $getId();
+    $fieldWrapperView = $getFieldWrapperView();
+    $extraAttributeBag = $getExtraAttributeBag();
     $key = $getKey();
     $statePath = $getStatePath();
-    $hasFileAttachments = $hasFileAttachments();
 
     /* @var Conversation | null $conversation */
     $conversation = $getActiveConversation();
     $hasConversation = filled($conversation);
 
-    $messageInputField = $getChildComponents(ConversationThread::MESSAGE_INPUT_FIELD_KEY)[0] ?? null;
-    $canUploadFileAttachments = $messageInputField && ! $messageInputField->isDisabled() && $messageInputField->isVisible() && $hasFileAttachments;
+    $isDisabled = $isDisabled();
+    $hasFileAttachments = $hasFileAttachments();
+    $canUploadFileAttachments = $hasConversation && $hasFileAttachments && ! $isDisabled;
+    $uploadedFileAttachments = $canUploadFileAttachments ? $getUploadedFileAttachments() : [];
 
-    /* @var Collection<int, Message> */
-    $messages = $conversation?->participations?->flatMap?->messages?->sortBy('created_at') ?? []; // temp
+    /* @var Collection<int, Message> $messages */
+    $messages = $getMessagesQuery()?->get()?->reverse() ?? [];
 
     $headerActions = array_filter(
         $getChildComponents(ConversationThread::HEADER_ACTIONS_KEY),
@@ -59,7 +64,7 @@
     @if ($canUploadFileAttachments)
         <input
             type="file"
-            @if (count($getUploadedFileAttachments()) !== 1)
+            @if (count($uploadedFileAttachments) !== 1)
                 multiple
             @endif
             x-ref="fileInput"
@@ -137,10 +142,16 @@
         @endif
     </div>
 
-    <div @class([
-        "fi-converse-conversation-thread-message-box",
-        "fi-converse-relative" => $canUploadFileAttachments
-    ])>
+    <div
+        @if ($hasConversation)
+            wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}-{{ $conversation->getKey() }}-{{ count($messages) }}"
+            x-init="scrollToBottom()"
+        @endif
+        @class([
+            "fi-converse-conversation-thread-content",
+            "fi-converse-relative" => $canUploadFileAttachments
+        ])
+    >
         @if ($canUploadFileAttachments)
             <div
                 x-cloak
@@ -239,18 +250,210 @@
                 </x-filament::empty-state>
             @endif
         @endforelse
+
+        @if ($hasConversation)
+            <div x-ref="messageBoxEndMarker" style="height: 0"></div>
+        @endif
     </div>
 
-    @if ($hasConversation && $messageInputField && $messageInputField->isVisible())
-        <div class="fi-converse-conversation-thread-message-input-container">
-            {{ $messageInputField->viewData([
-                'getAttachmentIcon' => $getAttachmentIcon,
-                'formatFileAttachmentName' => $formatFileAttachmentName,
-                'getAttachmentFormattedMimeType' => $getAttachmentFormattedMimeType,
-                'conversationThreadStatePath' => $statePath,
-                'hasFileAttachments' => $hasFileAttachments,
-                'uploadedFileAttachments' => $getUploadedFileAttachments()
-            ]) }}
-        </div>
+    @if ($hasConversation)
+        <x-dynamic-component
+            :component="$fieldWrapperView"
+            :field="$field"
+            class="fi-converse-conversation-thread-footer"
+        >
+            @if ($isDisabled)
+                <div
+                    id="{{ $id }}"
+                    class="fi-converse-conversation-thread-message-input fi-fo-markdown-editor fi-disabled fi-prose"
+                >
+                    {!! str($getState())->markdown($getCommonMarkOptions(), $getCommonMarkExtensions())->sanitizeHtml() !!}
+                </div>
+            @else
+                <x-filament::input.wrapper
+                    :valid="! $errors->has($statePath)"
+                    :attributes="
+                \Filament\Support\prepare_inherited_attributes($extraAttributeBag)
+                    ->class(['fi-converse-conversation-thread-message-input fi-fo-markdown-editor'])
+            "
+                >
+                    @if ($hasFileAttachments)
+                        <div
+                            wire:key="fi-converse-conversation-thread-attachment-area-{{ $id }}-{{ $key }}-{{ count($uploadedFileAttachments) }}"
+                            class="fi-converse-attachment-area"
+                            x-bind:class="{'fi-converse-attachment-area-has-content': isUploadingFileAttachment() || @js(count($uploadedFileAttachments) > 0) }"
+                        >
+                            <template x-for="file in uploadingFileAttachments.reverse()">
+                                <div x-bind:class="file.type.startsWith('image/') ? 'fi-converse-image-attachment-container' : 'fi-converse-generic-attachment-container'">
+                                    <div
+                                        x-cloak
+                                        x-show="file.type.startsWith('image/')"
+                                        class="fi-converse-image-attachment-skeleton"
+                                    >
+                                        {{ Icon::make(\Filament\Support\Icons\Heroicon::OutlinedPhoto)->color('gray')->extraAttributes(['class' => "fi-size-2xl"]) }}
+                                    </div>
+
+                                    <div
+                                        x-cloak
+                                        x-show="! file.type.startsWith('image/')"
+                                        class="fi-converse-generic-attachment-skeleton"
+                                    ></div>
+
+                                    <div
+                                        x-cloak
+                                        x-show="! file.type.startsWith('image/')"
+                                        class="fi-converse-attachment-information-container-skeleton"
+                                    >
+                                        <div class="fi-converse-attachment-name-skeleton"></div>
+                                        <div class="fi-converse-attachment-mime-type-badge-skeleton"></div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            @foreach (array_reverse($uploadedFileAttachments) as $fileAttachment)
+                                @php
+                                    /* @var TemporaryUploadedFile $fileAttachment */
+                                    $fileAttachmentName = $getFileAttachmentName($fileAttachment);
+                                    $isImageMimeType = str_starts_with($fileAttachment->getMimeType(), 'image/');
+
+                                    $fileAttachmentToolbar = $getFileAttachmentToolbar($fileAttachment);
+                                    $hasToolbar = filled($fileAttachmentToolbar);
+                                @endphp
+
+                                @if ($isImageMimeType && $shouldHideAttachmentDetailsForImage($fileAttachment))
+                                    <div class="fi-converse-image-attachment-container">
+                                        <img
+                                            src="{{ $fileAttachment->temporaryUrl() }}"
+                                            alt="{{ $fileAttachmentName }}"
+                                            draggable="false"
+                                            class="fi-converse-image-attachment"
+                                            @if ($hasToolbar)
+                                                x-tooltip="{
+                                                    content: @js($fileAttachmentName),
+                                                    theme: $store.theme,
+                                                    allowHTML: @js($fileAttachmentName instanceof Htmlable),
+                                                }"
+                                            @endif
+                                        />
+                                        <x-filament::icon-button
+                                            color="gray"
+                                            :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
+                                            icon-size="sm"
+                                            class="fi-converse-image-attachment-remove-button"
+                                            :label="__('filament-converse::conversation-thread.attachment-area.remove-button-label')"
+                                            x-on:click="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
+                                        />
+                                    </div>
+                                @else
+                                    <div class="fi-converse-generic-attachment-container">
+                                        @php
+                                            $mimeTypeBadgeLabel = $getFileAttachmentMimeTypeBadgeLabel($fileAttachment);
+                                            $hasMimeTypeBadge = filled($mimeTypeBadgeLabel);
+                                        @endphp
+
+                                        @if ($isImageMimeType && $shouldPreviewImageAttachment($fileAttachment))
+                                            <img
+                                                src="{{ $fileAttachment->temporaryUrl() }}"
+                                                alt="{{ $fileAttachmentName }}"
+                                                draggable="false"
+                                                class="fi-converse-generic-attachment-image"
+                                            />
+                                        @elseif (filled($attachmentIcon = $getFileAttachmentIcon($fileAttachment)))
+                                            @if (! $attachmentIcon instanceof Icon)
+                                                {{ $attachmentIcon }}
+                                            @else
+                                                <div
+                                                    class="fi-converse-attachment-icon"
+                                                >
+                                                    {{ $attachmentIcon }}
+                                                </div>
+                                            @endif
+                                        @endif
+                                        <div
+                                            @class([
+                                                'fi-converse-attachment-information-container',
+                                                'fi-converse-attachment-has-mime-type-name' => $hasMimeTypeBadge,
+                                            ])
+                                            @if ($hasToolbar)
+                                                x-tooltip="{
+                                                    content: @js($fileAttachmentName),
+                                                    theme: $store.theme,
+                                                    allowHTML: @js($fileAttachmentName instanceof Htmlable),
+                                                }"
+                                            @endif
+                                        >
+                                            <p class="fi-converse-attachment-name">
+                                                {{ $fileAttachmentName }}
+                                            </p>
+
+                                            @if ($hasMimeTypeBadge)
+                                                <x-filament::badge
+                                                    size="sm"
+                                                    :color="$getFileAttachmentMimeTypeBadgeColor($fileAttachment)"
+                                                    :icon="$getFileAttachmentMimeTypeBadgeIcon($fileAttachment)"
+                                                    class="fi-converse-attachment-mime-type-badge"
+                                                >
+                                                    {{ $mimeTypeBadgeLabel }}
+                                                </x-filament::badge>
+                                            @endif
+                                        </div>
+                                        <x-filament::icon-button
+                                            color="gray"
+                                            :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
+                                            icon-size="sm"
+                                            :label="__('filament-converse::conversation-thread.attachment-area.remove-button-label')"
+                                            x-on:click="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
+                                        />
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <div
+                        aria-labelledby="{{ $id }}-label"
+                        id="{{ $id }}"
+                        role="group"
+                        x-load
+                        x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('markdown-editor', 'filament/forms') }}"
+                        x-data="markdownEditorFormComponent({
+                            canAttachFiles: false,
+                            isLiveDebounced: @js($isLiveDebounced()),
+                            isLiveOnBlur: @js($isLiveOnBlur()),
+                            liveDebounce: @js($getNormalizedLiveDebounce()),
+                            maxHeight: @js($getMaxHeight()),
+                            minHeight: @js($getMinHeight()),
+                            placeholder: @js($getPlaceholder()),
+                            state: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')", isOptimisticallyLive: false) }},
+                            toolbarButtons: @js($getToolbarButtons()),
+                            translations: @js(__('filament-forms::components.markdown_editor')),
+                        })"
+                        wire:ignore
+                        {{ $getExtraAlpineAttributeBag() }}
+                    >
+                        <textarea x-ref="editor" x-cloak></textarea>
+                    </div>
+
+                    @php
+                        $uploadAttachmentAction = $getAction('uploadAttachment');
+                        $sendMessageAction = $getAction('sendMessage');
+                    @endphp
+                        @if ($uploadAttachmentAction || $sendMessageAction)
+                            <div class="fi-converse-message-input-footer">
+                                @if ($uploadAttachmentAction)
+                                    <div class="fi-converse-message-input-footer-left-actions">
+                                        {{ $uploadAttachmentAction }}
+                                    </div>
+                                @endif
+                                @if ($sendMessageAction)
+                                    <div class="fi-converse-message-input-footer-right-actions">
+                                        {{ $sendMessageAction }}
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                </x-filament::input.wrapper>
+            @endif
+        </x-dynamic-component>
     @endif
 </div>
