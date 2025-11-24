@@ -59,6 +59,8 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
 
     protected int | Closure | null $messagesPerPageLoad = 15;
 
+    protected int | Closure | null $messageTimestampGroupingInterval = 420;
+
     protected ?Closure $modifyMessagesQueryUsing = null;
 
     protected int | Closure | null $maxFileAttachments = null;
@@ -225,6 +227,13 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
     public function messagesPerPageLoad(int | Closure | null $count): static
     {
         $this->messagesPerPageLoad = $count;
+
+        return $this;
+    }
+
+    public function messageTimestampGroupingInterval(string | Closure | null $seconds): static
+    {
+        $this->messageTimestampGroupingInterval = $seconds;
 
         return $this;
     }
@@ -421,6 +430,11 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
     public function getMessagesPerPageLoad(): int
     {
         return $this->evaluate($this->messagesPerPageLoad) ?? 15;
+    }
+
+    public function getMessageTimestampGroupingInterval(): int
+    {
+        return $this->evaluate($this->messageTimestampGroupingInterval) ?? 420;
     }
 
     /**

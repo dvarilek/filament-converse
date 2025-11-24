@@ -1,4 +1,5 @@
 @php
+    use Carbon\Carbon;
     use Dvarilek\FilamentConverse\Models\Conversation;
     use Dvarilek\FilamentConverse\Models\Message;
     use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
@@ -24,9 +25,14 @@
     $hasFileAttachments = $hasFileAttachments();
     $canUploadFileAttachments = $hasConversation && $hasFileAttachments && ! $isDisabled;
     $uploadedFileAttachments = $canUploadFileAttachments ? $getUploadedFileAttachments() : [];
+    $commonMarkOptions = $getCommonMarkOptions();
+    $commonMarkExtensions = $getCommonMarkExtensions();
 
     /* @var Collection<int, Message> $messages */
     $messages = $getMessagesQuery()?->get()?->reverse() ?? [];
+    $messageTimestampGroupingInterval = $getMessageTimestampGroupingInterval();
+    /* @var Carbon | null $previousMessageTimestamp */
+    $previousMessageTimestamp = null;
 
     $headerActions = array_filter(
         $getChildComponents(ConversationThread::HEADER_ACTIONS_KEY),
@@ -143,10 +149,12 @@
     </div>
 
     <div
-        @if ($hasConversation)
-            wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}-{{ $conversation->getKey() }}-{{ count($messages) }}"
-            x-init="scrollToBottom()"
-        @endif
+        wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}-{{ $conversation->getKey() }}-{{ count($messages) }}"
+        x-init="
+            scrollToBottom()
+            {{-- The markdown editor expands after initial render, causing the container's scroll height to increase. --}}
+            setTimeout(() => scrollToBottom({behaviour: 'smooth'}), 100)
+        "
         @class([
             "fi-converse-conversation-thread-content",
             "fi-converse-relative" => $canUploadFileAttachments
@@ -166,72 +174,71 @@
             @php
                 $messageAuthor = $message->author->participant;
                 $messageAuthorName = $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
+                $messageTimestamp = $message->created_at;
 
                 $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
+                // TODO: Fix the $messageTimestampGroupingInterval logic, + fix attachments overflowing from context, add persistent attachments and input content
             @endphp
 
-            <div
-                @class([
-                    'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
-                    'fi-converse-conversation-thread-message-container group',
-                ])
-            >
-                @if (! $isAuthoredByAuthenticatedUser)
-                    <x-filament::avatar
-                        class="fi-converse-conversation-thread-message-avatar"
-                        :src="filament()->getUserAvatarUrl($messageAuthor)"
-                        :alt="$messageAuthorName"
-                        size="md"
-                    />
-                @endif
-
-                <div class="fi-converse-conversation-thread-message-content">
-                    <div
-                        class="fi-converse-conversation-thread-message-details"
-                    >
-                        @if (! $isAuthoredByAuthenticatedUser)
-                            <div
-                                class="fi-converse-conversation-thread-message-author"
-                            >
-                                {{ $messageAuthorName }}
-                            </div>
-                        @endif
-
-                        <div
-                            class="fi-converse-conversation-thread-message-time"
-                        >
+                <div
+                    @class([
+                        'fi-converse-conversation-thread-message-container',
+                        'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
+                    ])
+                >
+                    @if ($previousMessageTimestamp && $previousMessageTimestamp->addSeconds($messageTimestampGroupingInterval)->gt($messageTimestamp))
+                        <div class="fi-converse-conversation-thread-message-timestamp">
                             {{ $message->created_at }}
                         </div>
-                    </div>
+                    @endif
 
-                    <div class="fi-converse-conversation-thread-message-body">
-                        <div class="fi-converse-conversation-thread-message">
-                            {{ $message->content }}
-                        </div>
-
-                        @php
-                            $filteredMessageActions = array_filter(
-                                $messageActions,
-                                static function (Action | ActionGroup $action) use ($message) {
-                                    $action->record($message)->arguments(['record' => $message->getKey()]);
-
-                                    return $action->isVisible();
-                                }
-                            )
-                        @endphp
-
-                        @if (count($filteredMessageActions))
-                            <div
-                                class="fi-converse-conversation-thread-message-actions"
-                            >
-                                @foreach ($filteredMessageActions as $action)
-                                    {{ $action }}
-                                @endforeach
-                            </div>
+                    <div class="fi-converse-conversation-thread-message-layout group">
+                        @if (! $isAuthoredByAuthenticatedUser)
+                            <x-filament::avatar
+                                class="fi-converse-conversation-thread-message-avatar"
+                                :src="filament()->getUserAvatarUrl($messageAuthor)"
+                                :alt="$messageAuthorName"
+                                size="md"
+                            />
                         @endif
+
+                        <div class="fi-converse-conversation-thread-message-content">
+                            @if (! $isAuthoredByAuthenticatedUser)
+                                <div class="fi-converse-conversation-thread-message-author-name">
+                                    {{ $messageAuthorName }}
+                                </div>
+                            @endif
+
+                            <div class="fi-converse-conversation-thread-message-body">
+                                <div class="fi-converse-conversation-thread-message">
+                                    {!! str($message->content)->markdown($commonMarkOptions, $commonMarkExtensions)->sanitizeHtml() !!}
+                                </div>
+
+                                @php
+                                    $filteredMessageActions = array_filter(
+                                        $messageActions,
+                                        static function (Action | ActionGroup $action) use ($message) {
+                                            $action->record($message)->arguments(['record' => $message->getKey()]);
+
+                                            return $action->isVisible();
+                                        }
+                                    )
+                                @endphp
+
+                                @if (count($filteredMessageActions))
+                                    <div class="fi-converse-conversation-thread-message-actions">
+                                        @foreach ($filteredMessageActions as $action)
+                                            {{ $action }}
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            @php
+                $previousMessageTimestamp = $messageTimestamp;
+            @endphp
         @empty
             @if ($emptyState = $getEmptyState())
                 {{ $emptyState }}
@@ -251,9 +258,7 @@
             @endif
         @endforelse
 
-        @if ($hasConversation)
-            <div x-ref="messageBoxEndMarker" style="height: 0"></div>
-        @endif
+        <div x-ref="messageBoxEndMarker" style="height: 0px"></div>
     </div>
 
     @if ($hasConversation)
@@ -267,7 +272,7 @@
                     id="{{ $id }}"
                     class="fi-converse-conversation-thread-message-input fi-fo-markdown-editor fi-disabled fi-prose"
                 >
-                    {!! str($getState())->markdown($getCommonMarkOptions(), $getCommonMarkExtensions())->sanitizeHtml() !!}
+                    {!! str($getState())->markdown($commonMarkOptions, $commonMarkExtensions)->sanitizeHtml() !!}
                 </div>
             @else
                 <x-filament::input.wrapper

@@ -50,7 +50,7 @@
     }
 
     & .fi-converse-conversation-thread-header {
-        @apply min-h-1/8 flex flex-wrap items-center gap-4 border-b border-gray-200 p-6 dark:border-white/10;
+        @apply min-h-1/8 flex flex-wrap flex-shrink-0 items-center gap-4 border-b border-gray-200 p-6 dark:border-white/10;
 
         & .fi-converse-conversation-thread-header-content {
             @apply flex min-w-0 flex-1 items-center gap-4;
@@ -70,7 +70,7 @@
     }
 
     & .fi-converse-conversation-thread-content {
-        @apply flex flex-1 flex-col overflow-y-auto p-6;
+        @apply flex flex-1 min-h-0 flex-col overflow-y-auto p-6;
 
         &.fi-converse-relative {
             @apply relative;
@@ -89,47 +89,43 @@
         }
 
         & .fi-converse-conversation-thread-message-container {
-            @apply mt-3 flex gap-2;
+            @apply flex flex-col gap-1 mt-3;
 
-            & .fi-converse-conversation-thread-message-avatar {
-                @apply self-end;
+            & .fi-converse-conversation-thread-message-timestamp {
+                @apply flex justify-center items-center text-xs text-gray-600 dark:text-gray-400 w-full;
             }
 
-            & .fi-converse-conversation-thread-message-content {
-                & .fi-converse-conversation-thread-message-details {
-                    @apply flex gap-3 text-xs text-gray-600 dark:text-gray-400;
+            & .fi-converse-conversation-thread-message-layout {
+                @apply flex gap-3;
 
-                    & .fi-converse-conversation-thread-message-author {
-                        @apply max-w-1/2;
-                    }
-
-                    & .fi-converse-conversation-thread-message-time {
-                        @apply max-w-1/2;
-                    }
+                & .fi-converse-conversation-thread-message-avatar {
+                    @apply self-end;
                 }
 
-                & .fi-converse-conversation-thread-message-body {
-                    @apply flex items-center gap-2;
+                & .fi-converse-conversation-thread-message-content {
+                    @apply flex flex-col gap-1;
 
-                    & .fi-converse-conversation-thread-message {
-                        @apply bg-primary-200 max-w-4/5 whitespace-normal break-words rounded-xl px-3 py-1 text-sm leading-6 text-gray-950 dark:text-white;
+                    & .fi-converse-conversation-thread-message-author-name {
+                        @apply text-xs text-gray-600 dark:text-gray-400;
                     }
 
-                    & .fi-converse-conversation-thread-message-actions {
-                        @apply flex gap-3 opacity-0 group-hover:opacity-100;
+                    & .fi-converse-conversation-thread-message-body {
+                        @apply flex items-center gap-2;
+
+                        & .fi-converse-conversation-thread-message {
+                            @apply bg-primary-200 max-w-4/5 whitespace-normal break-words rounded-xl px-3 py-1 text-sm leading-6 text-gray-950 dark:text-white;
+                        }
+
+                        & .fi-converse-conversation-thread-message-actions {
+                            @apply flex gap-3 opacity-0 group-hover:opacity-100;
+                        }
                     }
                 }
             }
 
             &.fi-converse-conversation-thread-message-container-reversed {
-                @apply flex-row-reverse;
-
-                & .fi-converse-conversation-thread-message-content {
-                    @apply items-end;
-                }
-
-                & .fi-converse-conversation-thread-message-details {
-                    @apply flex-row-reverse;
+                & .fi-converse-conversation-thread-message-layout {
+                    @apply flex-row-reverse self-end;
                 }
 
                 & .fi-converse-conversation-thread-message-body {
@@ -144,7 +140,7 @@
     }
 
     & .fi-converse-conversation-thread-footer {
-        @apply min-h-1/8 flex flex-col border-t border-gray-200 p-6 dark:border-white/10;
+        @apply min-h-1/8 flex flex-col flex-shrink-0 border-t border-gray-200 p-6 dark:border-white/10;
 
         & .fi-converse-message-input {
             & .CodeMirror-scroll {
