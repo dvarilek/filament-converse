@@ -172,12 +172,15 @@
 
         @forelse ($messages as $message)
             @php
+
+
                 $messageAuthor = $message->author->participant;
                 $messageAuthorName = $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
+
                 $messageTimestamp = $message->created_at;
+                $formattedMessageTimestamp = $formatMessageTimestamp($messageTimestamp, $message);
 
                 $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
-                // TODO: Fix the $messageTimestampGroupingInterval logic, + fix attachments overflowing from context, add persistent attachments and input content
             @endphp
 
                 <div
@@ -186,9 +189,9 @@
                         'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
                     ])
                 >
-                    @if ($previousMessageTimestamp && $previousMessageTimestamp->addSeconds($messageTimestampGroupingInterval)->gt($messageTimestamp))
+                    @if ((! $previousMessageTimestamp || $previousMessageTimestamp->addSeconds($messageTimestampGroupingInterval)->lt($messageTimestamp)) && filled($formattedMessageTimestamp))
                         <div class="fi-converse-conversation-thread-message-timestamp">
-                            {{ $message->created_at }}
+                            {{ $formattedMessageTimestamp }}
                         </div>
                     @endif
 
@@ -212,6 +215,25 @@
                             <div class="fi-converse-conversation-thread-message-body">
                                 <div class="fi-converse-conversation-thread-message">
                                     {!! str($message->content)->markdown($commonMarkOptions, $commonMarkExtensions)->sanitizeHtml() !!}
+
+                                    @if (count($message->attachments))
+                                        <div>
+                                            @foreach (array_combine($message->attachments, $message->attachment_file_names) as $attachmentPath => $attachmentFileName)
+                                                @php
+                                                    // TODO: Consider adding getDefaultFileAttachmentIcon, Color, BadgeLabel etc... or just duplicate them
+                                                    //       Add:
+                                                    //          formatMessageFileAttachmentName
+                                                    //          messageFileAttachmentToolbar
+                                                    //          messageFileAttachmentIcon
+                                                    //          messageFileAttachmentIconColor
+                                                    //          messageFileAttachmentMimeTypeBadgeLabel
+                                                    //          messageFileAttachmentMimeTypeBadgeIcon
+                                                    //          messageFileAttachmentMimeTypeBadgeColor
+                                                @endphp
+
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
 
                                 @php
@@ -289,7 +311,7 @@
                             x-bind:class="{'fi-converse-attachment-area-has-content': isUploadingFileAttachment() || @js(count($uploadedFileAttachments) > 0) }"
                         >
                             <template x-for="file in uploadingFileAttachments.reverse()">
-                                <div x-bind:class="file.type.startsWith('image/') ? 'fi-converse-image-attachment-container' : 'fi-converse-generic-attachment-container'">
+                                <div x-bind:class="file.type.startsWith('image/') ? 'fi-converse-image-attachment-container' : 'fi-converse-generic-attachment-container fi-converse-attachment-adaptable-width'">
                                     <div
                                         x-cloak
                                         x-show="file.type.startsWith('image/')"
@@ -317,100 +339,27 @@
 
                             @foreach (array_reverse($uploadedFileAttachments) as $fileAttachment)
                                 @php
-                                    /* @var TemporaryUploadedFile $fileAttachment */
-                                    $fileAttachmentName = $getFileAttachmentName($fileAttachment);
-                                    $isImageMimeType = str_starts_with($fileAttachment->getMimeType(), 'image/');
-
-                                    $fileAttachmentToolbar = $getFileAttachmentToolbar($fileAttachment);
-                                    $hasToolbar = filled($fileAttachmentToolbar);
+                                    $hasImageMimeType = $isImageMimeType($fileAttachment->getMimeType());
                                 @endphp
 
-                                @if ($isImageMimeType && $shouldHideAttachmentDetailsForImage($fileAttachment))
-                                    <div class="fi-converse-image-attachment-container">
-                                        <img
-                                            src="{{ $fileAttachment->temporaryUrl() }}"
-                                            alt="{{ $fileAttachmentName }}"
-                                            draggable="false"
-                                            class="fi-converse-image-attachment"
-                                            @if ($hasToolbar)
-                                                x-tooltip="{
-                                                    content: @js($fileAttachmentName),
-                                                    theme: $store.theme,
-                                                    allowHTML: @js($fileAttachmentName instanceof Htmlable),
-                                                }"
-                                            @endif
-                                        />
-                                        <x-filament::icon-button
-                                            color="gray"
-                                            :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
-                                            icon-size="sm"
-                                            class="fi-converse-image-attachment-remove-button"
-                                            :label="__('filament-converse::conversation-thread.attachment-area.remove-button-label')"
-                                            x-on:click="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
-                                        />
-                                    </div>
-                                @else
-                                    <div class="fi-converse-generic-attachment-container">
-                                        @php
-                                            $mimeTypeBadgeLabel = $getFileAttachmentMimeTypeBadgeLabel($fileAttachment);
-                                            $hasMimeTypeBadge = filled($mimeTypeBadgeLabel);
-                                        @endphp
-
-                                        @if ($isImageMimeType && $shouldPreviewImageAttachment($fileAttachment))
-                                            <img
-                                                src="{{ $fileAttachment->temporaryUrl() }}"
-                                                alt="{{ $fileAttachmentName }}"
-                                                draggable="false"
-                                                class="fi-converse-generic-attachment-image"
-                                            />
-                                        @elseif (filled($attachmentIcon = $getFileAttachmentIcon($fileAttachment)))
-                                            @if (! $attachmentIcon instanceof Icon)
-                                                {{ $attachmentIcon }}
-                                            @else
-                                                <div
-                                                    class="fi-converse-attachment-icon"
-                                                >
-                                                    {{ $attachmentIcon }}
-                                                </div>
-                                            @endif
-                                        @endif
-                                        <div
-                                            @class([
-                                                'fi-converse-attachment-information-container',
-                                                'fi-converse-attachment-has-mime-type-name' => $hasMimeTypeBadge,
-                                            ])
-                                            @if ($hasToolbar)
-                                                x-tooltip="{
-                                                    content: @js($fileAttachmentName),
-                                                    theme: $store.theme,
-                                                    allowHTML: @js($fileAttachmentName instanceof Htmlable),
-                                                }"
-                                            @endif
-                                        >
-                                            <p class="fi-converse-attachment-name">
-                                                {{ $fileAttachmentName }}
-                                            </p>
-
-                                            @if ($hasMimeTypeBadge)
-                                                <x-filament::badge
-                                                    size="sm"
-                                                    :color="$getFileAttachmentMimeTypeBadgeColor($fileAttachment)"
-                                                    :icon="$getFileAttachmentMimeTypeBadgeIcon($fileAttachment)"
-                                                    class="fi-converse-attachment-mime-type-badge"
-                                                >
-                                                    {{ $mimeTypeBadgeLabel }}
-                                                </x-filament::badge>
-                                            @endif
-                                        </div>
-                                        <x-filament::icon-button
-                                            color="gray"
-                                            :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
-                                            icon-size="sm"
-                                            :label="__('filament-converse::conversation-thread.attachment-area.remove-button-label')"
-                                            x-on:click="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
-                                        />
-                                    </div>
-                                @endif
+                                <x-filament-converse::conversation-attachment
+                                    :has-image-mime-type="$hasImageMimeType"
+                                    :file-attachment-name="$getUploadedFileAttachmentName($fileAttachment)"
+                                    :file-attachment-toolbar="$getUploadedFileAttachmentToolbar($fileAttachment)"
+                                    :should-show-only-uploaded-image-attachment="$shouldShowOnlyUploadedImageAttachment($fileAttachment)"
+                                    :file-attachment-image-url="$hasImageMimeType ? $fileAttachment->temporaryUrl() : null"
+                                    :should-preview-image-attachment="$shouldPreviewUploadedImageAttachment($fileAttachment)"
+                                    :file-attachment-icon="$getUploadedFileAttachmentIcon($fileAttachment)"
+                                    :mime-type-badge-label="$getUploadedFileAttachmentMimeTypeBadgeLabel($fileAttachment)"
+                                    :mime-type-badge-icon="$getUploadedFileAttachmentMimeTypeBadgeIcon($fileAttachment)"
+                                    :mime-type-badge-color="$getUploadedFileAttachmentMimeTypeBadgeColor($fileAttachment)"
+                                    :is-removable="true"
+                                    file-attachment-remove-handler="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
+                                    :generic-attachment-container-extra-attributes-bag="
+                                        (new ComponentAttributeBag())
+                                            ->class(['fi-converse-attachment-adaptable-width'])
+                                    "
+                                />
                             @endforeach
                         </div>
                     @endif

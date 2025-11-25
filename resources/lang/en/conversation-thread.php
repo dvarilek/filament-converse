@@ -44,7 +44,7 @@ return [
 
     ],
 
-    'attachment-area' => [
+    'attachments' => [
 
         'remove-button-label' => 'Remove',
 

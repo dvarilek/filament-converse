@@ -80,7 +80,7 @@ class Conversation extends Model
             'author_id',
             'id',
             'id'
-        );
+        )->select('messages.*');
     }
 
     /**

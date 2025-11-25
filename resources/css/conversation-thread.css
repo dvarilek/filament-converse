@@ -50,7 +50,7 @@
     }
 
     & .fi-converse-conversation-thread-header {
-        @apply min-h-1/8 flex flex-wrap flex-shrink-0 items-center gap-4 border-b border-gray-200 p-6 dark:border-white/10;
+        @apply min-h-1/8 flex flex-shrink-0 flex-wrap items-center gap-4 border-b border-gray-200 p-6 dark:border-white/10;
 
         & .fi-converse-conversation-thread-header-content {
             @apply flex min-w-0 flex-1 items-center gap-4;
@@ -70,7 +70,7 @@
     }
 
     & .fi-converse-conversation-thread-content {
-        @apply flex flex-1 min-h-0 flex-col overflow-y-auto p-6;
+        @apply flex min-h-0 flex-1 flex-col overflow-y-auto p-6;
 
         &.fi-converse-relative {
             @apply relative;
@@ -89,10 +89,10 @@
         }
 
         & .fi-converse-conversation-thread-message-container {
-            @apply flex flex-col gap-1 mt-3;
+            @apply mt-3 flex flex-col gap-1;
 
             & .fi-converse-conversation-thread-message-timestamp {
-                @apply flex justify-center items-center text-xs text-gray-600 dark:text-gray-400 w-full;
+                @apply flex w-full items-center justify-center text-xs text-gray-600 dark:text-gray-400;
             }
 
             & .fi-converse-conversation-thread-message-layout {
@@ -140,7 +140,7 @@
     }
 
     & .fi-converse-conversation-thread-footer {
-        @apply min-h-1/8 flex flex-col flex-shrink-0 border-t border-gray-200 p-6 dark:border-white/10;
+        @apply min-h-1/8 flex flex-shrink-0 flex-col border-t border-gray-200 p-6 dark:border-white/10;
 
         & .fi-converse-message-input {
             & .CodeMirror-scroll {
@@ -173,7 +173,11 @@
             }
 
             & .fi-converse-generic-attachment-container {
-                @apply flex h-16 w-full gap-3 rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 sm:w-[calc((100%_-_theme(spacing.3))_/_2)] md:w-[calc((100%_-_theme(spacing.3))_/_2)] lg:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)] xl:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)] dark:bg-gray-900/50 dark:ring-white/10;
+                @apply flex h-16 w-full gap-3 rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900/50 dark:ring-white/10;
+
+                &.fi-converse-attachment-adaptable-width {
+                    @apply sm:w-[calc((100%_-_theme(spacing.3))_/_2)] md:w-[calc((100%_-_theme(spacing.3))_/_2)] lg:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)] xl:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)];
+                }
 
                 & .fi-converse-generic-attachment-image {
                     @apply w-12 rounded-xl object-cover;

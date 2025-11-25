@@ -1,13 +1,13 @@
 export function conversationThread({
-                                       statePath,
-                                       fileAttachmentAcceptedFileTypes,
-                                       fileAttachmentMaxSize,
-                                       maxFileAttachments,
-                                       fileAttachmentsAcceptedFileTypesValidationMessage,
-                                       fileAttachmentsMaxSizeValidationMessage,
-                                       maxFileAttachmentsValidationMessage,
-                                       $wire,
-                                   }) {
+    statePath,
+    fileAttachmentAcceptedFileTypes,
+    fileAttachmentMaxSize,
+    maxFileAttachments,
+    fileAttachmentsAcceptedFileTypesValidationMessage,
+    fileAttachmentsMaxSizeValidationMessage,
+    maxFileAttachmentsValidationMessage,
+    $wire,
+}) {
     return {
         isDraggingFileAttachment: false,
 
