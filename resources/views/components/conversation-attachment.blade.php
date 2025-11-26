@@ -4,7 +4,7 @@
     'fileAttachmentToolbar',
     'shouldShowOnlyUploadedImageAttachment',
     'shouldPreviewImageAttachment',
-    'fileAttachmentImageUrl',
+    'fileAttachmentUrl',
     'fileAttachmentIcon',
     'mimeTypeBadgeLabel',
     'mimeTypeBadgeIcon',
@@ -31,7 +31,7 @@
         }}
     >
         <img
-            src="{{ $fileAttachmentImageUrl }}"
+            src="{{ $fileAttachmentUrl }}"
             alt="{{ $fileAttachmentName }}"
             draggable="false"
             class="fi-converse-image-attachment"
@@ -67,7 +67,7 @@
 
         @if ($hasImageMimeType && $shouldPreviewImageAttachment)
             <img
-                src="{{ $fileAttachmentImageUrl }}"
+                src="{{ $fileAttachmentUrl }}"
                 alt="{{ $fileAttachmentName }}"
                 draggable="false"
                 class="fi-converse-generic-attachment-image"

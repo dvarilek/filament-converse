@@ -12,6 +12,7 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\Dele
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Concerns\CanBeLengthConstrained;
+use Filament\Forms\Components\Concerns\HasFileAttachments as HasBaseFileAttachments;
 use Filament\Forms\Components\Concerns\HasMaxHeight;
 use Filament\Forms\Components\Concerns\HasMinHeight;
 use Filament\Forms\Components\Concerns\InteractsWithToolbarButtons;
@@ -24,6 +25,7 @@ use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ConversationThread extends Field implements CanBeLengthConstrainedContract
@@ -33,6 +35,7 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
     use Concerns\HasFileAttachments;
+    use HasBaseFileAttachments;
     use HasExtraAlpineAttributes;
     use HasMaxHeight;
     use HasMinHeight;
@@ -123,8 +126,8 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             return $attachment->getClientOriginalName();
         });
 
-        $this->uploadedFileAttachmentIcon(static function (TemporaryUploadedFile $attachment): Heroicon {
-            return match ($attachment->getMimeType()) {
+        $this->defaultFileAttachmentIcon(function (string $attachmentName, string $attachmentPath): Heroicon {
+            return match (Storage::mimeType($attachmentPath)) {
                 'image/png',
                 'image/jpeg' => Heroicon::OutlinedPhoto,
                 'audio/mpeg' => Heroicon::OutlinedSpeakerWave,
@@ -140,8 +143,8 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             };
         });
 
-        $this->uploadedFileAttachmentIconColor(static function (TemporaryUploadedFile $attachment): string {
-            return match ($attachment->getMimeType()) {
+        $this->defaultFileAttachmentIconColor(static function (string $attachmentPath): string {
+            return match (Storage::mimeType($attachmentPath)) {
                 'application/pdf', => 'danger',
                 'text/csv',
                 'application/vnd.ms-excel',
@@ -150,8 +153,11 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             };
         });
 
-        $this->uploadedFileAttachmentMimeTypeBadgeLabel(static function (TemporaryUploadedFile $attachment): ?string {
-            return match ($attachment->getMimeType()) {
+        // TODO: Integrate default fallback methods for `shouldShowOnlyImageAttachmentByDefault` and `shouldPreviewImageAttachmentByDefault`
+        // TODO: defaultIcon doesn't work well - when there is no concrete icon, but there is concrete icon color
+
+        $this->defaultFileAttachmentMimeTypeBadgeLabel(static function (string $attachmentPath): ?string {
+            return match (Storage::mimeType($attachmentPath)) {
                 'image/png',
                 'image/jpeg' => __('filament-converse::conversation-thread.attachments.mime-type.image'),
                 'audio/mpeg' => __('filament-converse::conversation-thread.attachments.mime-type.audio'),

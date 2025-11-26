@@ -8,7 +8,7 @@
     use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
     use Filament\Support\View\Components\ModalComponent\IconComponent;
-    use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+    use Illuminate\Contracts\Filesystem\Filesystem;
     use Filament\Schemas\Components\Icon;
 
     $id = $getId();
@@ -22,9 +22,11 @@
     $hasConversation = filled($conversation);
 
     $isDisabled = $isDisabled();
-    $hasFileAttachments = $hasFileAttachments();
+    $hasFileAttachments = true;
     $canUploadFileAttachments = $hasConversation && $hasFileAttachments && ! $isDisabled;
     $uploadedFileAttachments = $canUploadFileAttachments ? $getUploadedFileAttachments() : [];
+    /* @var Filesystem $fileAttachmentsDisk */
+    $fileAttachmentsDisk = $getFileAttachmentsDisk();
     $commonMarkOptions = $getCommonMarkOptions();
     $commonMarkExtensions = $getCommonMarkExtensions();
 
@@ -44,29 +46,30 @@
 
 <div
     class="fi-converse-conversation-thread"
-
     @if ($hasConversation)
         @php
             $fileAttachmentsAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
             $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
             $maxFileAttachments = $getMaxFileAttachments();
         @endphp
+
         x-load
         x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
         x-data="conversationThread({
-            statePath: @js($statePath),
-            fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
-            fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
-            maxFileAttachments: @js($maxFileAttachments),
-            fileAttachmentsAcceptedFileTypesValidationMessage: @js($getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentsAcceptedFileTypes)),
-            fileAttachmentsMaxSizeValidationMessage: @js($getAttachmentsMaxFileSizeValidationMessage($fileAttachmentsMaxSize)),
-            maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
-            $wire
-        })"
-        x-bind:class="{'fi-converse-highlight-conversation-thread': isDraggingFileAttachment}"
+                    statePath: @js($statePath),
+                    fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
+                    fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
+                    maxFileAttachments: @js($maxFileAttachments),
+                    fileAttachmentsAcceptedFileTypesValidationMessage: @js($getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentsAcceptedFileTypes)),
+                    fileAttachmentsMaxSizeValidationMessage: @js($getAttachmentsMaxFileSizeValidationMessage($fileAttachmentsMaxSize)),
+                    maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
+                    $wire,
+                })"
+        x-bind:class="{
+            'fi-converse-highlight-conversation-thread': isDraggingFileAttachment,
+        }"
     @endif
 >
-
     @if ($canUploadFileAttachments)
         <input
             type="file"
@@ -76,7 +79,7 @@
             x-ref="fileInput"
             class="hidden"
             x-on:change="handleAttachmentUpload($event.target.files)"
-        >
+        />
         <div
             x-cloak
             x-show="isDraggingFileAttachment"
@@ -149,15 +152,18 @@
     </div>
 
     <div
-        wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}-{{ $conversation->getKey() }}-{{ count($messages) }}"
-        x-init="
-            scrollToBottom()
-            {{-- The markdown editor expands after initial render, causing the container's scroll height to increase. --}}
-            setTimeout(() => scrollToBottom({behaviour: 'smooth'}), 100)
-        "
+        @if ($hasConversation)
+            wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}-{{ $conversation->getKey() }}-{{ count($messages) }}"
+            x-init="
+                scrollToBottom()
+                {{-- The markdown editor expands after initial render, causing the container's scroll height to increase. --}}
+                setTimeout(() => scrollToBottom({behaviour: 'smooth'}), 100)
+            "
+        @endif
+
         @class([
-            "fi-converse-conversation-thread-content",
-            "fi-converse-relative" => $canUploadFileAttachments
+        "fi-converse-conversation-thread-content",
+        "fi-converse-relative" => $canUploadFileAttachments
         ])
     >
         @if ($canUploadFileAttachments)
@@ -172,8 +178,6 @@
 
         @forelse ($messages as $message)
             @php
-
-
                 $messageAuthor = $message->author->participant;
                 $messageAuthorName = $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
 
@@ -183,81 +187,102 @@
                 $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
             @endphp
 
+            <div @class([
+                'fi-converse-conversation-thread-message-container',
+                'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
+                ])
+            >
+                @if ((! $previousMessageTimestamp || $previousMessageTimestamp->addSeconds($messageTimestampGroupingInterval)->lt($messageTimestamp)) && filled($formattedMessageTimestamp))
+                    <div
+                        class="fi-converse-conversation-thread-message-timestamp"
+                    >
+                        {{ $formattedMessageTimestamp }}
+                    </div>
+                @endif
+
                 <div
-                    @class([
-                        'fi-converse-conversation-thread-message-container',
-                        'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
-                    ])
+                    class="fi-converse-conversation-thread-message-layout group"
                 >
-                    @if ((! $previousMessageTimestamp || $previousMessageTimestamp->addSeconds($messageTimestampGroupingInterval)->lt($messageTimestamp)) && filled($formattedMessageTimestamp))
-                        <div class="fi-converse-conversation-thread-message-timestamp">
-                            {{ $formattedMessageTimestamp }}
-                        </div>
+                    @if (! $isAuthoredByAuthenticatedUser)
+                        <x-filament::avatar
+                            class="fi-converse-conversation-thread-message-avatar"
+                            :src="filament()->getUserAvatarUrl($messageAuthor)"
+                            :alt="$messageAuthorName"
+                            size="md"
+                        />
                     @endif
 
-                    <div class="fi-converse-conversation-thread-message-layout group">
+                    <div
+                        class="fi-converse-conversation-thread-message-content"
+                    >
                         @if (! $isAuthoredByAuthenticatedUser)
-                            <x-filament::avatar
-                                class="fi-converse-conversation-thread-message-avatar"
-                                :src="filament()->getUserAvatarUrl($messageAuthor)"
-                                :alt="$messageAuthorName"
-                                size="md"
-                            />
+                            <div
+                                class="fi-converse-conversation-thread-message-author-name"
+                            >
+                                {{ $messageAuthorName }}
+                            </div>
                         @endif
 
-                        <div class="fi-converse-conversation-thread-message-content">
-                            @if (! $isAuthoredByAuthenticatedUser)
-                                <div class="fi-converse-conversation-thread-message-author-name">
-                                    {{ $messageAuthorName }}
-                                </div>
-                            @endif
+                        <div
+                            class="fi-converse-conversation-thread-message-body"
+                        >
+                            <div
+                                class="fi-converse-conversation-thread-message"
+                            >
+                                {!! str($message->content)->markdown($commonMarkOptions, $commonMarkExtensions)->sanitizeHtml() !!}
 
-                            <div class="fi-converse-conversation-thread-message-body">
-                                <div class="fi-converse-conversation-thread-message">
-                                    {!! str($message->content)->markdown($commonMarkOptions, $commonMarkExtensions)->sanitizeHtml() !!}
+                                @if (count($message->attachments))
+                                    <div>
+                                        @foreach (array_combine($message->attachments, $message->attachment_file_names) as $attachmentPath => $attachmentFileName)
+                                            @php
+                                                $hasImageMimeType = $isImageMimeType($attachmentPath);
 
-                                    @if (count($message->attachments))
-                                        <div>
-                                            @foreach (array_combine($message->attachments, $message->attachment_file_names) as $attachmentPath => $attachmentFileName)
-                                                @php
-                                                    // TODO: Consider adding getDefaultFileAttachmentIcon, Color, BadgeLabel etc... or just duplicate them
-                                                    //       Add:
-                                                    //          formatMessageFileAttachmentName
-                                                    //          messageFileAttachmentToolbar
-                                                    //          messageFileAttachmentIcon
-                                                    //          messageFileAttachmentIconColor
-                                                    //          messageFileAttachmentMimeTypeBadgeLabel
-                                                    //          messageFileAttachmentMimeTypeBadgeIcon
-                                                    //          messageFileAttachmentMimeTypeBadgeColor
-                                                @endphp
+                                                if (! $fileAttachmentsDisk->exists($attachmentPath)) {
+                                                    continue;
+                                                }
+                                            @endphp
 
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-
-                                @php
-                                    $filteredMessageActions = array_filter(
-                                        $messageActions,
-                                        static function (Action | ActionGroup $action) use ($message) {
-                                            $action->record($message)->arguments(['record' => $message->getKey()]);
-
-                                            return $action->isVisible();
-                                        }
-                                    )
-                                @endphp
-
-                                @if (count($filteredMessageActions))
-                                    <div class="fi-converse-conversation-thread-message-actions">
-                                        @foreach ($filteredMessageActions as $action)
-                                            {{ $action }}
+                                            <x-filament-converse::conversation-attachment
+                                                :has-image-mime-type="$hasImageMimeType"
+                                                :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentFileName, $message)"
+                                                :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentFileName, $message)"
+                                                :should-show-only-uploaded-image-attachment="$shouldShowOnlyMessageImageAttachment($attachmentPath, $attachmentFileName, $message)"
+                                                :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentPath) : null"
+                                                :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentFileName, $message)"
+                                                :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentFileName, $message)"
+                                                :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentFileName, $message)"
+                                                :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentFileName, $message)"
+                                                :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentFileName, $message)"
+                                            />
                                         @endforeach
                                     </div>
                                 @endif
                             </div>
+
+                            @php
+                                $filteredMessageActions = array_filter(
+                                    $messageActions,
+                                    static function (Action | ActionGroup $action) use ($message) {
+                                        $action->record($message)->arguments(['record' => $message->getKey()]);
+
+                                        return $action->isVisible();
+                                    }
+                                )
+                            @endphp
+
+                            @if (count($filteredMessageActions))
+                                <div
+                                    class="fi-converse-conversation-thread-message-actions"
+                                >
+                                    @foreach ($filteredMessageActions as $action)
+                                        {{ $action }}
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
+            </div>
             @php
                 $previousMessageTimestamp = $messageTimestamp;
             @endphp
@@ -300,18 +325,29 @@
                 <x-filament::input.wrapper
                     :valid="! $errors->has($statePath)"
                     :attributes="
-                \Filament\Support\prepare_inherited_attributes($extraAttributeBag)
-                    ->class(['fi-converse-conversation-thread-message-input fi-fo-markdown-editor'])
-            "
+                        \Filament\Support\prepare_inherited_attributes($extraAttributeBag)
+                        ->class(['fi-converse-conversation-thread-message-input fi-fo-markdown-editor'])
+                    "
                 >
                     @if ($hasFileAttachments)
                         <div
                             wire:key="fi-converse-conversation-thread-attachment-area-{{ $id }}-{{ $key }}-{{ count($uploadedFileAttachments) }}"
                             class="fi-converse-attachment-area"
-                            x-bind:class="{'fi-converse-attachment-area-has-content': isUploadingFileAttachment() || @js(count($uploadedFileAttachments) > 0) }"
+                            x-bind:class="{
+                                'fi-converse-attachment-area-has-content':
+                                    isUploadingFileAttachment() || @js(count($uploadedFileAttachments) > 0),
+                            }"
                         >
-                            <template x-for="file in uploadingFileAttachments.reverse()">
-                                <div x-bind:class="file.type.startsWith('image/') ? 'fi-converse-image-attachment-container' : 'fi-converse-generic-attachment-container fi-converse-attachment-adaptable-width'">
+                            <template
+                                x-for="file in uploadingFileAttachments.reverse()"
+                            >
+                                <div
+                                    x-bind:class="
+                                        file.type.startsWith('image/')
+                                            ? 'fi-converse-image-attachment-container'
+                                            : 'fi-converse-generic-attachment-container fi-converse-attachment-adaptable-width'
+                                    "
+                                >
                                     <div
                                         x-cloak
                                         x-show="file.type.startsWith('image/')"
@@ -331,8 +367,12 @@
                                         x-show="! file.type.startsWith('image/')"
                                         class="fi-converse-attachment-information-container-skeleton"
                                     >
-                                        <div class="fi-converse-attachment-name-skeleton"></div>
-                                        <div class="fi-converse-attachment-mime-type-badge-skeleton"></div>
+                                        <div
+                                            class="fi-converse-attachment-name-skeleton"
+                                        ></div>
+                                        <div
+                                            class="fi-converse-attachment-mime-type-badge-skeleton"
+                                        ></div>
                                     </div>
                                 </div>
                             </template>
@@ -357,7 +397,7 @@
                                     file-attachment-remove-handler="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
                                     :generic-attachment-container-extra-attributes-bag="
                                         (new ComponentAttributeBag())
-                                            ->class(['fi-converse-attachment-adaptable-width'])
+                                        ->class(['fi-converse-attachment-adaptable-width'])
                                     "
                                 />
                             @endforeach
@@ -371,17 +411,17 @@
                         x-load
                         x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('markdown-editor', 'filament/forms') }}"
                         x-data="markdownEditorFormComponent({
-                            canAttachFiles: false,
-                            isLiveDebounced: @js($isLiveDebounced()),
-                            isLiveOnBlur: @js($isLiveOnBlur()),
-                            liveDebounce: @js($getNormalizedLiveDebounce()),
-                            maxHeight: @js($getMaxHeight()),
-                            minHeight: @js($getMinHeight()),
-                            placeholder: @js($getPlaceholder()),
-                            state: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')", isOptimisticallyLive: false) }},
-                            toolbarButtons: @js($getToolbarButtons()),
-                            translations: @js(__('filament-forms::components.markdown_editor')),
-                        })"
+                                    canAttachFiles: false,
+                                    isLiveDebounced: @js($isLiveDebounced()),
+                                    isLiveOnBlur: @js($isLiveOnBlur()),
+                                    liveDebounce: @js($getNormalizedLiveDebounce()),
+                                    maxHeight: @js($getMaxHeight()),
+                                    minHeight: @js($getMinHeight()),
+                                    placeholder: @js($getPlaceholder()),
+                                    state: $wire.{{ $applyStateBindingModifiers("\$entangle('{$statePath}')", isOptimisticallyLive: false) }},
+                                    toolbarButtons: @js($getToolbarButtons()),
+                                    translations: @js(__('filament-forms::components.markdown_editor')),
+                                })"
                         wire:ignore
                         {{ $getExtraAlpineAttributeBag() }}
                     >
@@ -390,22 +430,28 @@
 
                     @php
                         $uploadAttachmentAction = $getAction('uploadAttachment');
-                        $sendMessageAction = $getAction('sendMessage');
+                                                                                                                                                                        $sendMessageAction = $getAction('sendMessage');
                     @endphp
-                        @if ($uploadAttachmentAction || $sendMessageAction)
-                            <div class="fi-converse-message-input-footer">
-                                @if ($uploadAttachmentAction)
-                                    <div class="fi-converse-message-input-footer-left-actions">
-                                        {{ $uploadAttachmentAction }}
-                                    </div>
-                                @endif
-                                @if ($sendMessageAction)
-                                    <div class="fi-converse-message-input-footer-right-actions">
-                                        {{ $sendMessageAction }}
-                                    </div>
-                                @endif
-                            </div>
-                        @endif
+
+                    @if ($uploadAttachmentAction || $sendMessageAction)
+                        <div class="fi-converse-message-input-footer">
+                            @if ($uploadAttachmentAction)
+                                <div
+                                    class="fi-converse-message-input-footer-left-actions"
+                                >
+                                    {{ $uploadAttachmentAction }}
+                                </div>
+                            @endif
+
+                            @if ($sendMessageAction)
+                                <div
+                                    class="fi-converse-message-input-footer-right-actions"
+                                >
+                                    {{ $sendMessageAction }}
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 </x-filament::input.wrapper>
             @endif
         </x-dynamic-component>
