@@ -24,8 +24,8 @@ use Filament\Forms\Components\Concerns\HasFileAttachments as BaseHasFileAttachme
 
 trait HasFileAttachments
 {
-    use BaseHasFileAttachments;    
-    
+    use BaseHasFileAttachments;
+
     protected int | Closure | null $maxFileAttachments = null;
 
     protected string | array | Closure | null $attachmentModalIconColor = null;
@@ -62,9 +62,9 @@ trait HasFileAttachments
      */
     protected string | array | Closure | null $defaultFileAttachmentMimeTypeBadgeColor = 'gray';
 
-    protected bool | Closure $shouldShowOnlyUploadedImageAttachment = true;
+    protected bool | Closure | null $shouldShowOnlyUploadedImageAttachment = null;
 
-    protected bool | Closure $shouldPreviewUploadedImageAttachment = true;
+    protected bool | Closure | null $shouldPreviewUploadedImageAttachment = null;
 
     protected ?Closure $uploadedFileAttachmentName = null;
 
@@ -86,9 +86,9 @@ trait HasFileAttachments
      */
     protected string | array | Closure | null $uploadedFileAttachmentMimeTypeBadgeColor = 'gray';
 
-    protected bool | Closure $shouldShowOnlyMessageImageAttachment = true;
+    protected bool | Closure | null $shouldShowOnlyMessageImageAttachment = null;
 
-    protected bool | Closure $shouldPreviewMessageImageAttachment = true;
+    protected bool | Closure | null $shouldPreviewMessageImageAttachment = null;
 
     protected ?Closure $formatMessageFileAttachmentName = null;
 
@@ -226,14 +226,14 @@ trait HasFileAttachments
         return $this;
     }
 
-    public function showOnlyUploadedImageAttachment(bool | Closure $condition = true): static
+    public function showOnlyUploadedImageAttachment(bool | Closure | null $condition = true): static
     {
         $this->shouldShowOnlyUploadedImageAttachment = $condition;
 
         return $this;
     }
 
-    public function previewUploadedImageAttachment(bool | Closure $condition = true): static
+    public function previewUploadedImageAttachment(bool | Closure | null $condition = true): static
     {
         $this->shouldPreviewUploadedImageAttachment = $condition;
 
@@ -295,14 +295,14 @@ trait HasFileAttachments
         return $this;
     }
 
-    public function showOnlyMessageImageAttachment(bool | Closure $condition = true): static
+    public function showOnlyMessageImageAttachment(bool | Closure | null $condition = true): static
     {
         $this->shouldShowOnlyMessageImageAttachment = $condition;
 
         return $this;
     }
 
-    public function previewMessageImageAttachment(bool | Closure $condition = true): static
+    public function previewMessageImageAttachment(bool | Closure | null $condition = true): static
     {
         $this->shouldPreviewMessageImageAttachment = $condition;
 
@@ -442,27 +442,30 @@ trait HasFileAttachments
         );
     }
 
-    public function shouldShowOnlyImageAttachmentByDefault(string $attachmentPath, string $attachmentName): bool
+    public function shouldShowOnlyImageAttachmentByDefault(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType): bool
     {
         return (bool) $this->evaluate($this->shouldShowOnlyImageAttachmentByDefault, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
         ]);
     }
 
-    public function shouldPreviewImageAttachmentByDefault(string $attachmentPath, string $attachmentName): bool
+    public function shouldPreviewImageAttachmentByDefault(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType): bool
     {
         return (bool) $this->evaluate($this->shouldPreviewImageAttachmentByDefault, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
         ]);
     }
 
-    public function getDefaultFileAttachmentIcon(string $attachmentPath, string $attachmentName): Htmlable | Icon | null
+    public function getDefaultFileAttachmentIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType): Htmlable | Icon | null
     {
         $icon = $this->evaluate($this->defaultFileAttachmentIcon, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
         ]);
 
         if ($icon instanceof Renderable) {
@@ -474,60 +477,76 @@ trait HasFileAttachments
         }
 
         if ($icon instanceof Icon) {
-            $icon->color($this->getDefaultFileAttachmentIconColor($attachmentPath, $attachmentName));
+            $icon->color($this->getDefaultFileAttachmentIconColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType));
         }
 
         return $icon;
     }
 
-    public function getDefaultFileAttachmentIconColor(string $attachmentPath, string $attachmentName): string | array
+    public function getDefaultFileAttachmentIconColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType): string | array
     {
         return $this->evaluate($this->defaultFileAttachmentIconColor, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
         ]) ?? 'primary';
     }
 
-    public function getDefaultFileAttachmentMimeTypeBadgeLabel(string $attachmentPath, string $attachmentName): string | Htmlable | null
+    public function getDefaultFileAttachmentMimeTypeBadgeLabel(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType): string | Htmlable | null
     {
         return $this->evaluate($this->defaultFileAttachmentMimeTypeBadgeLabel, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
         ]);
     }
 
-    public function getDefaultFileAttachmentMimeTypeBadgeIcon(string $attachmentPath, string $attachmentName): string | BackedEnum | null
+    public function getDefaultFileAttachmentMimeTypeBadgeIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType): string | BackedEnum | null
     {
         return $this->evaluate($this->defaultFileAttachmentMimeTypeBadgeIcon, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
         ]);
     }
 
-    public function getDefaultFileAttachmentMimeTypeBadgeColor(string $attachmentPath, string $attachmentName): string | array
+    public function getDefaultFileAttachmentMimeTypeBadgeColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType): string | array
     {
         return $this->evaluate($this->defaultFileAttachmentMimeTypeBadgeColor, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
         ]) ?? 'gray';
     }
 
     public function shouldShowOnlyUploadedImageAttachment(TemporaryUploadedFile $attachment): bool
     {
-        return (bool) $this->evaluate($this->shouldShowOnlyUploadedImageAttachment, [
+        $result = (bool) $this->evaluate($this->shouldShowOnlyUploadedImageAttachment, [
             'attachment' => $attachment,
         ], [
             TemporaryUploadedFile::class => $attachment,
         ]);
+
+        if ($result !== null) {
+            return (bool) $result;
+        }
+
+        return $this->shouldShowOnlyImageAttachmentByDefault($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());
     }
 
     public function shouldPreviewUploadedImageAttachment(TemporaryUploadedFile $attachment): bool
     {
-        return (bool) $this->evaluate($this->shouldPreviewUploadedImageAttachment, [
+        $result = $this->evaluate($this->shouldPreviewUploadedImageAttachment, [
             'attachment' => $attachment,
         ], [
             TemporaryUploadedFile::class => $attachment,
         ]);
+
+        if ($result !== null) {
+            return (bool) $result;
+        }
+
+        return $this->shouldPreviewImageAttachmentByDefault($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());;
     }
 
     public function getUploadedFileAttachmentName(TemporaryUploadedFile $attachment): string | Htmlable | null
@@ -568,7 +587,7 @@ trait HasFileAttachments
             $icon->color($this->getUploadedFileAttachmentIconColor($attachment));
         }
 
-        return $icon ?? $this->getDefaultFileAttachmentIcon($attachment->getPath(), $attachment->getClientOriginalName());
+        return $icon ?? $this->getDefaultFileAttachmentIcon($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());
     }
 
     public function getUploadedFileAttachmentIconColor(TemporaryUploadedFile $attachment): string | array
@@ -577,7 +596,7 @@ trait HasFileAttachments
             'attachment' => $attachment,
         ], [
             TemporaryUploadedFile::class => $attachment,
-        ]) ?? $this->getDefaultFileAttachmentIconColor($attachment->getPath(), $attachment->getClientOriginalName());
+        ]) ?? $this->getDefaultFileAttachmentIconColor($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());
     }
 
     public function getUploadedFileAttachmentMimeTypeBadgeLabel(TemporaryUploadedFile $attachment): string | Htmlable | null
@@ -586,7 +605,7 @@ trait HasFileAttachments
             'attachment' => $attachment,
         ], [
             TemporaryUploadedFile::class => $attachment,
-        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeLabel($attachment->getPath(), $attachment->getClientOriginalName());
+        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeLabel($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());
     }
 
     public function getUploadedFileAttachmentMimeTypeBadgeIcon(TemporaryUploadedFile $attachment): string | BackedEnum | null
@@ -595,7 +614,7 @@ trait HasFileAttachments
             'attachment' => $attachment,
         ], [
             TemporaryUploadedFile::class => $attachment,
-        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeIcon($attachment->getPath(), $attachment->getClientOriginalName());
+        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeIcon($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());
     }
 
     public function getUploadedFileAttachmentMimeTypeBadgeColor(TemporaryUploadedFile $attachment): string | array
@@ -604,58 +623,75 @@ trait HasFileAttachments
             'attachment' => $attachment,
         ], [
             TemporaryUploadedFile::class => $attachment,
-        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeColor($attachment->getPath(), $attachment->getClientOriginalName());
+        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeColor($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());
     }
 
-    public function shouldShowOnlyMessageImageAttachment(string $attachmentPath, string $attachmentName, Message $message): bool
+    public function shouldShowOnlyMessageImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): bool
     {
-        return (bool) $this->evaluate($this->shouldShowOnlyMessageImageAttachment, [
+        $result =  $this->evaluate($this->shouldShowOnlyMessageImageAttachment, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
         ]);
+
+        if ($result !== null) {
+            return (bool) $result;
+        }
+
+        return $this->shouldShowOnlyImageAttachmentByDefault($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
 
-    public function shouldPreviewMessageImageAttachment(string $attachmentPath, string $attachmentName, Message $message): bool
+    public function shouldPreviewMessageImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): bool
     {
-        return (bool) $this->evaluate($this->shouldPreviewMessageImageAttachment, [
+        $result = $this->evaluate($this->shouldPreviewMessageImageAttachment, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
         ]);
+
+        if ($result !== null) {
+            return (bool) $result;
+        }
+
+        return $this->shouldPreviewImageAttachmentByDefault($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
 
-    public function getMessageFileAttachmentName(string $attachmentPath, string $attachmentName, Message $message): string | Htmlable | null
+    public function getMessageFileAttachmentName(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): string | Htmlable
     {
         return $this->evaluate($this->formatMessageFileAttachmentName, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
-        ]);
+        ]) ?? $attachmentOriginalName;
     }
 
-    public function getMessageFileAttachmentToolbar(string $attachmentPath, string $attachmentName, Message $message): string | Htmlable | null
+    public function getMessageFileAttachmentToolbar(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): string | Htmlable | null
     {
         return $this->evaluate($this->messageFileAttachmentToolbar, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
         ]);
     }
 
-    public function getMessageFileAttachmentIcon(string $attachmentPath, string $attachmentName, Message $message): Htmlable | Icon | null
+    public function getMessageFileAttachmentIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): Htmlable | Icon | null
     {
         $icon = $this->evaluate($this->messageFileAttachmentIcon, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
@@ -670,54 +706,58 @@ trait HasFileAttachments
         }
 
         if ($icon instanceof Icon) {
-            $icon->color($this->getMessageFileAttachmentIconColor($attachmentPath, $attachmentName, $message));
+            $icon->color($this->getMessageFileAttachmentIconColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message));
         }
 
-        return $icon ?? $this->getDefaultFileAttachmentIcon($attachmentPath, $attachmentName);
+        return $icon ?? $this->getDefaultFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
 
-    public function getMessageFileAttachmentIconColor(string $attachmentPath, string $attachmentName, Message $message): string | array
+    public function getMessageFileAttachmentIconColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): string | array
     {
         return $this->evaluate($this->messageFileAttachmentIconColor, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
-        ]) ?? $this->getDefaultFileAttachmentIconColor($attachmentPath, $attachmentName);
+        ]) ?? $this->getDefaultFileAttachmentIconColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
 
-    public function getMessageFileAttachmentMimeTypeBadgeLabel(string $attachmentPath, string $attachmentName, Message $message): string | Htmlable | null
+    public function getMessageFileAttachmentMimeTypeBadgeLabel(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): string | Htmlable | null
     {
         return $this->evaluate($this->messageFileAttachmentMimeTypeBadgeLabel, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
-        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentName);
+        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
 
-    public function getMessageFileAttachmentMimeTypeBadgeIcon(string $attachmentPath, string $attachmentName, Message $message): string | BackedEnum | null
+    public function getMessageFileAttachmentMimeTypeBadgeIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): string | BackedEnum | null
     {
         return $this->evaluate($this->messageFileAttachmentMimeTypeBadgeIcon, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
-        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentName);
+        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
 
-    public function getMessageFileAttachmentMimeTypeBadgeColor(string $attachmentPath, string $attachmentName, Message $message): string | array
+    public function getMessageFileAttachmentMimeTypeBadgeColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): string | array
     {
         return $this->evaluate($this->messageFileAttachmentMimeTypeBadgeColor, [
             'attachmentPath' => $attachmentPath,
-            'attachmentName' => $attachmentName,
+            'attachmentOriginalName' => $attachmentOriginalName,
+            'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
         ], [
             Message::class => $message,
-        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentName);
+        ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
 
     public function isImageMimeType(string $mimeType): bool

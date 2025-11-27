@@ -121,8 +121,8 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             return $attachment->getClientOriginalName();
         });
 
-        $this->defaultFileAttachmentIcon(function (string $attachmentName, string $attachmentPath): Heroicon {
-            return match (Storage::mimeType($attachmentPath)) {
+        $this->defaultFileAttachmentIcon(function (string $attachmentMimeType): Heroicon {
+            return match ($attachmentMimeType) {
                 'image/png',
                 'image/jpeg' => Heroicon::OutlinedPhoto,
                 'audio/mpeg' => Heroicon::OutlinedSpeakerWave,
@@ -138,8 +138,8 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             };
         });
 
-        $this->defaultFileAttachmentIconColor(static function (string $attachmentPath): string {
-            return match (Storage::mimeType($attachmentPath)) {
+        $this->defaultFileAttachmentIconColor(static function (string $attachmentMimeType): string {
+            return match ($attachmentMimeType) {
                 'application/pdf', => 'danger',
                 'text/csv',
                 'application/vnd.ms-excel',
@@ -148,11 +148,8 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             };
         });
 
-        // TODO: Integrate default fallback methods for `shouldShowOnlyImageAttachmentByDefault` and `shouldPreviewImageAttachmentByDefault`
-        // TODO: defaultIcon doesn't work well - when there is no concrete icon, but there is concrete icon color
-
-        $this->defaultFileAttachmentMimeTypeBadgeLabel(static function (string $attachmentPath): ?string {
-            return match (Storage::mimeType($attachmentPath)) {
+        $this->defaultFileAttachmentMimeTypeBadgeLabel(static function (string $attachmentMimeType): ?string {
+            return match ($attachmentMimeType) {
                 'image/png',
                 'image/jpeg' => __('filament-converse::conversation-thread.attachments.mime-type.image'),
                 'audio/mpeg' => __('filament-converse::conversation-thread.attachments.mime-type.audio'),

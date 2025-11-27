@@ -228,43 +228,40 @@
                             class="fi-converse-conversation-thread-message-body"
                         >
                             <div
-                                class="fi-converse-conversation-thread-message"
+                                @class([
+                                    "fi-converse-conversation-thread-message",
+                                    "fi-converse-conversation-thread-message-with-attachments" => count($message->attachments)
+                                ])
                             >
-                                {!! str($message->content)->markdown($commonMarkOptions, $commonMarkExtensions)->sanitizeHtml() !!}
+                                @if ($message->content)
+                                    <p>
+                                        {!! str($message->content)->markdown($commonMarkOptions, $commonMarkExtensions)->sanitizeHtml() !!}
+                                    </p>
+                                @endif
 
                                 @if (count($message->attachments))
-                                    <div>
-                                        @foreach (array_combine($message->attachments, $message->attachment_file_names) as $attachmentPath => $attachmentFileName)
+                                    <div class="fi-converse-conversation-thread-message-attachments">
+                                        @foreach (array_combine($message->attachments, $message->attachment_file_names) as $attachmentPath => $attachmentOriginalName)
                                             @php
-                                                $hasImageMimeType = $isImageMimeType($attachmentPath);
-
                                                 if (! $fileAttachmentsDisk->exists($attachmentPath)) {
                                                     continue;
                                                 }
 
-                                                $storage = Storage::disk($getFileAttachmentsDisk());
-
-                                                dd(
-                                                    $storage::exists($attachmentPath),
-                                                    $storage::mimeType($attachmentPath),
-                                                    $attachmentPath,
-                                                    $storage::path($attachmentPath),
-                                                    $storage::exists($attachmentPath),
-                                                    $storage::mimeType($storage::path($attachmentPath))
-                                                );
+                                                $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentPath);
+                                                $hasImageMimeType = $isImageMimeType($attachmentMimeType);
                                             @endphp
 
                                             <x-filament-converse::conversation-attachment
                                                 :has-image-mime-type="$hasImageMimeType"
-                                                :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentFileName, $message)"
-                                                :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentFileName, $message)"
-                                                :should-show-only-uploaded-image-attachment="$shouldShowOnlyMessageImageAttachment($attachmentPath, $attachmentFileName, $message)"
+                                                :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                :should-show-only-uploaded-image-attachment="$shouldShowOnlyMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
                                                 :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentPath) : null"
-                                                :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentFileName, $message)"
-                                                :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentFileName, $message)"
-                                                :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentFileName, $message)"
-                                                :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentFileName, $message)"
-                                                :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentFileName, $message)"
+                                                :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
                                             />
                                         @endforeach
                                     </div>
@@ -409,7 +406,7 @@
                                     file-attachment-remove-handler="$wire.removeUpload('componentFileAttachments.{{ $statePath }}', '{{ $fileAttachment->getFilename() }}')"
                                     :generic-attachment-container-extra-attributes-bag="
                                         (new ComponentAttributeBag())
-                                        ->class(['fi-converse-attachment-adaptable-width'])
+                                            ->class(['fi-converse-attachment-adaptable-width'])
                                     "
                                 />
                             @endforeach
