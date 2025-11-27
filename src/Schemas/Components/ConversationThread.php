@@ -12,7 +12,6 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\Dele
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Concerns\CanBeLengthConstrained;
-use Filament\Forms\Components\Concerns\HasFileAttachments as HasBaseFileAttachments;
 use Filament\Forms\Components\Concerns\HasMaxHeight;
 use Filament\Forms\Components\Concerns\HasMinHeight;
 use Filament\Forms\Components\Concerns\InteractsWithToolbarButtons;
@@ -35,7 +34,6 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
     use Concerns\HasFileAttachments;
-    use HasBaseFileAttachments;
     use HasExtraAlpineAttributes;
     use HasMaxHeight;
     use HasMinHeight;
@@ -97,13 +95,10 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
         $this->formatMessageTimestampUsing(static function (Carbon $timestamp, Message $message): string {
-            $now = Carbon::now();
-
             return match (true) {
-                $now->year !== $timestamp->year => $timestamp->isoFormat('L LT'),
-                $now->month !== $timestamp->month => $timestamp->isoFormat('MMM D LT'),
-                $now->isSameWeek($timestamp) && $now->day !== $timestamp->day => $timestamp->isoFormat('ddd LT'),
-                $now->day !== $timestamp->day => $timestamp->isoFormat('D LT'),
+                ! $timestamp->isCurrentYear() => $timestamp->isoFormat('L LT'),
+                $timestamp->isCurrentWeek() && ! $timestamp->isCurrentDay() => $timestamp->isoFormat('ddd LT'),
+                ! $timestamp->isCurrentDay() => $timestamp->isoFormat('D MMMM LT'),
                 default => $timestamp->isoFormat('LT'),
             };
         });

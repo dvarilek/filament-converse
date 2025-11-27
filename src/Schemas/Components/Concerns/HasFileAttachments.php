@@ -19,9 +19,13 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Filament\Forms\Components\Concerns\HasFileAttachments as BaseHasFileAttachments;
+
 
 trait HasFileAttachments
 {
+    use BaseHasFileAttachments;    
+    
     protected int | Closure | null $maxFileAttachments = null;
 
     protected string | array | Closure | null $attachmentModalIconColor = null;

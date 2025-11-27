@@ -10,6 +10,7 @@
     use Filament\Support\View\Components\ModalComponent\IconComponent;
     use Illuminate\Contracts\Filesystem\Filesystem;
     use Filament\Schemas\Components\Icon;
+    use Illuminate\Support\Facades\Storage;
 
     $id = $getId();
     $fieldWrapperView = $getFieldWrapperView();
@@ -240,6 +241,17 @@
                                                 if (! $fileAttachmentsDisk->exists($attachmentPath)) {
                                                     continue;
                                                 }
+
+                                                $storage = Storage::disk($getFileAttachmentsDisk());
+
+                                                dd(
+                                                    $storage::exists($attachmentPath),
+                                                    $storage::mimeType($attachmentPath),
+                                                    $attachmentPath,
+                                                    $storage::path($attachmentPath),
+                                                    $storage::exists($attachmentPath),
+                                                    $storage::mimeType($storage::path($attachmentPath))
+                                                );
                                             @endphp
 
                                             <x-filament-converse::conversation-attachment
@@ -387,7 +399,7 @@
                                     :file-attachment-name="$getUploadedFileAttachmentName($fileAttachment)"
                                     :file-attachment-toolbar="$getUploadedFileAttachmentToolbar($fileAttachment)"
                                     :should-show-only-uploaded-image-attachment="$shouldShowOnlyUploadedImageAttachment($fileAttachment)"
-                                    :file-attachment-image-url="$hasImageMimeType ? $fileAttachment->temporaryUrl() : null"
+                                    :file-attachment-url="$hasImageMimeType ? $fileAttachment->temporaryUrl() : null"
                                     :should-preview-image-attachment="$shouldPreviewUploadedImageAttachment($fileAttachment)"
                                     :file-attachment-icon="$getUploadedFileAttachmentIcon($fileAttachment)"
                                     :mime-type-badge-label="$getUploadedFileAttachmentMimeTypeBadgeLabel($fileAttachment)"
