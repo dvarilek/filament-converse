@@ -2,6 +2,8 @@
 
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
+use Carbon\Carbon;
+use Dvarilek\FilamentConverse\Events\UserTyping;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
@@ -18,6 +20,15 @@ trait HasConversations
     public ?string $activeConversationKey = null;
 
     public int $activeConversationMessagesPage = 1;
+
+    /**
+     * It is structured this way mainly so the scrollToBottom functionality works as expected.
+     *
+     * @var array<string, array{exists: bool, createdByAuthenticatedUser: bool}>
+     */
+    public array $messagesCreatedDuringConversationSession = [];
+
+    public ?Carbon $lastUserTypingEventSentAt = null;
 
     public function mountHasConversations(): void
     {
@@ -57,7 +68,10 @@ trait HasConversations
     public function updateActiveConversation(string $conversationKey): void
     {
         $this->activeConversationKey = $conversationKey;
+
         $this->activeConversationMessagesPage = 1;
+        $this->messagesCreatedDuringConversationSession = [];
+        $this->lastUserTypingEventSentAt = null;
 
         if ($this->getConversationSchema()->shouldPersistActiveConversationInSession()) {
             session()->put(
@@ -65,6 +79,31 @@ trait HasConversations
                 $this->activeConversationKey,
             );
         }
+    }
+
+    public function updatedData($data): void
+    {
+        // TODO: Rework this - maybe skip typing for now, consider using regular text area for this
+        //       - refresh last messages in the side panel
+        //       - add read by functionality
+        //       - store uncommited message content in session
+
+        if (blank($data)) {
+            return;
+        }
+
+        $conversationThread = $this->getConversationSchema()->getConversationThread();
+
+        if (! $conversationThread->shouldDispatchUserTypingEvent()) {
+            return;
+        }
+
+        if ($this->lastUserTypingEventSentAt && $this->lastUserTypingEventSentAt->diffInMilliseconds(now()) < $conversationThread->getUserTypingEventDispatchThreshold()) {
+            return;
+        }
+
+        $this->lastUserTypingEventSentAt = now();
+        broadcast(new UserTyping(auth()->id(), $component->getActiveConversation()))->toOthers();
     }
 
     public function getActiveConversation(): ?Conversation
@@ -93,6 +132,33 @@ trait HasConversations
     public function getActiveConversationMessagesPage(): int
     {
         return $this->activeConversationMessagesPage;
+    }
+
+    public function incrementActiveConversationMessagesPage(): void
+    {
+        $this->activeConversationMessagesPage++;
+    }
+
+    public function registerMessageCreatedDuringConversationSession(string $messageKey, mixed $messageAuthorKey, bool $exists = true): void
+    {
+        if ($exists === false && ! isset($this->messagesCreatedDuringConversationSession[$messageKey])) {
+            return;
+        }
+
+        $this->messagesCreatedDuringConversationSession[$messageKey] = [
+            'exists' => $exists,
+            'createdByAuthenticatedUser' => $messageAuthorKey === auth()->id(),
+        ];
+    }
+
+    public function getMessagesSentDuringConversationSessionCount(): int
+    {
+        return count(array_filter($this->messagesCreatedDuringConversationSession, static fn (array $data) => $data['createdByAuthenticatedUser'] === true));
+    }
+
+    public function getForeignMessagesReceivedDuringConversationSessionCount(): int
+    {
+        return count(array_filter($this->messagesCreatedDuringConversationSession, static fn (array $data) => $data['createdByAuthenticatedUser'] === false));
     }
 
     public function resetCachedConversations(): void

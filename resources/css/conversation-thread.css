@@ -76,6 +76,10 @@
             @apply relative;
         }
 
+        & .fi-converse-conversation-thread-messages-loading-indicator {
+            @apply flex w-full items-center justify-center pb-2;
+        }
+
         & .fi-converse-conversation-thread-upload-validation-message-container {
             @apply bg-danger-100/95 dark:bg-danger-500/30 absolute left-0 right-0 top-0 flex w-full items-center justify-center px-6 py-1.5;
 
@@ -96,7 +100,7 @@
             }
 
             & .fi-converse-conversation-thread-message-layout {
-                @apply flex gap-3;
+                @apply flex w-full gap-3;
 
                 & .fi-converse-conversation-thread-message-avatar {
                     @apply self-end;
@@ -110,22 +114,36 @@
                     }
 
                     & .fi-converse-conversation-thread-message-body {
-                        @apply flex items-center gap-2;
+                        @apply flex w-full items-center gap-2;
 
                         & .fi-converse-conversation-thread-message {
-                            @apply bg-primary-200 max-w-4/5 rounded-xl px-3 py-1 ;
-
-                            &.fi-converse-conversation-thread-message-with-attachments {
-                                @apply flex flex-wrap min-w-64;
-                            }
+                            @apply bg-color-100 dark:bg-color-400/10 max-w-4/5 rounded-xl px-3 py-1;
 
                             & > p {
-                                @apply whitespace-normal break-words text-sm leading-6 text-gray-950 dark:text-white;
+                                @apply whitespace-normal break-words text-sm leading-6;
                             }
 
-                            & .fi-converse-conversation-thread-message-attachments {
-                                @apply py-2 gap-2 flex flex-col;
-                                grid-template-columns: repeat(auto-fill, minmax(0, 1fr))
+                            &
+                                .fi-converse-conversation-thread-message-attachments {
+                                @apply w-full py-2;
+
+                                &.fi-converse-conversation-thread-message-attachments-with-generic-attachments {
+                                    @apply min-w-69 grid gap-3;
+                                    grid-template-columns: repeat(
+                                        auto-fill,
+                                        minmax(4rem, 1fr)
+                                    );
+                                }
+
+                                &:not(
+                                    .fi-converse-conversation-thread-message-attachments-with-generic-attachments
+                                ) {
+                                    @apply max-w-73 flex flex-wrap gap-1.5;
+                                }
+
+                                &.fi-converse-conversation-thread-message-attachments-without-message-content {
+                                    @apply max-w-73;
+                                }
                             }
                         }
 
@@ -186,6 +204,10 @@
     & .fi-converse-image-attachment-container {
         @apply relative h-16 w-16;
 
+        &.fi-converse-image-attachment-container-grid {
+            @apply col-span-1;
+        }
+
         & .fi-converse-image-attachment {
             @apply h-full w-full rounded-xl object-cover;
         }
@@ -200,10 +222,14 @@
     }
 
     & .fi-converse-generic-attachment-container {
-        @apply flex h-16 w-64 gap-3 rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900/50 dark:ring-white/10;
+        @apply flex h-16 w-full gap-3 rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-950/50 dark:ring-white/10;
+
+        &.fi-converse-generic-attachment-container-grid {
+            @apply col-span-full bg-white ring-gray-300 dark:bg-gray-900 dark:ring-gray-700;
+        }
 
         &.fi-converse-attachment-adaptable-width {
-            @apply sm:w-[calc((100%_-_theme(spacing.3))_/_2)] md:w-[calc((100%_-_theme(spacing.3))_/_2)] lg:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)] xl:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)];
+            @apply sm:w-[calc((100%_-_theme(spacing.3))_/_2)] md:w-[calc((d100%_-_theme(spacing.3))_/_2)] lg:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)] xl:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)];
         }
 
         & .fi-converse-generic-attachment-image {

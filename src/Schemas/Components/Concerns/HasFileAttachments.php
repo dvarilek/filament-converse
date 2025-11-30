@@ -8,19 +8,17 @@ use BackedEnum;
 use Closure;
 use Dvarilek\FilamentConverse\Models\Message;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Concerns\HasFileAttachments as BaseHasFileAttachments;
 use Filament\Schemas\Components\Icon;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Filament\Forms\Components\Concerns\HasFileAttachments as BaseHasFileAttachments;
-
 
 trait HasFileAttachments
 {
@@ -521,7 +519,7 @@ trait HasFileAttachments
 
     public function shouldShowOnlyUploadedImageAttachment(TemporaryUploadedFile $attachment): bool
     {
-        $result = (bool) $this->evaluate($this->shouldShowOnlyUploadedImageAttachment, [
+        $result = $this->evaluate($this->shouldShowOnlyUploadedImageAttachment, [
             'attachment' => $attachment,
         ], [
             TemporaryUploadedFile::class => $attachment,
@@ -546,7 +544,7 @@ trait HasFileAttachments
             return (bool) $result;
         }
 
-        return $this->shouldPreviewImageAttachmentByDefault($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());;
+        return $this->shouldPreviewImageAttachmentByDefault($attachment->getPath(), $attachment->getClientOriginalName(), $attachment->getMimeType());
     }
 
     public function getUploadedFileAttachmentName(TemporaryUploadedFile $attachment): string | Htmlable | null
@@ -628,7 +626,7 @@ trait HasFileAttachments
 
     public function shouldShowOnlyMessageImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message): bool
     {
-        $result =  $this->evaluate($this->shouldShowOnlyMessageImageAttachment, [
+        $result = $this->evaluate($this->shouldShowOnlyMessageImageAttachment, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
@@ -831,5 +829,27 @@ trait HasFileAttachments
         }
 
         return $attachments;
+    }
+
+    public function getMessageAttachmentData(Message $message): array
+    {
+        $fileAttachmentsDisk = $this->getFileAttachmentsDisk();
+
+        return collect(array_combine($message->attachments, $message->attachment_file_names))
+            ->filter(static fn (string $attachmentOriginalName, string $attachmentPath) => $fileAttachmentsDisk->exists($attachmentPath))
+            ->mapWithKeys(function (string $attachmentOriginalName, string $attachmentPath) use ($fileAttachmentsDisk, $message) {
+                $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentPath);
+                $hasImageMimeType = $this->isImageMimeType($attachmentMimeType);
+
+                return [
+                    $attachmentPath => [
+                        'attachmentOriginalName' => $attachmentOriginalName,
+                        'attachmentMimeType' => $attachmentMimeType,
+                        'hasImageMimeType' => $hasImageMimeType,
+                        'shouldShowOnlyMessageImageAttachment' => $this->shouldShowOnlyImageAttachmentByDefault($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message),
+                    ],
+                ];
+            })
+            ->toArray();
     }
 }

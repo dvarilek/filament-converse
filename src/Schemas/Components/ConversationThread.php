@@ -6,6 +6,7 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Carbon\Carbon;
 use Closure;
+use Dvarilek\FilamentConverse\Events\UserTyping;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
@@ -24,7 +25,6 @@ use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ConversationThread extends Field implements CanBeLengthConstrainedContract
@@ -55,9 +55,20 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
 
     protected int | Closure | null $messageTimestampGroupingInterval = 420;
 
+    protected int | Closure | null $autoScrollOnForeignMessagesThreshold = 300;
+
+    protected bool | Closure $shouldDispatchUserTypingEvent = true;
+
+    protected int | Closure | null $userTypingEventDispatchThreshold = 1500;
+
     protected ?Closure $formatMessageTimestampUsing = null;
 
     protected ?Closure $modifyMessagesQueryUsing = null;
+
+    /**
+     * @param  string | array<string> | Closure | null  $messageColor
+     */
+    protected string | array | Closure | null $messageColor = null;
 
     protected ?Closure $modifyEditConversationActionUsing = null;
 
@@ -86,9 +97,7 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
 
         $this->live();
 
-        $this->disableToolbarButtons([
-            'codeBlock',
-        ]);
+        $this->toolbarButtons([]);
 
         $this->attachmentModalDescription(__('filament-converse::conversation-thread.attachment-modal.description'));
 
@@ -101,6 +110,33 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
                 ! $timestamp->isCurrentDay() => $timestamp->isoFormat('D MMMM LT'),
                 default => $timestamp->isoFormat('LT'),
             };
+        });
+
+        $this->messageColor(static function (Message $message): string {
+            return $message->author->participant->getKey() === auth()->id() ? 'primary' : 'danger';
+        });
+
+        $this->afterStateUpdated(static function (ConversationThread $component, ConversationManager $livewire) {
+            return;
+            $state = $component->getState();
+
+            if (blank($state)) {
+                return;
+            }
+
+            if (! $component->shouldDispatchUserTypingEvent()) {
+                return;
+            }
+
+            // The logic cannot be placed here because the properties don't have state yet.
+            dd($livewire->get('lastUserTypingEventSentAt'));
+
+            if ($livewire->lastUserTypingEventSentAt && $livewire->lastUserTypingEventSentAt->diffInMilliseconds(now()) < $component->getUserTypingEventDispatchThreshold()) {
+                return;
+            }
+
+            $livewire->lastUserTypingEventSentAt = now();
+            event(new UserTyping(auth()->id(), $component->getActiveConversation()));
         });
 
         $this->fileAttachmentsAcceptedFileTypes([
@@ -201,9 +237,40 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
         return $this;
     }
 
+    public function autoScrollOnForeignMessagesThreshold(int | Closure | null $pixels): static
+    {
+        $this->autoScrollOnForeignMessagesThreshold = $pixels;
+
+        return $this;
+    }
+
+    public function dispatchUserTypingEvent(bool | Closure $condition): static
+    {
+        $this->shouldDispatchUserTypingEvent = $condition;
+
+        return $this;
+    }
+
+    public function userTypingEventDispatchThreshold(int | Closure | null $millisecond): static
+    {
+        $this->userTypingEventDispatchThreshold = $millisecond;
+
+        return $this;
+    }
+
     public function formatMessageTimestampUsing(?Closure $callback): static
     {
         $this->formatMessageTimestampUsing = $callback;
+
+        return $this;
+    }
+
+    /**
+     * @param  string | array<string> | Closure | null  $color
+     */
+    public function messageColor(string | array | Closure | null $color = null): static
+    {
+        $this->messageColor = $color;
 
         return $this;
     }
@@ -272,6 +339,21 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
         return $this->evaluate($this->messageTimestampGroupingInterval) ?? 420;
     }
 
+    public function getAutoScrollOnForeignMessagesThreshold(): int
+    {
+        return $this->evaluate($this->autoScrollOnForeignMessagesThreshold) ?? 300;
+    }
+
+    public function shouldDispatchUserTypingEvent(): bool
+    {
+        return (bool) $this->evaluate($this->shouldDispatchUserTypingEvent);
+    }
+
+    public function getUserTypingEventDispatchThreshold(): ?int
+    {
+        return $this->evaluate($this->userTypingEventDispatchThreshold);
+    }
+
     public function formatMessageTimestamp(Carbon $timestamp, Message $message): ?string
     {
         return $this->evaluate($this->formatMessageTimestampUsing, [
@@ -281,6 +363,15 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             Carbon::class => $timestamp,
             Message::class => $message,
         ]);
+    }
+
+    public function getMessageColor(Message $message): string | array
+    {
+        return $this->evaluate($this->messageColor, [
+            'message' => $message,
+        ], [
+            Message::class => $message,
+        ]) ?? 'gray';
     }
 
     /**
@@ -305,7 +396,9 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             $limit = $this->getDefaultLoadedMessagesCount()
                 + (($livewire->getActiveConversationMessagesPage() - 1) * $this->getMessagesPerPageLoad());
 
-            $query->limit($limit);
+            $extra = count(array_filter($livewire->messagesCreatedDuringConversationSession, static fn (array $data) => $data['exists'] === true));
+
+            $query->limit($limit + $extra);
         }
 
         if ($this->modifyMessagesQueryUsing) {
@@ -395,14 +488,15 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
                     $attachmentFileNames[] = $attachment->getClientOriginalName();
                 }
 
-                $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage([
+                $message = $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($livewire->getActiveConversation(), [
                     'content' => $message,
                     'attachments' => $attachments,
                     'attachment_file_names' => $attachmentFileNames,
                 ]);
 
                 $livewire->content->fill();
-                $livewire->componentFileAttachments = [];
+                data_set($livewire->componentFileAttachments, $component->getStatePath(), []);
+                $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
             });
 
         if ($this->modifySendMessageActionUsing) {
@@ -414,5 +508,28 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
         }
 
         return $action;
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    protected function resolveDefaultClosureDependencyForEvaluationByName(string $parameterName): array
+    {
+        return match ($parameterName) {
+            'conversation',
+            'activeConversation' => [$this->getActiveConversation()],
+            default => []
+        };
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    protected function resolveDefaultClosureDependencyForEvaluationByType(string $parameterType): array
+    {
+        return match ($parameterType) {
+            Message::class => [$this->getActiveConversation()],
+            default => []
+        };
     }
 }

@@ -7,11 +7,9 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
-use Dvarilek\FilamentConverse\View\FilamentConverseIconAlias;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Select;
 use Filament\Support\Enums\Width;
-use Filament\Support\Facades\FilamentIcon;
 use Filament\Support\Icons\Heroicon;
 
 class CreateDirectConversationAction extends CreateConversationAction
@@ -31,7 +29,7 @@ class CreateDirectConversationAction extends CreateConversationAction
 
         $this->modalSubmitActionLabel(__('filament-converse::conversation-list.actions.create-direct.modal-submit-action-label'));
 
-        $this->icon(FilamentIcon::resolve(FilamentConverseIconAlias::DIRECT_CONVERSATION) ?? Heroicon::OutlinedUser);
+        $this->icon(Heroicon::OutlinedUser);
 
         $this->modalWidth(Width::Large);
 

@@ -8,14 +8,12 @@ use Closure;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
-use Dvarilek\FilamentConverse\View\FilamentConverseIconAlias;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Enums\Width;
-use Filament\Support\Facades\FilamentIcon;
 use Filament\Support\Icons\Heroicon;
 
 class CreateGroupConversationAction extends CreateConversationAction
@@ -41,7 +39,7 @@ class CreateGroupConversationAction extends CreateConversationAction
 
         $this->modalSubmitActionLabel(__('filament-converse::conversation-list.actions.create-group.modal-submit-action-label'));
 
-        $this->icon(FilamentIcon::resolve(FilamentConverseIconAlias::DIRECT_CONVERSATION) ?? Heroicon::OutlinedUserGroup);
+        $this->icon(Heroicon::OutlinedUserGroup);
 
         $this->modalWidth(Width::Large);
 

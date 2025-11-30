@@ -11,6 +11,7 @@
     use Illuminate\Contracts\Filesystem\Filesystem;
     use Filament\Schemas\Components\Icon;
     use Illuminate\Support\Facades\Storage;
+    use Dvarilek\FilamentConverse\View\Components\ConversationMessageComponent;
 
     $id = $getId();
     $fieldWrapperView = $getFieldWrapperView();
@@ -20,19 +21,20 @@
 
     /* @var Conversation | null $conversation */
     $conversation = $getActiveConversation();
+    $conversationKey = $conversation?->getKey();
     $hasConversation = filled($conversation);
 
     $isDisabled = $isDisabled();
-    $hasFileAttachments = true;
+    $hasFileAttachments = $hasFileAttachments();
     $canUploadFileAttachments = $hasConversation && $hasFileAttachments && ! $isDisabled;
     $uploadedFileAttachments = $canUploadFileAttachments ? $getUploadedFileAttachments() : [];
-    /* @var Filesystem $fileAttachmentsDisk */
-    $fileAttachmentsDisk = $getFileAttachmentsDisk();
+
     $commonMarkOptions = $getCommonMarkOptions();
     $commonMarkExtensions = $getCommonMarkExtensions();
 
     /* @var Collection<int, Message> $messages */
     $messages = $getMessagesQuery()?->get()?->reverse() ?? [];
+    $totalMessagesCount = $getMessagesQuery(shouldPaginate: false)?->count() ?? 0;
     $messageTimestampGroupingInterval = $getMessageTimestampGroupingInterval();
     /* @var Carbon | null $previousMessageTimestamp */
     $previousMessageTimestamp = null;
@@ -57,7 +59,9 @@
         x-load
         x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
         x-data="conversationThread({
+                    conversationKey: @js($conversationKey),
                     statePath: @js($statePath),
+                    autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
                     fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
                     fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
                     maxFileAttachments: @js($maxFileAttachments),
@@ -154,17 +158,18 @@
 
     <div
         @if ($hasConversation)
-            wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}-{{ $conversation->getKey() }}-{{ count($messages) }}"
+            x-ref="conversationThreadContent"
+            wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}-{{ $conversationKey }}"
             x-init="
-                scrollToBottom()
-                {{-- The markdown editor expands after initial render, causing the container's scroll height to increase. --}}
-                setTimeout(() => scrollToBottom({behaviour: 'smooth'}), 100)
+                scrollToBottom();
+
+                setTimeout(() => scrollToBottom({behaviour: 'smooth'}), 100);
             "
         @endif
 
         @class([
-        "fi-converse-conversation-thread-content",
-        "fi-converse-relative" => $canUploadFileAttachments
+            "fi-converse-conversation-thread-content",
+            "fi-converse-relative" => $canUploadFileAttachments
         ])
     >
         @if ($canUploadFileAttachments)
@@ -177,125 +182,164 @@
             </div>
         @endif
 
-        @forelse ($messages as $message)
-            @php
-                $messageAuthor = $message->author->participant;
-                $messageAuthorName = $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
-
-                $messageTimestamp = $message->created_at;
-                $formattedMessageTimestamp = $formatMessageTimestamp($messageTimestamp, $message);
-
-                $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
-            @endphp
-
-            <div @class([
-                'fi-converse-conversation-thread-message-container',
-                'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
-                ])
-            >
-                @if ((! $previousMessageTimestamp || $previousMessageTimestamp->addSeconds($messageTimestampGroupingInterval)->lt($messageTimestamp)) && filled($formattedMessageTimestamp))
-                    <div
-                        class="fi-converse-conversation-thread-message-timestamp"
-                    >
-                        {{ $formattedMessageTimestamp }}
-                    </div>
-                @endif
-
+        @if ($renderedMessagesCount = count($messages))
+            @if ($renderedMessagesCount < $totalMessagesCount)
                 <div
-                    class="fi-converse-conversation-thread-message-layout group"
+                    x-cloak
+                    x-show="isLoadingMoreMessages"
+                    class="fi-converse-conversation-thread-messages-loading-indicator"
                 >
-                    @if (! $isAuthoredByAuthenticatedUser)
-                        <x-filament::avatar
-                            class="fi-converse-conversation-thread-message-avatar"
-                            :src="filament()->getUserAvatarUrl($messageAuthor)"
-                            :alt="$messageAuthorName"
-                            size="md"
-                        />
-                    @endif
+                    {{ \Filament\Support\generate_loading_indicator_html() }}
+                </div>
+
+                <div x-intersect="loadMoreMessages()" aria-hidden="true"></div>
+            @endif
+
+            @foreach ($messages as $message)
+                    @php
+                        $messageAuthor = $message->author->participant;
+                        $messageAuthorName = $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
+
+                        $messageTimestamp = $message->created_at;
+                        $formattedMessageTimestamp = $formatMessageTimestamp($messageTimestamp, $message);
+
+                        $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
+                    @endphp
 
                     <div
-                        class="fi-converse-conversation-thread-message-content"
+                        @class([
+                            'fi-converse-conversation-thread-message-container',
+                            'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
+                        ])
                     >
-                        @if (! $isAuthoredByAuthenticatedUser)
+                        @if ((! $previousMessageTimestamp || $previousMessageTimestamp->addSeconds($messageTimestampGroupingInterval)->lt($messageTimestamp)) && filled($formattedMessageTimestamp))
                             <div
-                                class="fi-converse-conversation-thread-message-author-name"
+                                class="fi-converse-conversation-thread-message-timestamp"
                             >
-                                {{ $messageAuthorName }}
+                                {{ $formattedMessageTimestamp }}
                             </div>
                         @endif
 
                         <div
-                            class="fi-converse-conversation-thread-message-body"
+                            class="fi-converse-conversation-thread-message-layout group"
                         >
+                            @if (! $isAuthoredByAuthenticatedUser)
+                                <x-filament::avatar
+                                    class="fi-converse-conversation-thread-message-avatar"
+                                    :src="filament()->getUserAvatarUrl($messageAuthor)"
+                                    :alt="$messageAuthorName"
+                                    size="md"
+                                />
+                            @endif
+
                             <div
-                                @class([
-                                    "fi-converse-conversation-thread-message",
-                                    "fi-converse-conversation-thread-message-with-attachments" => count($message->attachments)
-                                ])
+                                class="fi-converse-conversation-thread-message-content"
                             >
-                                @if ($message->content)
-                                    <p>
-                                        {!! str($message->content)->markdown($commonMarkOptions, $commonMarkExtensions)->sanitizeHtml() !!}
-                                    </p>
-                                @endif
-
-                                @if (count($message->attachments))
-                                    <div class="fi-converse-conversation-thread-message-attachments">
-                                        @foreach (array_combine($message->attachments, $message->attachment_file_names) as $attachmentPath => $attachmentOriginalName)
-                                            @php
-                                                if (! $fileAttachmentsDisk->exists($attachmentPath)) {
-                                                    continue;
-                                                }
-
-                                                $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentPath);
-                                                $hasImageMimeType = $isImageMimeType($attachmentMimeType);
-                                            @endphp
-
-                                            <x-filament-converse::conversation-attachment
-                                                :has-image-mime-type="$hasImageMimeType"
-                                                :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                :should-show-only-uploaded-image-attachment="$shouldShowOnlyMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentPath) : null"
-                                                :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                            />
-                                        @endforeach
+                                @if (! $isAuthoredByAuthenticatedUser)
+                                    <div
+                                        class="fi-converse-conversation-thread-message-author-name"
+                                    >
+                                        {{ $messageAuthorName }}
                                     </div>
                                 @endif
-                            </div>
 
-                            @php
-                                $filteredMessageActions = array_filter(
-                                    $messageActions,
-                                    static function (Action | ActionGroup $action) use ($message) {
-                                        $action->record($message)->arguments(['record' => $message->getKey()]);
-
-                                        return $action->isVisible();
-                                    }
-                                )
-                            @endphp
-
-                            @if (count($filteredMessageActions))
                                 <div
-                                    class="fi-converse-conversation-thread-message-actions"
+                                    class="fi-converse-conversation-thread-message-body"
                                 >
-                                    @foreach ($filteredMessageActions as $action)
-                                        {{ $action }}
-                                    @endforeach
+                                    @php
+                                        $hasMessageContent = filled($message->content);
+                                    @endphp
+
+                                    <div
+                                        {{ (new ComponentAttributeBag())
+                                                ->color(ConversationMessageComponent::class, $getMessageColor($message))
+                                                ->class([
+                                                    "fi-converse-conversation-thread-message",
+                                                ]) }}
+                                    >
+                                        @if ($hasMessageContent)
+                                            <p>
+                                                {{ $message->content }}
+                                            </p>
+                                        @endif
+
+                                        @if (count($message->attachments))
+                                            @php
+                                                $attachmentData = $getMessageAttachmentData($message);
+
+                                                $hasOnlyImageAttachments = collect($attachmentData)
+                                                    ->every(static fn(array $data) => $data['hasImageMimeType'] && $data['shouldShowOnlyMessageImageAttachment']);
+                                            @endphp
+                                            <div
+                                                @class([
+                                                    "fi-converse-conversation-thread-message-attachments",
+                                                    "fi-converse-conversation-thread-message-attachments-with-generic-attachments" => ! $hasOnlyImageAttachments,
+                                                    "fi-converse-conversation-thread-message-attachments-without-message-content" => ! $hasMessageContent
+                                                ])
+                                            >
+                                                @foreach ($attachmentData as $attachmentPath => $data)
+                                                    @php
+                                                        $attachmentOriginalName = $data['attachmentOriginalName'];
+                                                        $attachmentMimeType = $data['attachmentMimeType'];
+                                                        $hasImageMimeType = $data['hasImageMimeType'];
+                                                    @endphp
+
+                                                    <x-filament-converse::conversation-attachment
+                                                        :has-image-mime-type="$hasImageMimeType"
+                                                        :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                        :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                        :should-show-only-image-attachment="$data['shouldShowOnlyMessageImageAttachment']"
+                                                        :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentPath) : null"
+                                                        :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                        :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                        :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                        :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                        :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                        :image-attachment-container-extra-attributes-bag="
+                                                    (new ComponentAttributeBag())
+                                                        ->class(['fi-converse-image-attachment-container-grid'])
+                                                "
+                                                        :generic-attachment-container-extra-attributes-bag="
+                                                    (new ComponentAttributeBag())
+                                                        ->class(['fi-converse-generic-attachment-container-grid'])
+                                                "
+                                                    />
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    @php
+                                        $filteredMessageActions = array_filter(
+                                            $messageActions,
+                                            static function (Action | ActionGroup $action) use ($message) {
+                                                $action->record($message)->arguments(['record' => $message->getKey()]);
+
+                                                return $action->isVisible();
+                                            }
+                                        )
+                                    @endphp
+
+                                    @if (count($filteredMessageActions))
+                                        <div
+                                            class="fi-converse-conversation-thread-message-actions"
+                                        >
+                                            @foreach ($filteredMessageActions as $action)
+                                                {{ $action }}
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
-                            @endif
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
-            @php
-                $previousMessageTimestamp = $messageTimestamp;
-            @endphp
-        @empty
+                    @php
+                        $previousMessageTimestamp = $messageTimestamp;
+                    @endphp
+            @endforeach
+
+            <div x-ref="conversationThreadContentEndMarker" aria-hidden="true"></div>
+        @else
             @if ($emptyState = $getEmptyState())
                 {{ $emptyState }}
             @else
@@ -312,9 +356,7 @@
                     </x-slot>
                 </x-filament::empty-state>
             @endif
-        @endforelse
-
-        <div x-ref="messageBoxEndMarker" style="height: 0px"></div>
+        @endif
     </div>
 
     @if ($hasConversation)
@@ -395,7 +437,7 @@
                                     :has-image-mime-type="$hasImageMimeType"
                                     :file-attachment-name="$getUploadedFileAttachmentName($fileAttachment)"
                                     :file-attachment-toolbar="$getUploadedFileAttachmentToolbar($fileAttachment)"
-                                    :should-show-only-uploaded-image-attachment="$shouldShowOnlyUploadedImageAttachment($fileAttachment)"
+                                    :should-show-only-image-attachment="$shouldShowOnlyUploadedImageAttachment($fileAttachment)"
                                     :file-attachment-url="$hasImageMimeType ? $fileAttachment->temporaryUrl() : null"
                                     :should-preview-image-attachment="$shouldPreviewUploadedImageAttachment($fileAttachment)"
                                     :file-attachment-icon="$getUploadedFileAttachmentIcon($fileAttachment)"
@@ -436,10 +478,9 @@
                     >
                         <textarea x-ref="editor" x-cloak></textarea>
                     </div>
-
                     @php
                         $uploadAttachmentAction = $getAction('uploadAttachment');
-                                                                                                                                                                        $sendMessageAction = $getAction('sendMessage');
+                        $sendMessageAction = $getAction('sendMessage');
                     @endphp
 
                     @if ($uploadAttachmentAction || $sendMessageAction)

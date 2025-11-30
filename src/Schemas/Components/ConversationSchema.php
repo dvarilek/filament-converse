@@ -5,6 +5,7 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 use Closure;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Schemas\Components\Concerns\BelongsToLivewire;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;

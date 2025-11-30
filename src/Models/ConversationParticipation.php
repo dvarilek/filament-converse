@@ -100,8 +100,8 @@ class ConversationParticipation extends Model
     /**
      * @param  array<string, mixed>  $attributes
      */
-    public function sendMessage(array $attributes): Message
+    public function sendMessage(Conversation $conversation, array $attributes): Message
     {
-        return app(SendMessage::class)->handle($this, $attributes);
+        return app(SendMessage::class)->handle($this, $conversation, $attributes);
     }
 }

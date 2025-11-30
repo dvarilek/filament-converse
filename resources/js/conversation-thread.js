@@ -1,5 +1,7 @@
 export function conversationThread({
+    conversationKey,
     statePath,
+    autoScrollOnForeignMessagesThreshold,
     fileAttachmentAcceptedFileTypes,
     fileAttachmentMaxSize,
     maxFileAttachments,
@@ -9,6 +11,12 @@ export function conversationThread({
     $wire,
 }) {
     return {
+        messagesCreatedDuringConversationSession: $wire.entangle(
+            'messagesCreatedDuringConversationSession',
+        ),
+
+        isLoadingMoreMessages: false,
+
         isDraggingFileAttachment: false,
 
         uploadingFileAttachments: [],
@@ -16,6 +24,102 @@ export function conversationThread({
         fileAttachmentUploadValidationMessage: null,
 
         init() {
+            const channel = window.Echo.private(
+                'filament-converse.conversation.' + conversationKey,
+            )
+
+            channel
+                .listen('.message.sent', (event) =>
+                    $wire.call(
+                        'registerMessageCreatedDuringConversationSession',
+                        event.message.id,
+                        event.message.authorId,
+                    ),
+                )
+                .listen('.message.deleted', (event) =>
+                    $wire.call(
+                        'registerMessageCreatedDuringConversationSession',
+                        event.message.id,
+                        event.message.authorId,
+                        false,
+                    ),
+                )
+                .listen('.message.updated', (event) => $wire.refresh())
+
+            this.$watch(
+                'messagesCreatedDuringConversationSession',
+                (newMessages, oldMessages) => {
+                    const isForeign = (message) =>
+                        !message.createdByAuthenticatedUser && message.exists
+                    const isNonForeign = (message) =>
+                        message.createdByAuthenticatedUser && message.exists
+
+                    const newForeignCount =
+                        Object.values(newMessages).filter(isForeign).length
+                    const oldForeignCount =
+                        Object.values(oldMessages).filter(isForeign).length
+
+                    const newNonForeignCount =
+                        Object.values(newMessages).filter(isNonForeign).length
+                    const oldNonForeignCount =
+                        Object.values(oldMessages).filter(isNonForeign).length
+
+                    if (
+                        newForeignCount > oldForeignCount &&
+                        this.isPositionedNearBottom()
+                    ) {
+                        this.$nextTick(() =>
+                            this.scrollToBottom({ behaviour: 'smooth' }),
+                        )
+                    }
+
+                    if (newNonForeignCount > oldNonForeignCount) {
+                        this.$nextTick(() =>
+                            this.scrollToBottom({ behaviour: 'smooth' }),
+                        )
+                    }
+                },
+            )
+
+            this.registerFileAttachmentUploadEventListeners()
+        },
+
+        scrollToBottom(options) {
+            this.$refs.conversationThreadContentEndMarker.scrollIntoView(
+                options,
+            )
+        },
+
+        async loadMoreMessages() {
+            const element = this.$refs.conversationThreadContent
+            const previousScrollHeight = element.scrollHeight
+
+            this.isLoadingMoreMessages = true
+
+            try {
+                await $wire.call('incrementActiveConversationMessagesPage')
+            } finally {
+                this.isLoadingMoreMessages = false
+                element.scrollTop += element.scrollHeight - previousScrollHeight
+            }
+        },
+
+        isPositionedNearBottom() {
+            const element = this.$refs.conversationThreadContent
+
+            return (
+                element.scrollHeight -
+                    element.scrollTop -
+                    element.clientHeight <
+                (autoScrollOnForeignMessagesThreshold ?? 0)
+            )
+        },
+
+        isUploadingFileAttachment() {
+            return this.uploadingFileAttachments.length > 0
+        },
+
+        registerFileAttachmentUploadEventListeners() {
             new Set(['dragenter', 'dragover', 'dragleave', 'drop']).forEach(
                 (eventName) =>
                     this.$el.addEventListener(
@@ -51,14 +155,6 @@ export function conversationThread({
                     (event.dataTransfer && event.dataTransfer.files) || [],
                 )
             })
-        },
-
-        scrollToBottom(options) {
-            this.$refs.messageBoxEndMarker.scrollIntoView(options)
-        },
-
-        isUploadingFileAttachment() {
-            return this.uploadingFileAttachments.length > 0
         },
 
         async handleAttachmentUpload(files) {

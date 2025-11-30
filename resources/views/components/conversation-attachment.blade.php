@@ -2,7 +2,7 @@
     'hasImageMimeType',
     'fileAttachmentName',
     'fileAttachmentToolbar',
-    'shouldShowOnlyUploadedImageAttachment',
+    'shouldShowOnlyImageAttachment',
     'shouldPreviewImageAttachment',
     'fileAttachmentUrl',
     'fileAttachmentIcon',
@@ -23,7 +23,7 @@
     use Illuminate\Contracts\Support\Htmlable;
 @endphp
 
-@if ($hasImageMimeType && $shouldShowOnlyUploadedImageAttachment)
+@if ($hasImageMimeType && $shouldShowOnlyImageAttachment)
     <div
         {{
             $imageAttachmentContainerExtraAttributesBag

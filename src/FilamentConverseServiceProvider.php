@@ -31,6 +31,7 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
                 '2_create_conversation_participations_table',
                 '3_create_messages_table'
             )
+            ->hasRoutes('channel')
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command
                     ->publishMigrations()
