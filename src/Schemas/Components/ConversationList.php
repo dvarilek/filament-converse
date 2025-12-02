@@ -114,6 +114,8 @@ class ConversationList extends Component
                 ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
                 ->participant;
 
+            // TODO; Handle when the message has no content but only attachments
+
             $messagePrefix = $participantWithLatestMessage->getKey() === auth()->id()
                 ? __('filament-converse::conversation-list.last-message.current-user')
                 : $participantWithLatestMessage->getAttributeValue($participantWithLatestMessage::getFilamentNameAttribute());

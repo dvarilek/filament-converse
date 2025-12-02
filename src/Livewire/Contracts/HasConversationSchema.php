@@ -15,6 +15,4 @@ interface HasConversationSchema
     public function updateActiveConversation(string $conversationKey): void;
 
     public function getActiveConversation(): ?Conversation;
-
-    public function resetCachedConversations(): void;
 }

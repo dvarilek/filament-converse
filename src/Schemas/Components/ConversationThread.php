@@ -6,39 +6,23 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Carbon\Carbon;
 use Closure;
-use Dvarilek\FilamentConverse\Events\UserTyping;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Concerns\CanBeLengthConstrained;
-use Filament\Forms\Components\Concerns\HasMaxHeight;
-use Filament\Forms\Components\Concerns\HasMinHeight;
-use Filament\Forms\Components\Concerns\InteractsWithToolbarButtons;
-use Filament\Forms\Components\Contracts\CanBeLengthConstrained as CanBeLengthConstrainedContract;
-use Filament\Forms\Components\Field;
-use Filament\Support\Concerns\CanConfigureCommonMark;
-use Filament\Support\Concerns\HasExtraAlpineAttributes;
-use Filament\Support\Concerns\HasPlaceholder;
+use Filament\Forms\Components\Textarea;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class ConversationThread extends Field implements CanBeLengthConstrainedContract
+class ConversationThread extends Textarea
 {
-    use CanBeLengthConstrained;
-    use CanConfigureCommonMark;
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
     use Concerns\HasFileAttachments;
-    use HasExtraAlpineAttributes;
-    use HasMaxHeight;
-    use HasMinHeight;
-    use HasPlaceholder;
-    use InteractsWithToolbarButtons;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
 
@@ -48,6 +32,8 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
      * @var view-string
      */
     protected string $view = 'filament-converse::conversation-thread';
+
+    protected int | Closure | null $maxHeight = 8;
 
     protected int | Closure | null $defaultLoadedMessagesCount = 15;
 
@@ -89,15 +75,11 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
 
         $this->hiddenLabel();
 
+        $this->autosize();
+
         $this->autofocus();
 
         $this->maxLength(65535);
-
-        $this->minHeight('2rem');
-
-        $this->live();
-
-        $this->toolbarButtons([]);
 
         $this->attachmentModalDescription(__('filament-converse::conversation-thread.attachment-modal.description'));
 
@@ -114,29 +96,6 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
 
         $this->messageColor(static function (Message $message): string {
             return $message->author->participant->getKey() === auth()->id() ? 'primary' : 'danger';
-        });
-
-        $this->afterStateUpdated(static function (ConversationThread $component, ConversationManager $livewire) {
-            return;
-            $state = $component->getState();
-
-            if (blank($state)) {
-                return;
-            }
-
-            if (! $component->shouldDispatchUserTypingEvent()) {
-                return;
-            }
-
-            // The logic cannot be placed here because the properties don't have state yet.
-            dd($livewire->get('lastUserTypingEventSentAt'));
-
-            if ($livewire->lastUserTypingEventSentAt && $livewire->lastUserTypingEventSentAt->diffInMilliseconds(now()) < $component->getUserTypingEventDispatchThreshold()) {
-                return;
-            }
-
-            $livewire->lastUserTypingEventSentAt = now();
-            event(new UserTyping(auth()->id(), $component->getActiveConversation()));
         });
 
         $this->fileAttachmentsAcceptedFileTypes([
@@ -214,6 +173,13 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             static fn (ConversationThread $component) => $component->getSendMessageAction(),
             static fn (ConversationThread $component) => $component->getUploadAttachmentAction(),
         ]);
+    }
+
+    public function maxHeight(int | Closure | null $maxHeight): static
+    {
+        $this->maxHeight = $maxHeight;
+
+        return $this;
     }
 
     public function defaultLoadedMessagesCount(int | Closure | null $count): static
@@ -310,18 +276,9 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
         return $this;
     }
 
-    /**
-     * @return array<string | array<string>>
-     */
-    public function getDefaultToolbarButtons(): array
+    public function getMaxHeight(): ?int
     {
-        return [
-            ['bold', 'italic', 'strike', 'link'],
-            ['heading'],
-            ['blockquote', 'codeBlock', 'bulletList', 'orderedList'],
-            ['table'],
-            ['undo', 'redo'],
-        ];
+        return $this->evaluate($this->maxHeight);
     }
 
     public function getDefaultLoadedMessagesCount(): int
@@ -471,6 +428,7 @@ class ConversationThread extends Field implements CanBeLengthConstrainedContract
             ->iconButton()
             ->iconSize(IconSize::Large)
             ->icon(Heroicon::PaperAirplane)
+            ->keyBindings(['enter'])
             ->action(static function (ConversationThread $component, ConversationManager $livewire) {
                 $state = $livewire->content->getState();
 

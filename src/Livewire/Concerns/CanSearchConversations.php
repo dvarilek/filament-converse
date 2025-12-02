@@ -12,11 +12,6 @@ trait CanSearchConversations
 {
     public string $conversationListSearch = '';
 
-    public function updatedConversationListSearch(): void
-    {
-        $this->resetCachedConversations();
-    }
-
     /**
      * @param  Builder<Conversation>  $query
      */

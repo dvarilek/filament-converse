@@ -1,1 +1,149 @@
-function C({conversationKey:d,statePath:o,autoScrollOnForeignMessagesThreshold:c,fileAttachmentAcceptedFileTypes:r,fileAttachmentMaxSize:l,maxFileAttachments:h,fileAttachmentsAcceptedFileTypesValidationMessage:u,fileAttachmentsMaxSizeValidationMessage:m,maxFileAttachmentsValidationMessage:f,$wire:s}){return{messagesCreatedDuringConversationSession:s.entangle("messagesCreatedDuringConversationSession"),isLoadingMoreMessages:!1,isDraggingFileAttachment:!1,uploadingFileAttachments:[],fileAttachmentUploadValidationMessage:null,init(){window.Echo.private("filament-converse.conversation."+d).listen(".message.sent",t=>s.call("registerMessageCreatedDuringConversationSession",t.message.id,t.message.authorId)).listen(".message.deleted",t=>s.call("registerMessageCreatedDuringConversationSession",t.message.id,t.message.authorId,!1)).listen(".message.updated",t=>s.refresh()),this.$watch("messagesCreatedDuringConversationSession",(t,n)=>{let a=i=>!i.createdByAuthenticatedUser&&i.exists,g=i=>i.createdByAuthenticatedUser&&i.exists,p=Object.values(t).filter(a).length,v=Object.values(n).filter(a).length,A=Object.values(t).filter(g).length,F=Object.values(n).filter(g).length;p>v&&this.isPositionedNearBottom()&&this.$nextTick(()=>this.scrollToBottom({behaviour:"smooth"})),A>F&&this.$nextTick(()=>this.scrollToBottom({behaviour:"smooth"}))}),this.registerFileAttachmentUploadEventListeners()},scrollToBottom(e){this.$refs.conversationThreadContentEndMarker.scrollIntoView(e)},async loadMoreMessages(){let e=this.$refs.conversationThreadContent,t=e.scrollHeight;this.isLoadingMoreMessages=!0;try{await s.call("incrementActiveConversationMessagesPage")}finally{this.isLoadingMoreMessages=!1,e.scrollTop+=e.scrollHeight-t}},isPositionedNearBottom(){let e=this.$refs.conversationThreadContent;return e.scrollHeight-e.scrollTop-e.clientHeight<(c??0)},isUploadingFileAttachment(){return this.uploadingFileAttachments.length>0},registerFileAttachmentUploadEventListeners(){new Set(["dragenter","dragover","dragleave","drop"]).forEach(e=>this.$el.addEventListener(e,t=>{t.preventDefault(),t.stopPropagation()},!1)),new Set(["dragenter","dragover"]).forEach(e=>{this.$el.addEventListener(e,()=>{this.isDraggingFileAttachment=!0},!1)}),this.$el.addEventListener("dragleave",e=>{this.$el.contains(e.relatedTarget)||(this.isDraggingFileAttachment=!1)}),this.$el.addEventListener("drop",async e=>{this.isDraggingFileAttachment=!1,await this.handleAttachmentUpload(e.dataTransfer&&e.dataTransfer.files||[])})},async handleAttachmentUpload(e){if(!e.length)return;this.fileAttachmentUploadValidationMessage=null;let t=null;if(h&&Array.from(await s.get("componentFileAttachments."+o)||[]).length+e.length>h){this.fileAttachmentUploadValidationMessage=f;return}let n=Array.from(e).filter(a=>r&&!r.includes(a.type)?(t=u,!1):l&&a.size>+l*1024?(t=m,!1):!0);t&&(this.fileAttachmentUploadValidationMessage=t),n.length!==0&&(this.uploadingFileAttachments.push(...n),await s.uploadMultiple("componentFileAttachments."+o,n,()=>this.uploadingFileAttachments=[],()=>this.uploadingFileAttachments=[]))}}}export{C as conversationThread};
+function C({
+    conversationKey: d,
+    statePath: o,
+    autoScrollOnForeignMessagesThreshold: c,
+    fileAttachmentAcceptedFileTypes: r,
+    fileAttachmentMaxSize: l,
+    maxFileAttachments: h,
+    fileAttachmentsAcceptedFileTypesValidationMessage: u,
+    fileAttachmentsMaxSizeValidationMessage: m,
+    maxFileAttachmentsValidationMessage: f,
+    $wire: s,
+}) {
+    return {
+        messagesCreatedDuringConversationSession: s.entangle(
+            'messagesCreatedDuringConversationSession',
+        ),
+        isLoadingMoreMessages: !1,
+        isDraggingFileAttachment: !1,
+        uploadingFileAttachments: [],
+        fileAttachmentUploadValidationMessage: null,
+        init() {
+            ;(window.Echo.private('filament-converse.conversation.' + d)
+                .listen('.message.sent', (t) =>
+                    s.call(
+                        'registerMessageCreatedDuringConversationSession',
+                        t.message.id,
+                        t.message.authorId,
+                    ),
+                )
+                .listen('.message.deleted', (t) =>
+                    s.call(
+                        'registerMessageCreatedDuringConversationSession',
+                        t.message.id,
+                        t.message.authorId,
+                        !1,
+                    ),
+                )
+                .listen('.message.updated', (t) => s.refresh()),
+                this.$watch(
+                    'messagesCreatedDuringConversationSession',
+                    (t, n) => {
+                        let a = (i) =>
+                                !i.createdByAuthenticatedUser && i.exists,
+                            g = (i) => i.createdByAuthenticatedUser && i.exists,
+                            p = Object.values(t).filter(a).length,
+                            v = Object.values(n).filter(a).length,
+                            A = Object.values(t).filter(g).length,
+                            F = Object.values(n).filter(g).length
+                        ;(p > v &&
+                            this.isPositionedNearBottom() &&
+                            this.$nextTick(() =>
+                                this.scrollToBottom({ behaviour: 'smooth' }),
+                            ),
+                            A > F &&
+                                this.$nextTick(() =>
+                                    this.scrollToBottom({
+                                        behaviour: 'smooth',
+                                    }),
+                                ))
+                    },
+                ),
+                this.registerFileAttachmentUploadEventListeners())
+        },
+        scrollToBottom(e) {
+            this.$refs.conversationThreadContentEndMarker.scrollIntoView(e)
+        },
+        async loadMoreMessages() {
+            let e = this.$refs.conversationThreadContent,
+                t = e.scrollHeight
+            this.isLoadingMoreMessages = !0
+            try {
+                await s.call('incrementActiveConversationMessagesPage')
+            } finally {
+                ;((this.isLoadingMoreMessages = !1),
+                    (e.scrollTop += e.scrollHeight - t))
+            }
+        },
+        isPositionedNearBottom() {
+            let e = this.$refs.conversationThreadContent
+            return e.scrollHeight - e.scrollTop - e.clientHeight < (c ?? 0)
+        },
+        isUploadingFileAttachment() {
+            return this.uploadingFileAttachments.length > 0
+        },
+        registerFileAttachmentUploadEventListeners() {
+            ;(new Set(['dragenter', 'dragover', 'dragleave', 'drop']).forEach(
+                (e) =>
+                    this.$el.addEventListener(
+                        e,
+                        (t) => {
+                            ;(t.preventDefault(), t.stopPropagation())
+                        },
+                        !1,
+                    ),
+            ),
+                new Set(['dragenter', 'dragover']).forEach((e) => {
+                    this.$el.addEventListener(
+                        e,
+                        () => {
+                            this.isDraggingFileAttachment = !0
+                        },
+                        !1,
+                    )
+                }),
+                this.$el.addEventListener('dragleave', (e) => {
+                    this.$el.contains(e.relatedTarget) ||
+                        (this.isDraggingFileAttachment = !1)
+                }),
+                this.$el.addEventListener('drop', async (e) => {
+                    ;((this.isDraggingFileAttachment = !1),
+                        await this.handleAttachmentUpload(
+                            (e.dataTransfer && e.dataTransfer.files) || [],
+                        ))
+                }))
+        },
+        async handleAttachmentUpload(e) {
+            if (!e.length) return
+            this.fileAttachmentUploadValidationMessage = null
+            let t = null
+            if (
+                h &&
+                Array.from((await s.get('componentFileAttachments.' + o)) || [])
+                    .length +
+                    e.length >
+                    h
+            ) {
+                this.fileAttachmentUploadValidationMessage = f
+                return
+            }
+            let n = Array.from(e).filter((a) =>
+                r && !r.includes(a.type)
+                    ? ((t = u), !1)
+                    : l && a.size > +l * 1024
+                      ? ((t = m), !1)
+                      : !0,
+            )
+            ;(t && (this.fileAttachmentUploadValidationMessage = t),
+                n.length !== 0 &&
+                    (this.uploadingFileAttachments.push(...n),
+                    await s.uploadMultiple(
+                        'componentFileAttachments.' + o,
+                        n,
+                        () => (this.uploadingFileAttachments = []),
+                        () => (this.uploadingFileAttachments = []),
+                    )))
+        },
+    }
+}
+export { C as conversationThread }

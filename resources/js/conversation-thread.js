@@ -24,11 +24,9 @@ export function conversationThread({
         fileAttachmentUploadValidationMessage: null,
 
         init() {
-            const channel = window.Echo.private(
+            window.Echo.private(
                 'filament-converse.conversation.' + conversationKey,
             )
-
-            channel
                 .listen('.message.sent', (event) =>
                     $wire.call(
                         'registerMessageCreatedDuringConversationSession',

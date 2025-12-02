@@ -33,7 +33,6 @@ trait HasConversations
     public function mountHasConversations(): void
     {
         $this->conversationSchema = $this->makeConversationSchema();
-        $this->resetCachedConversations();
 
         $conversationSchema = $this->getConversationSchema();
 
@@ -54,7 +53,7 @@ trait HasConversations
     /**
      * @return Collection<int, Conversation>
      */
-    #[Computed(persist: true, key: 'filament-converse::conversations-computed-property')]
+    #[Computed]
     public function conversations(): Collection
     {
         $query = $this->getBaseConversationsQuery();
@@ -81,6 +80,7 @@ trait HasConversations
         }
     }
 
+    /*
     public function updatedData($data): void
     {
         // TODO: Rework this - maybe skip typing for now, consider using regular text area for this
@@ -88,6 +88,7 @@ trait HasConversations
         //       - add read by functionality
         //       - store uncommited message content in session
 
+        /*
         if (blank($data)) {
             return;
         }
@@ -105,6 +106,7 @@ trait HasConversations
         $this->lastUserTypingEventSentAt = now();
         broadcast(new UserTyping(auth()->id(), $component->getActiveConversation()))->toOthers();
     }
+    */
 
     public function getActiveConversation(): ?Conversation
     {
@@ -112,10 +114,10 @@ trait HasConversations
             return null;
         }
 
-        $qualifiedConversationKeyName = (new Conversation)->getQualifiedKeyName();
+        $helperInstance = new Conversation;
 
         $conversation = $this->conversations
-            ->firstWhere($qualifiedConversationKeyName, $this->activeConversationKey);
+            ->firstWhere($helperInstance->getKeyName(), $this->activeConversationKey);
 
         if ($conversation) {
             return $conversation;
@@ -126,7 +128,7 @@ trait HasConversations
         }
 
         return $this->getBaseConversationsQuery()
-            ->firstWhere($qualifiedConversationKeyName, $this->activeConversationKey);
+            ->firstWhere($helperInstance->getQualifiedKeyName(), $this->activeConversationKey);
     }
 
     public function getActiveConversationMessagesPage(): int
@@ -161,11 +163,6 @@ trait HasConversations
         return count(array_filter($this->messagesCreatedDuringConversationSession, static fn (array $data) => $data['createdByAuthenticatedUser'] === false));
     }
 
-    public function resetCachedConversations(): void
-    {
-        unset($this->conversations);
-    }
-
     public function getActiveConversationSessionKey(): string
     {
         $identifier = md5($this::class);
@@ -193,8 +190,8 @@ trait HasConversations
             ->select('conversations.*')
             ->getQuery()
             ->with([
-                'participations.participant',
                 'participations.latestMessage',
+                'participations.participant',
             ]);
     }
 

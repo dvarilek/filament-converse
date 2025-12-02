@@ -37,9 +37,4 @@ trait InteractsWithConversationManager
 
         return $conversationSchema;
     }
-
-    public function resetCachedConversations(): void
-    {
-        unset($this->conversations);
-    }
 }
