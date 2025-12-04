@@ -56,6 +56,8 @@ class ConversationList extends Component
 
     protected ?Closure $getLatestMessageContentUsing = null;
 
+    protected string | Htmlable | Closure | null $latestMessageEmptyContent = null;
+
     protected ?Closure $modifyCreateConversationActionUsing = null;
 
     protected ?Closure $modifyCreateDirectConversationActionUsing = null;
@@ -84,6 +86,8 @@ class ConversationList extends Component
         $this->searchPlaceholder(__('filament-converse::conversation-list.search.placeholder'));
 
         $this->emptyStateHeading(__('filament-converse::conversation-list.empty-state.heading'));
+
+        $this->latestMessageEmptyContent(__('filament-converse::conversation-list.latest-message.empty-state'));
 
         $this->emptyStateDescription(static function () {
             if (! auth()->user()->participatesInAnyConversation()) {
@@ -114,13 +118,17 @@ class ConversationList extends Component
                 ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
                 ->participant;
 
-            // TODO; Handle when the message has no content but only attachments
-            
             $messagePrefix = $participantWithLatestMessage->getKey() === auth()->id()
-                ? __('filament-converse::conversation-list.last-message.current-user')
+                ? __('filament-converse::conversation-list.latest-message.current-user')
                 : $participantWithLatestMessage->getAttributeValue($participantWithLatestMessage::getFilamentNameAttribute());
 
-            return $messagePrefix . ': ' . $latestMessage->content;
+            $message = match (true) {
+                filled($content = $latestMessage->content) => $content,
+                filled($attachments = $latestMessage->attachments) => trans_choice('filament-converse::conversation-list.latest-message.only-attachments', count($attachments), ['count' => count($attachments)]),
+                default => null,
+            };
+
+            return $messagePrefix . ': ' . $message;
         });
     }
 
@@ -179,6 +187,13 @@ class ConversationList extends Component
     public function getLatestMessageContentUsing(?Closure $callback = null): static
     {
         $this->getLatestMessageContentUsing = $callback;
+
+        return $this;
+    }
+
+    public function latestMessageEmptyContent(string | Htmlable | Closure | null $content): static
+    {
+        $this->latestMessageEmptyContent = $content;
 
         return $this;
     }
@@ -270,6 +285,11 @@ class ConversationList extends Component
             Conversation::class => $conversation,
             Message::class => $latestMessage,
         ]);
+    }
+
+    public function getLatestMessageEmptyContent(): string | Htmlable | null
+    {
+        return $this->evaluate($this->latestMessageEmptyContent);
     }
 
     protected function getCreateConversationAction(): Action

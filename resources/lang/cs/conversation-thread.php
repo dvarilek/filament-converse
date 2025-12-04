@@ -10,6 +10,8 @@ return [
 
     ],
 
+    'placeholder' => 'Zpráva...',
+
     'attachment-modal' => [
 
         'heading' => 'Přetáhněte přílohy sem',
@@ -44,9 +46,25 @@ return [
 
     ],
 
+    'typing-indicator' => [
+
+        'single' => '{singleName} píše...',
+
+        'double' => '{firstName} a {secondName} píší...',
+
+        'multiple' => '{firstName}, {secondName} a {count} {others} píší...',
+
+        'other' => 'další',
+
+        'others' => 'další',
+
+    ],
+
     'attachments' => [
 
         'remove-button-label' => 'Odstranit',
+
+        'validation-message-close-button-label' => 'Zavřít',
 
         'mime-type' => [
 

@@ -182,7 +182,7 @@
                         @if ($latestMessage)
                             {{ $getLatestMessageContent($conversation, $latestMessage) }}
                         @else
-                            {{ __('filament-converse::conversation-list.last-message.empty-state') }}
+                            {{ $getLatestMessageEmptyContent() }}
                         @endif
                     </p>
                 </div>

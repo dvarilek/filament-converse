@@ -16,9 +16,11 @@ return [
 
     ],
 
-    'last-message' => [
+    'latest-message' => [
 
         'current-user' => 'Vy',
+
+        'only-attachments' => '{1} Odeslána :count příloha|[2,4] Odeslány :count přílohy|[5,*] Odesláno :count příloh',
 
         'empty-state' => 'Zatím žádné zprávy',
 

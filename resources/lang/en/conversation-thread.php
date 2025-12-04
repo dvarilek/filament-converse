@@ -10,6 +10,8 @@ return [
 
     ],
 
+    'placeholder' => 'Message...',
+
     'attachment-modal' => [
 
         'heading' => 'Add Attachments',
@@ -44,9 +46,25 @@ return [
 
     ],
 
+    'typing-indicator' => [
+
+        'single' => '{singleName} is typing...',
+
+        'double' => '{firstName} and {secondName} are typing...',
+
+        'multiple' => '{firstName}, {secondName}, and {count} {others} are typing...',
+
+        'other' => 'other',
+
+        'others' => 'others',
+
+    ],
+
     'attachments' => [
 
         'remove-button-label' => 'Remove',
+
+        'validation-message-close-button-label' => 'Close',
 
         'mime-type' => [
 

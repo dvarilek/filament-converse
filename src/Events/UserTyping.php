@@ -42,7 +42,7 @@ class UserTyping implements ShouldBroadcast
             'user' => [
                 'id' => $this->userId,
                 'name' => $this->userName,
-            ]
+            ],
         ];
     }
 }

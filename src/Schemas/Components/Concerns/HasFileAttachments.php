@@ -788,7 +788,14 @@ trait HasFileAttachments
      */
     public function getUploadedFileAttachments(): array
     {
-        return Arr::wrap(data_get($this->getLivewire(), 'componentFileAttachments.' . $this->getStatePath())) ?? [];
+        $livewire = $this->getLivewire();
+        $activeConversationKey = $livewire->getActiveConversation()?->getKey();
+
+        if (! $activeConversationKey) {
+            return [];
+        }
+
+        return Arr::wrap(data_get($livewire, 'componentFileAttachments.' . $this->getStatePath() . ".{$activeConversationKey}")) ?? [];
     }
 
     /**

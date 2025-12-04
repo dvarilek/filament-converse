@@ -2,8 +2,6 @@
 
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
-use Carbon\Carbon;
-use Dvarilek\FilamentConverse\Events\UserTyping;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
@@ -11,7 +9,6 @@ use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\On;
 
 /**
  * @property Collection<int, Conversation> $conversations
@@ -28,8 +25,6 @@ trait HasConversations
      * @var array<string, array{exists: bool, createdByAuthenticatedUser: bool}>
      */
     public array $messagesCreatedDuringConversationSession = [];
-
-    public ?Carbon $lastUserTypingEventSentAt = null;
 
     public function mountHasConversations(): void
     {
@@ -71,7 +66,6 @@ trait HasConversations
 
         $this->activeConversationMessagesPage = 1;
         $this->messagesCreatedDuringConversationSession = [];
-        $this->lastUserTypingEventSentAt = null;
 
         if ($this->getConversationSchema()->shouldPersistActiveConversationInSession()) {
             session()->put(
@@ -114,7 +108,7 @@ trait HasConversations
         $this->activeConversationMessagesPage++;
     }
 
-    protected function registerMessageCreatedDuringConversationSession(string $messageKey, mixed $messageAuthorKey, bool $exists = true): void
+    public function registerMessageCreatedDuringConversationSession(string $messageKey, mixed $messageAuthorKey, bool $exists = true): void
     {
         if ($exists === false && ! isset($this->messagesCreatedDuringConversationSession[$messageKey])) {
             return;

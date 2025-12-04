@@ -76,15 +76,43 @@
             @apply relative;
         }
 
-        & .fi-converse-conversation-thread-messages-loading-indicator {
+        &
+            .fi-converse-conversation-thread-messages-load-more-message-loading-indicator {
             @apply flex w-full items-center justify-center pb-2;
         }
 
+        &
+            .fi-converse-conversation-thread-messages-users-typing-loading-indicator-container {
+            @apply mt-auto flex items-center gap-2 pt-3 text-sm text-gray-600 dark:text-gray-400;
+
+            & .typing-dots-container {
+                @apply flex gap-1;
+            }
+
+            & .typing-dot {
+                @apply size-1.5 rounded-full bg-gray-400 dark:bg-gray-500;
+                animation: typing-dot 1s infinite;
+            }
+
+            & .typing-dot:nth-child(2) {
+                animation-delay: 0.1s;
+            }
+
+            & .typing-dot:nth-child(3) {
+                animation-delay: 0.2s;
+            }
+        }
+
         & .fi-converse-conversation-thread-upload-validation-message-container {
-            @apply bg-danger-100/95 dark:bg-danger-500/30 absolute left-0 right-0 top-0 flex w-full items-center justify-center px-6 py-1.5;
+            @apply bg-danger-100/95 dark:bg-danger-500/30 sticky -top-6 -mx-6 -mt-6 flex w-auto items-center justify-center px-3 py-1.5;
 
             & > p {
                 @apply w-full break-words text-center text-sm text-gray-500 dark:text-gray-400;
+            }
+
+            &
+                .fi-converse-conversation-thread-upload-validation-message-close-button {
+                @apply ml-auto self-start;
             }
         }
 
@@ -128,10 +156,10 @@
                                 @apply w-full py-2;
 
                                 &.fi-converse-conversation-thread-message-attachments-with-generic-attachments {
-                                    @apply min-w-69 grid gap-3;
+                                    @apply grid gap-3;
                                     grid-template-columns: repeat(
                                         auto-fill,
-                                        minmax(4rem, 1fr)
+                                        minmax(1rem, 1fr)
                                     );
                                 }
 
@@ -172,13 +200,6 @@
 
     & .fi-converse-conversation-thread-footer {
         @apply min-h-1/8 flex flex-shrink-0 flex-col border-t border-gray-200 p-6 dark:border-white/10;
-
-        & .fi-converse-message-input {
-            & .CodeMirror-scroll {
-                max-height: 8rem;
-                overflow-y: auto;
-            }
-        }
 
         & .fi-converse-attachment-area {
             @apply flex max-h-20 flex-wrap gap-3 overflow-y-auto;
@@ -275,5 +296,16 @@
                 @apply h-3 w-1/2 animate-pulse rounded-md bg-gray-200 dark:bg-white/10;
             }
         }
+    }
+}
+
+@keyframes typing-dot {
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-0.5rem);
     }
 }

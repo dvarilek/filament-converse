@@ -1,19 +1,20 @@
 export function conversationThread({
-                                       key,
-                                       conversationKey,
-                                       statePath,
-                                       autoScrollOnForeignMessagesThreshold,
-                                       shouldDispatchUserTypingEvent,
-                                       userTypingIndicatorTimeout,
-                                       userTypingEventDispatchThreshold,
-                                       fileAttachmentAcceptedFileTypes,
-                                       fileAttachmentMaxSize,
-                                       maxFileAttachments,
-                                       fileAttachmentsAcceptedFileTypesValidationMessage,
-                                       fileAttachmentsMaxSizeValidationMessage,
-                                       maxFileAttachmentsValidationMessage,
-                                       $wire,
-                                   }) {
+    key,
+    conversationKey,
+    statePath,
+    autoScrollOnForeignMessagesThreshold,
+    shouldDispatchUserTypingEvent,
+    userTypingIndicatorTimeout,
+    userTypingEventDispatchThreshold,
+    userTypingTranslations,
+    fileAttachmentAcceptedFileTypes,
+    fileAttachmentMaxSize,
+    maxFileAttachments,
+    fileAttachmentsAcceptedFileTypesValidationMessage,
+    fileAttachmentsMaxSizeValidationMessage,
+    maxFileAttachmentsValidationMessage,
+    $wire,
+}) {
     return {
         messagesCreatedDuringConversationSession: $wire.entangle(
             'messagesCreatedDuringConversationSession',
@@ -111,6 +112,38 @@ export function conversationThread({
             return this.typingUsersMap.size > 0
         },
 
+        getTypingUsersMessage() {
+            const names = Array.from(this.typingUsersMap.values())
+
+            if (names.length === 0 || userTypingTranslations.length === 0)
+                return ''
+
+            if (names.length === 1) {
+                return userTypingTranslations.single.replace(
+                    '{singleName}',
+                    names[0],
+                )
+            }
+
+            if (names.length === 2) {
+                return userTypingTranslations.double
+                    .replace('{firstName}', names[0])
+                    .replace('{secondName}', names[1])
+            }
+
+            const othersCount = names.length - 2
+            const othersText =
+                othersCount === 1
+                    ? userTypingTranslations.other
+                    : userTypingTranslations.others
+
+            return userTypingTranslations.multiple
+                .replace('{firstName}', names[0])
+                .replace('{secondName}', names[1])
+                .replace('{count}', othersCount)
+                .replace('{others}', othersText)
+        },
+
         scrollToBottom(options) {
             this.$refs.conversationThreadContentEndMarker.scrollIntoView(
                 options,
@@ -133,7 +166,7 @@ export function conversationThread({
             if (
                 this.lastUserTypingEventSentAt &&
                 now - this.lastUserTypingEventSentAt <
-                userTypingEventDispatchThreshold
+                    userTypingEventDispatchThreshold
             ) {
                 return
             }
@@ -165,8 +198,8 @@ export function conversationThread({
 
             return (
                 element.scrollHeight -
-                element.scrollTop -
-                element.clientHeight <
+                    element.scrollTop -
+                    element.clientHeight <
                 (autoScrollOnForeignMessagesThreshold ?? 0)
             )
         },
@@ -275,7 +308,7 @@ export function conversationThread({
             this.uploadingFileAttachments.push(...validFiles)
 
             await $wire.uploadMultiple(
-                'componentFileAttachments.' + statePath,
+                'componentFileAttachments.' + statePath + '.' + conversationKey,
                 validFiles,
                 () => (this.uploadingFileAttachments = []),
                 () => (this.uploadingFileAttachments = []),

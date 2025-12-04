@@ -14,22 +14,8 @@ use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Concerns\CanBeAutocompleted;
-use Filament\Forms\Components\Concerns\CanBeLengthConstrained;
-use Filament\Forms\Components\Concerns\CanBeReadOnly;
-use Filament\Forms\Components\Concerns\CanDisableGrammarly;
-use Filament\Forms\Components\Concerns\HasExtraInputAttributes;
-use Filament\Forms\Components\Concerns\HasMaxHeight;
-use Filament\Forms\Components\Concerns\HasMinHeight;
-use Filament\Forms\Components\Concerns\InteractsWithToolbarButtons;
-use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Concerns\CanStripCharactersFromState;
-use Filament\Schemas\Components\Concerns\CanTrimState;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
-use Filament\Support\Concerns\CanConfigureCommonMark;
-use Filament\Support\Concerns\HasExtraAlpineAttributes;
-use Filament\Support\Concerns\HasPlaceholder;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
@@ -58,7 +44,7 @@ class ConversationThread extends Textarea
 
     protected int | Closure | null $defaultLoadedMessagesCount = 15;
 
-    protected int | Closure | null $messagesPerPageLoad = 15;
+    protected int | Closure | null $messagesLoadedPerPage = 15;
 
     protected int | Closure | null $messageTimestampGroupingInterval = 420;
 
@@ -66,11 +52,16 @@ class ConversationThread extends Textarea
 
     protected bool | Closure $shouldDispatchUserTypingEvent = true;
 
-    protected ?Closure $getTypingUserNameUsing = null;
+    protected ?Closure $formatTypingUserNameUsing = null;
 
-    protected int | Closure $userTypingIndicatorTimeout = 3000;
+    protected int | Closure $userTypingIndicatorTimeout = 3500;
 
-    protected int | Closure | null $userTypingEventDispatchThreshold = 3500;
+    protected int | Closure | null $userTypingEventDispatchThreshold = 3000;
+
+    /**
+     * @var array{single: string, double: string, multiple: string, other: string, others: string}|Closure
+     */
+    protected array | Closure $userTypingTranslations = [];
 
     protected ?Closure $formatMessageTimestampUsing = null;
 
@@ -106,9 +97,19 @@ class ConversationThread extends Textarea
 
         $this->maxLength(65535);
 
+        $this->placeholder(__('filament-converse::conversation-thread.placeholder'));
+
         $this->attachmentModalDescription(__('filament-converse::conversation-thread.attachment-modal.description'));
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
+
+        $this->userTypingTranslations([
+            'single' => __('filament-converse::conversation-thread.typing-indicator.single'),
+            'double' => __('filament-converse::conversation-thread.typing-indicator.double'),
+            'multiple' => __('filament-converse::conversation-thread.typing-indicator.multiple'),
+            'other' => __('filament-converse::conversation-thread.typing-indicator.other'),
+            'others' => __('filament-converse::conversation-thread.typing-indicator.others'),
+        ]);
 
         $this->formatMessageTimestampUsing(static function (Carbon $timestamp, Message $message): string {
             return match (true) {
@@ -214,9 +215,9 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function messagesPerPageLoad(int | Closure | null $count): static
+    public function messagesLoadedPerPage(int | Closure | null $count): static
     {
-        $this->messagesPerPageLoad = $count;
+        $this->messagesLoadedPerPage = $count;
 
         return $this;
     }
@@ -242,7 +243,7 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function getTypingUserNameUsing(?Closure $callback = null): static
+    public function formatTypingUserNameUsing(?Closure $callback = null): static
     {
         $this->getTypingUserNameUsing = $callback;
 
@@ -259,6 +260,16 @@ class ConversationThread extends Textarea
     public function userTypingEventDispatchThreshold(int | Closure | null $millisecond): static
     {
         $this->userTypingEventDispatchThreshold = $millisecond;
+
+        return $this;
+    }
+
+    /**
+     * @param  array{single: string, double: string, multiple: string, other: string, others: string}|Closure  $translations
+     */
+    public function userTypingTranslations(array | Closure $translations): static
+    {
+        $this->userTypingTranslations = $translations;
 
         return $this;
     }
@@ -325,9 +336,9 @@ class ConversationThread extends Textarea
         return $this->evaluate($this->defaultLoadedMessagesCount) ?? 15;
     }
 
-    public function getMessagesPerPageLoad(): int
+    public function getMessagesLoadedPerPage(): int
     {
-        return $this->evaluate($this->messagesPerPageLoad) ?? 15;
+        return $this->evaluate($this->messagesLoadedPerPage) ?? 15;
     }
 
     public function getMessageTimestampGroupingInterval(): int
@@ -347,12 +358,20 @@ class ConversationThread extends Textarea
 
     public function getUserTypingIndicatorTimeout(): int
     {
-        return $this->evaluate($this->userTypingIndicatorTimeout) ?? 5000;
+        return $this->evaluate($this->userTypingIndicatorTimeout) ?? 3500;
     }
 
     public function getUserTypingEventDispatchThreshold(): ?int
     {
         return $this->evaluate($this->userTypingEventDispatchThreshold);
+    }
+
+    /**
+     * @return array{single: string, double: string, multiple: string, other: string, others: string}
+     */
+    public function getUserTypingTranslations(): array
+    {
+        return $this->evaluate($this->userTypingTranslations) ?? [];
     }
 
     public function formatMessageTimestamp(Carbon $timestamp, Message $message): ?string
@@ -395,7 +414,7 @@ class ConversationThread extends Textarea
 
         if ($shouldPaginate) {
             $limit = $this->getDefaultLoadedMessagesCount()
-                + (($livewire->getActiveConversationMessagesPage() - 1) * $this->getMessagesPerPageLoad());
+                + (($livewire->getActiveConversationMessagesPage() - 1) * $this->getMessagesLoadedPerPage());
 
             $extra = count(array_filter($livewire->messagesCreatedDuringConversationSession, static fn (array $data) => $data['exists'] === true));
 
@@ -490,14 +509,15 @@ class ConversationThread extends Textarea
                     $attachmentFileNames[] = $attachment->getClientOriginalName();
                 }
 
-                $message = $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($livewire->getActiveConversation(), [
+                $activeConversation = $livewire->getActiveConversation();
+                $message = $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($activeConversation, [
                     'content' => $message,
                     'attachments' => $attachments,
                     'attachment_file_names' => $attachmentFileNames,
                 ]);
 
                 $livewire->content->fill();
-                data_set($livewire->componentFileAttachments, $component->getStatePath(), []);
+                data_set($livewire->componentFileAttachments, $component->getStatePath() . ".{$activeConversation->getKey()}", []);
                 $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
             });
 
@@ -543,22 +563,23 @@ class ConversationThread extends Textarea
             return;
         }
 
-        /* @var Model & Authenticatable*/
+        /* @var Model & Authenticatable */
         $user = auth()->user();
 
-        if ($this->getTypingUserNameUsing) {
-            $name = $this->evaluate($this->getTypingUserNameUsing(), [
+        if (! in_array(Conversable::class, class_uses_recursive($user))) {
+            FilamentConverseException::throwInvalidConversableUserException($user);
+        }
+
+        $name = $user->getAttributeValue($user::getFilamentNameAttribute());
+
+        if ($this->formatTypingUserNameUsing) {
+            $name = $this->evaluate($this->formatTypingUserNameUsing, [
+                'name' => $name,
                 'user' => $user,
             ], [
                 Authenticatable::class => $user,
                 Model::class => $user,
             ]);
-        } else {
-            if (! in_array(Conversable::class, class_uses_recursive($user))) {
-                FilamentConverseException::throwInvalidConversableUserException($user);
-            }
-
-            $name = $user->getAttributeValue($user::getFilamentNameAttribute());
         }
 
         broadcast(new UserTyping($user->getKey(), $name, $this->getActiveConversation()))->toOthers();
