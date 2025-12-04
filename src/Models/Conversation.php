@@ -107,30 +107,30 @@ class Conversation extends Model
             return $this->name;
         }
 
-        $authenticatedParticipant = auth()->user();
+        $user = auth()->user();
 
-        if (! in_array(Conversable::class, class_uses_recursive($authenticatedParticipant))) {
-            FilamentConverseException::throwInvalidConversableUserException($authenticatedParticipant);
+        if (! in_array(Conversable::class, class_uses_recursive($user))) {
+            FilamentConverseException::throwInvalidConversableUserException($user);
         }
 
-        $participantNameAttribute = $authenticatedParticipant::getFilamentNameAttribute();
+        $userNameAttribute = $user::getFilamentNameAttribute();
 
         if ($this->relationLoaded('participations')) {
-            $participantNames = $this->participations
-                ->where('participant_id', '!=', $authenticatedParticipant->getKey())
-                ->pluck('participant.' . $participantNameAttribute);
+            $userNames = $this->participations
+                ->where('participant_id', '!=', $user->getKey())
+                ->pluck('participant.' . $userNameAttribute);
         } else {
-            $participantNames = $this->otherParticipations()
+            $userNames = $this->otherParticipations()
                 ->with('participant')
                 ->get()
-                ->pluck('participant.' . $participantNameAttribute);
+                ->pluck('participant.' . $userNameAttribute);
         }
 
-        return match ($participantNames->count()) {
+        return match ($userNames->count()) {
             0 => '',
-            1 => $participantNames->first(),
-            2 => $participantNames->join(' & '),
-            default => $participantNames->slice(0, -1)->join(', ') . ' & ' . $participantNames->last()
+            1 => $userNames->first(),
+            2 => $userNames->join(' & '),
+            default => $userNames->slice(0, -1)->join(', ') . ' & ' . $userNames->last()
         };
     }
 }

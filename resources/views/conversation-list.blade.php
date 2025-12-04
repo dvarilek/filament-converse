@@ -1,31 +1,31 @@
 @php
     use Dvarilek\FilamentConverse\Models\Conversation;
-        use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-        use Dvarilek\FilamentConverse\Models\Message;
-        use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
-        use Filament\Actions\Action;
-        use Filament\Actions\ActionGroup;
-        use Filament\Support\Icons\Heroicon;
-        use Illuminate\Support\Collection;
-        use Illuminate\View\ComponentAttributeBag;
+    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+    use Dvarilek\FilamentConverse\Models\Message;
+    use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
+    use Filament\Actions\Action;
+    use Filament\Actions\ActionGroup;
+    use Filament\Support\Icons\Heroicon;
+    use Illuminate\Support\Collection;
+    use Illuminate\View\ComponentAttributeBag;
 
-        $shouldShowConversationImage = $shouldShowConversationImage();
-        $hasIsConversationUnreadClosure = $hasIsConversationUnreadClosure();
+    $shouldShowConversationImage = $shouldShowConversationImage();
+    $hasIsConversationUnreadClosure = $hasIsConversationUnreadClosure();
 
-        /* @var Collection<int, Conversation> $conversations */
-        $conversations = $getConversations();
-        $activeConversation = $getActiveConversation();
+    /* @var Collection<int, Conversation> $conversations */
+    $conversations = $getConversations();
+    $activeConversation = $getActiveConversation();
 
-        $headerActions = array_filter(
-            $getChildComponents(ConversationList::HEADER_ACTIONS_KEY),
-            static fn (Action | ActionGroup $action) => $action->isVisible()
-        );
+    $headerActions = array_filter(
+        $getChildComponents(ConversationList::HEADER_ACTIONS_KEY),
+        static fn (Action | ActionGroup $action) => $action->isVisible()
+    );
 @endphp
 
 <div
     class="fi-converse-conversation-list"
     x-show="!isBelowLg || showConversationListSidebar"
-    x-on:click.away="isBelowLg && (showConversationListSidebar = false)"
+    x-on:click.away="showConversationListSidebar = false"
 >
     <div class="fi-converse-conversation-list-header">
         <div class="fi-converse-conversation-list-header-top">
@@ -77,10 +77,10 @@
             @if ($isSearchable())
                 @php
                     $searchPlaceholder = $getSearchPlaceholder();
-                                        $searchDebounce = $getSearchDebounce();
-                                        $searchOnBlur = $isSearchOnBlur();
+                    $searchDebounce = $getSearchDebounce();
+                    $searchOnBlur = $isSearchOnBlur();
 
-                                        $wireModelAttribute = $searchOnBlur ? 'wire:model.blur' : "wire:model.live.debounce.{$searchDebounce}";
+                    $wireModelAttribute = $searchOnBlur ? 'wire:model.blur' : "wire:model.live.debounce.{$searchDebounce}";
                 @endphp
 
                 <div
@@ -127,27 +127,30 @@
         @forelse ($conversations as $conversation)
             @php
                 $conversationName = $getConversationName($conversation);
-                                $conversationKey = $conversation->getKey();
+                $conversationKey = $conversation->getKey();
 
-                                /* @var Message $latestMessage */
-                                $latestMessage = $conversation
-                                    ->participations
-                                    ->pluck('latestMessage')
-                                    ->filter()
-                                    ->sortByDesc('created_at')
-                                    ->first();
+                /* @var Message $latestMessage */
+                $latestMessage = $conversation
+                    ->participations
+                    ->pluck('latestMessage')
+                    ->filter()
+                    ->sortByDesc('created_at')
+                    ->first();
 
-                                $latestMessage = ($conversation->messages()->latest('created_at')->limit(2)->get())->first();
+                $latestMessage = ($conversation->messages()->latest('created_at')->limit(2)->get())->first();
             @endphp
 
             <li
                 wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}"
-                wire:click="updateActiveConversation('{{ $conversationKey }}')"
+                x-on:click="
+                    await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
+                    showConversationListSidebar = false
+                "
                 wire:loading.attr="disabled"
                 @class([
-                'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
-                'fi-converse-conversation-list-item-unread' => $hasIsConversationUnreadClosure && $isConversationUnread($conversation),
-                'fi-converse-conversation-list-item',
+                    'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
+                    'fi-converse-conversation-list-item-unread' => $hasIsConversationUnreadClosure && $isConversationUnread($conversation),
+                    'fi-converse-conversation-list-item',
                 ])
             >
                 @if ($shouldShowConversationImage)

@@ -19,6 +19,7 @@ class UserTyping implements ShouldBroadcast
 
     public function __construct(
         public readonly mixed $userId,
+        public readonly string $userName,
         public readonly Conversation $conversation
     ) {}
 
@@ -38,7 +39,10 @@ class UserTyping implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'userId' => $this->userId,
+            'user' => [
+                'id' => $this->userId,
+                'name' => $this->userName,
+            ]
         ];
     }
 }

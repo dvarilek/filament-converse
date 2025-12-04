@@ -6,16 +6,37 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Carbon\Carbon;
 use Closure;
+use Dvarilek\FilamentConverse\Events\UserTyping;
+use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Concerns\CanBeAutocompleted;
+use Filament\Forms\Components\Concerns\CanBeLengthConstrained;
+use Filament\Forms\Components\Concerns\CanBeReadOnly;
+use Filament\Forms\Components\Concerns\CanDisableGrammarly;
+use Filament\Forms\Components\Concerns\HasExtraInputAttributes;
+use Filament\Forms\Components\Concerns\HasMaxHeight;
+use Filament\Forms\Components\Concerns\HasMinHeight;
+use Filament\Forms\Components\Concerns\InteractsWithToolbarButtons;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Components\Concerns\CanStripCharactersFromState;
+use Filament\Schemas\Components\Concerns\CanTrimState;
+use Filament\Support\Components\Attributes\ExposedLivewireMethod;
+use Filament\Support\Concerns\CanConfigureCommonMark;
+use Filament\Support\Concerns\HasExtraAlpineAttributes;
+use Filament\Support\Concerns\HasPlaceholder;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ConversationThread extends Textarea
@@ -45,7 +66,11 @@ class ConversationThread extends Textarea
 
     protected bool | Closure $shouldDispatchUserTypingEvent = true;
 
-    protected int | Closure | null $userTypingEventDispatchThreshold = 1500;
+    protected ?Closure $getTypingUserNameUsing = null;
+
+    protected int | Closure $userTypingIndicatorTimeout = 3000;
+
+    protected int | Closure | null $userTypingEventDispatchThreshold = 3500;
 
     protected ?Closure $formatMessageTimestampUsing = null;
 
@@ -217,6 +242,20 @@ class ConversationThread extends Textarea
         return $this;
     }
 
+    public function getTypingUserNameUsing(?Closure $callback = null): static
+    {
+        $this->getTypingUserNameUsing = $callback;
+
+        return $this;
+    }
+
+    public function userTypingIndicatorTimeout(int | Closure | null $milliseconds): static
+    {
+        $this->userTypingIndicatorTimeout = $milliseconds;
+
+        return $this;
+    }
+
     public function userTypingEventDispatchThreshold(int | Closure | null $millisecond): static
     {
         $this->userTypingEventDispatchThreshold = $millisecond;
@@ -304,6 +343,11 @@ class ConversationThread extends Textarea
     public function shouldDispatchUserTypingEvent(): bool
     {
         return (bool) $this->evaluate($this->shouldDispatchUserTypingEvent);
+    }
+
+    public function getUserTypingIndicatorTimeout(): int
+    {
+        return $this->evaluate($this->userTypingIndicatorTimeout) ?? 5000;
     }
 
     public function getUserTypingEventDispatchThreshold(): ?int
@@ -489,5 +533,34 @@ class ConversationThread extends Textarea
             Message::class => [$this->getActiveConversation()],
             default => []
         };
+    }
+
+    #[Renderless]
+    #[ExposedLivewireMethod]
+    public function broadcastUserTypingEvent(): void
+    {
+        if (! $this->shouldDispatchUserTypingEvent()) {
+            return;
+        }
+
+        /* @var Model & Authenticatable*/
+        $user = auth()->user();
+
+        if ($this->getTypingUserNameUsing) {
+            $name = $this->evaluate($this->getTypingUserNameUsing(), [
+                'user' => $user,
+            ], [
+                Authenticatable::class => $user,
+                Model::class => $user,
+            ]);
+        } else {
+            if (! in_array(Conversable::class, class_uses_recursive($user))) {
+                FilamentConverseException::throwInvalidConversableUserException($user);
+            }
+
+            $name = $user->getAttributeValue($user::getFilamentNameAttribute());
+        }
+
+        broadcast(new UserTyping($user->getKey(), $name, $this->getActiveConversation()))->toOthers();
     }
 }

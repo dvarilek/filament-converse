@@ -11,6 +11,7 @@ use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 
 /**
  * @property Collection<int, Conversation> $conversations
@@ -80,34 +81,6 @@ trait HasConversations
         }
     }
 
-    /*
-    public function updatedData($data): void
-    {
-        // TODO: Rework this - maybe skip typing for now, consider using regular text area for this
-        //       - refresh last messages in the side panel
-        //       - add read by functionality
-        //       - store uncommited message content in session
-
-        /*
-        if (blank($data)) {
-            return;
-        }
-
-        $conversationThread = $this->getConversationSchema()->getConversationThread();
-
-        if (! $conversationThread->shouldDispatchUserTypingEvent()) {
-            return;
-        }
-
-        if ($this->lastUserTypingEventSentAt && $this->lastUserTypingEventSentAt->diffInMilliseconds(now()) < $conversationThread->getUserTypingEventDispatchThreshold()) {
-            return;
-        }
-
-        $this->lastUserTypingEventSentAt = now();
-        broadcast(new UserTyping(auth()->id(), $component->getActiveConversation()))->toOthers();
-    }
-    */
-
     public function getActiveConversation(): ?Conversation
     {
         if (! $this->activeConversationKey) {
@@ -141,7 +114,7 @@ trait HasConversations
         $this->activeConversationMessagesPage++;
     }
 
-    public function registerMessageCreatedDuringConversationSession(string $messageKey, mixed $messageAuthorKey, bool $exists = true): void
+    protected function registerMessageCreatedDuringConversationSession(string $messageKey, mixed $messageAuthorKey, bool $exists = true): void
     {
         if ($exists === false && ! isset($this->messagesCreatedDuringConversationSession[$messageKey])) {
             return;

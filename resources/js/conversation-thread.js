@@ -1,19 +1,29 @@
 export function conversationThread({
-    conversationKey,
-    statePath,
-    autoScrollOnForeignMessagesThreshold,
-    fileAttachmentAcceptedFileTypes,
-    fileAttachmentMaxSize,
-    maxFileAttachments,
-    fileAttachmentsAcceptedFileTypesValidationMessage,
-    fileAttachmentsMaxSizeValidationMessage,
-    maxFileAttachmentsValidationMessage,
-    $wire,
-}) {
+                                       key,
+                                       conversationKey,
+                                       statePath,
+                                       autoScrollOnForeignMessagesThreshold,
+                                       shouldDispatchUserTypingEvent,
+                                       userTypingIndicatorTimeout,
+                                       userTypingEventDispatchThreshold,
+                                       fileAttachmentAcceptedFileTypes,
+                                       fileAttachmentMaxSize,
+                                       maxFileAttachments,
+                                       fileAttachmentsAcceptedFileTypesValidationMessage,
+                                       fileAttachmentsMaxSizeValidationMessage,
+                                       maxFileAttachmentsValidationMessage,
+                                       $wire,
+                                   }) {
     return {
         messagesCreatedDuringConversationSession: $wire.entangle(
             'messagesCreatedDuringConversationSession',
         ),
+
+        typingUsersMap: new Map(),
+
+        typingUserTimeouts: new Map(),
+
+        lastUserTypingEventSentAt: null,
 
         isLoadingMoreMessages: false,
 
@@ -27,6 +37,21 @@ export function conversationThread({
             window.Echo.private(
                 'filament-converse.conversation.' + conversationKey,
             )
+                .listen('.user.typing', (event) => {
+                    const userId = event.user.id
+                    this.typingUsersMap.set(userId, event.user.name)
+
+                    if (this.typingUserTimeouts.has(userId)) {
+                        clearTimeout(this.typingUserTimeouts.get(userId))
+                    }
+
+                    const timeoutId = setTimeout(() => {
+                        this.typingUsersMap.delete(userId)
+                        this.typingUserTimeouts.delete(userId)
+                    }, userTypingIndicatorTimeout)
+
+                    this.typingUserTimeouts.set(userId, timeoutId)
+                })
                 .listen('.message.sent', (event) =>
                     $wire.call(
                         'registerMessageCreatedDuringConversationSession',
@@ -82,9 +107,42 @@ export function conversationThread({
             this.registerFileAttachmentUploadEventListeners()
         },
 
+        areOtherUsersTyping() {
+            return this.typingUsersMap.size > 0
+        },
+
         scrollToBottom(options) {
             this.$refs.conversationThreadContentEndMarker.scrollIntoView(
                 options,
+            )
+        },
+
+        async fireUserTypingEvent(event) {
+            const data = event.target.value
+
+            if (!data || data.trim() === '') {
+                return
+            }
+
+            if (!shouldDispatchUserTypingEvent) {
+                return
+            }
+
+            const now = Date.now()
+
+            if (
+                this.lastUserTypingEventSentAt &&
+                now - this.lastUserTypingEventSentAt <
+                userTypingEventDispatchThreshold
+            ) {
+                return
+            }
+
+            this.lastUserTypingEventSentAt = now
+
+            await $wire.callSchemaComponentMethod(
+                key,
+                'broadcastUserTypingEvent',
             )
         },
 
@@ -107,8 +165,8 @@ export function conversationThread({
 
             return (
                 element.scrollHeight -
-                    element.scrollTop -
-                    element.clientHeight <
+                element.scrollTop -
+                element.clientHeight <
                 (autoScrollOnForeignMessagesThreshold ?? 0)
             )
         },
