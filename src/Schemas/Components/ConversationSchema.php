@@ -64,11 +64,13 @@ class ConversationSchema extends Component
     {
         parent::setUp();
 
+        $this->statePath('conversation_schema');
+
         $this->columns(3);
 
-        $this->schema(fn () => [
-            $this->getConversationList(),
-            $this->getConversationThread(),
+        $this->schema(static fn (ConversationSchema $component) => [
+            $component->makeConversationList(),
+            $component->makeConversationThread(),
         ]);
 
         $this->sortConversationsUsing(static function (Collection $conversations) {
@@ -254,7 +256,7 @@ class ConversationSchema extends Component
         return $this;
     }
 
-    public function getConversationList(): ConversationList
+    protected function makeConversationList(): ConversationList
     {
         $component = ConversationList::make()
             ->columnSpan(1);
@@ -270,7 +272,7 @@ class ConversationSchema extends Component
         return $component;
     }
 
-    public function getConversationThread(): ConversationThread
+    protected function makeConversationThread(): ConversationThread
     {
         $component = ConversationThread::make()
             ->columnSpan(2);
@@ -284,6 +286,16 @@ class ConversationSchema extends Component
         }
 
         return $component;
+    }
+
+    public function getConversationList(): ConversationList
+    {
+        return $this->getChildSchema()->getComponent(static fn ($component) => $component instanceof ConversationList) ?? throw new \RuntimeException('The conversation list component is missing.');
+    }
+
+    public function getConversationThread(): ConversationThread
+    {
+        return $this->getChildSchema()->getComponent(static fn ($component) => $component instanceof ConversationThread) ?? throw new \RuntimeException('The conversation thread component is missing.');
     }
 
     public function shouldPersistActiveConversationInSession(): bool

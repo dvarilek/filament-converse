@@ -494,8 +494,9 @@ class ConversationThread extends Textarea
             ->keyBindings(['enter'])
             ->action(static function (ConversationThread $component, ConversationManager $livewire) {
                 $state = $livewire->content->getState();
+                $statePath = $component->getStatePath();
 
-                $message = $state[$component->getName()];
+                $message = data_get([$livewire->content->getStatePath() => $state], $statePath);
                 $uploadedFileAttachments = $component->getValidUploadedFileAttachments();
 
                 if (blank($message) && blank($uploadedFileAttachments)) {
@@ -517,7 +518,8 @@ class ConversationThread extends Textarea
                 ]);
 
                 $livewire->content->fill();
-                data_set($livewire->componentFileAttachments, $component->getStatePath() . ".{$activeConversation->getKey()}", []);
+                data_set($livewire->componentFileAttachments, $statePath . ".{$activeConversation->getKey()}", []);
+                data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
                 $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
             });
 

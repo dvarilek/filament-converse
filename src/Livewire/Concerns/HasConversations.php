@@ -19,6 +19,7 @@ trait HasConversations
 
     public int $activeConversationMessagesPage = 1;
 
+
     /**
      * It is structured this way mainly so the scrollToBottom functionality works as expected.
      *
@@ -26,24 +27,55 @@ trait HasConversations
      */
     public array $messagesCreatedDuringConversationSession = [];
 
+    /**
+     * @var array<string, mixed>
+     */
+    public array $cachedUnsendMessages = [];
+
     public function mountHasConversations(): void
     {
         $this->conversationSchema = $this->makeConversationSchema();
 
         $conversationSchema = $this->getConversationSchema();
 
-        $shouldPersistActiveConversationInSession = $conversationSchema->shouldPersistActiveConversationInSession();
         $activeConversationSessionKey = $this->getActiveConversationSessionKey();
 
         if (
             $this->activeConversationKey === null &&
-            $shouldPersistActiveConversationInSession &&
+            $conversationSchema->shouldPersistActiveConversationInSession() &&
             session()->has($activeConversationSessionKey)
         ) {
             $this->activeConversationKey = session()->get($activeConversationSessionKey);
         } else {
             $this->activeConversationKey = $conversationSchema->getDefaultActiveConversation()?->getKey();
         }
+
+        $conversationThread = $conversationSchema->getConversationThread();
+        $statePath = $conversationThread->getStatePath();
+    }
+
+    public function updateActiveConversation(string $conversationKey): void
+    {
+        $previousActiveConversationKey = $this->activeConversationKey;
+        $this->activeConversationKey = $conversationKey;
+
+        $this->activeConversationMessagesPage = 1;
+        $this->messagesCreatedDuringConversationSession = [];
+
+        $conversationSchema = $this->getConversationSchema();
+
+        if ($conversationSchema->shouldPersistActiveConversationInSession()) {
+            session()->put(
+                $this->getActiveConversationSessionKey(),
+                $this->activeConversationKey,
+            );
+        }
+
+        $conversationThread = $conversationSchema->getConversationThread();
+        $statePath = $conversationThread->getStatePath();
+
+        $this->cachedUnsendMessages[$previousActiveConversationKey] = data_get($this, $statePath);
+        data_set($this, $statePath, $this->cachedUnsendMessages[$conversationKey] ?? null);
     }
 
     /**
@@ -58,21 +90,6 @@ trait HasConversations
         $this->applyConversationListFilters($query);
 
         return $query->get();
-    }
-
-    public function updateActiveConversation(string $conversationKey): void
-    {
-        $this->activeConversationKey = $conversationKey;
-
-        $this->activeConversationMessagesPage = 1;
-        $this->messagesCreatedDuringConversationSession = [];
-
-        if ($this->getConversationSchema()->shouldPersistActiveConversationInSession()) {
-            session()->put(
-                $this->getActiveConversationSessionKey(),
-                $this->activeConversationKey,
-            );
-        }
     }
 
     public function getActiveConversation(): ?Conversation
@@ -140,7 +157,7 @@ trait HasConversations
 
         return "{$identifier}_active_conversation";
     }
-
+    
     /**
      * @return Builder<Conversation>
      */

@@ -39,7 +39,7 @@ class ConversationManager extends Component implements HasActions, HasConversati
     {
         return $schema
             ->components([
-                $this->getConversationSchema(),
+                $this->makeConversationSchema(),
             ])
             ->statePath('data');
     }

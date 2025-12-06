@@ -5,27 +5,13 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationSchema;
+use Filament\Schemas\Components\Component;
 
 trait InteractsWithConversationManager
 {
     use CanFilterConversations;
     use CanSearchConversations;
     use HasConversations;
-
-    /**
-     * @var class-string|null
-     */
-    protected ConversationSchema $conversationSchema;
-
-    public function bootInteractsWithConversationManager(): void
-    {
-        $this->conversationSchema = $this->makeConversationSchema();
-    }
-
-    public function getConversationSchema(): ConversationSchema
-    {
-        return $this->conversationSchema;
-    }
 
     protected function makeConversationSchema(): ConversationSchema
     {
@@ -36,5 +22,10 @@ trait InteractsWithConversationManager
         }
 
         return $conversationSchema;
+    }
+
+    public function getConversationSchema(): ConversationSchema
+    {
+        return $this->content->getComponent(fn (Component $component) => $component instanceof ConversationSchema) ?? throw new \RuntimeException('The conversation schema component is missing.');
     }
 }
