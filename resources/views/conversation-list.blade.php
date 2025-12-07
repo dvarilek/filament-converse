@@ -1,31 +1,45 @@
 @php
     use Dvarilek\FilamentConverse\Models\Conversation;
-        use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-        use Dvarilek\FilamentConverse\Models\Message;
-        use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
-        use Filament\Actions\Action;
-        use Filament\Actions\ActionGroup;
-        use Filament\Support\Icons\Heroicon;
-        use Illuminate\Support\Collection;
-        use Illuminate\View\ComponentAttributeBag;
+    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+    use Dvarilek\FilamentConverse\Models\Message;
+    use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
+    use Filament\Actions\Action;
+    use Filament\Actions\ActionGroup;
+    use Filament\Support\Icons\Heroicon;
+    use Illuminate\Support\Collection;
+    use Illuminate\View\ComponentAttributeBag;
 
-        $shouldShowConversationImage = $shouldShowConversationImage();
-        $hasIsConversationUnreadClosure = $hasIsConversationUnreadClosure();
+    $shouldShowConversationImage = $shouldShowConversationImage();
+    $hasIsConversationUnreadClosure = $hasIsConversationUnreadClosure();
 
-        /* @var Collection<int, Conversation> $conversations */
-        $conversations = $getConversations();
-        $activeConversation = $getActiveConversation();
+    /* @var Collection<int, Conversation> $conversations */
+    $conversations = $getConversations();
+    $totalConversationsCount = $this->getBaseFilteredConversationsQuery()->count();
+    $activeConversation = $getActiveConversation();
 
-        $headerActions = array_filter(
-            $getChildComponents(ConversationList::HEADER_ACTIONS_KEY),
-            static fn (Action | ActionGroup $action) => $action->isVisible()
-        );
+    $headerActions = array_filter(
+        $getChildComponents(ConversationList::HEADER_ACTIONS_KEY),
+        static fn (Action | ActionGroup $action) => $action->isVisible()
+    );
 @endphp
 
 <div
     class="fi-converse-conversation-list"
     x-show="!isBelowLg || showConversationListSidebar"
     x-on:click.away="showConversationListSidebar = false"
+    x-data="{
+        isLoadingMoreConversations: false,
+
+        async loadMoreConversations() {
+            this.isLoadingMoreConversations = true;
+
+            try {
+                await $wire.call('incrementConversationListPage')
+            } finally {
+                this.isLoadingMoreConversations = false;
+            }
+        }
+    }"
 >
     <div class="fi-converse-conversation-list-header">
         <div class="fi-converse-conversation-list-header-top">
@@ -77,10 +91,10 @@
             @if ($isSearchable())
                 @php
                     $searchPlaceholder = $getSearchPlaceholder();
-                                        $searchDebounce = $getSearchDebounce();
-                                        $searchOnBlur = $isSearchOnBlur();
+                    $searchDebounce = $getSearchDebounce();
+                    $searchOnBlur = $isSearchOnBlur();
 
-                                        $wireModelAttribute = $searchOnBlur ? 'wire:model.blur' : "wire:model.live.debounce.{$searchDebounce}";
+                    $wireModelAttribute = $searchOnBlur ? 'wire:model.blur' : "wire:model.live.debounce.{$searchDebounce}";
                 @endphp
 
                 <div
@@ -124,70 +138,88 @@
     </div>
 
     <ul class="fi-converse-conversation-area">
-        @forelse ($conversations as $conversation)
-            @php
-                $conversationName = $getConversationName($conversation);
-                                $conversationKey = $conversation->getKey();
+        @if (count($conversations))
+            @foreach ($conversations as $conversation)
+                @php
+                    $conversationName = $getConversationName($conversation);
+                    $conversationKey = $conversation->getKey();
 
-                                /* @var Message $latestMessage */
-                                $latestMessage = $conversation
-                                    ->participations
-                                    ->pluck('latestMessage')
-                                    ->filter()
-                                    ->sortByDesc('created_at')
-                                    ->first();
+                    /* @var Message $latestMessage */
+                    $latestMessage = $conversation
+                        ->participations
+                        ->pluck('latestMessage')
+                        ->filter()
+                        ->sortByDesc('created_at')
+                        ->first();
 
-                                $latestMessage = ($conversation->messages()->latest('created_at')->limit(2)->get())->first();
-            @endphp
+                    $latestMessage = $conversation->messages()->latest('created_at')->first();
+                @endphp
 
-            <li
-                wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}"
-                x-on:click="
+                <li
+                    wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}"
+                    x-on:click="
                     await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
                     showConversationListSidebar = false
                 "
-                wire:loading.attr="disabled"
-                @class([
-                'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
-                'fi-converse-conversation-list-item-unread' => $hasIsConversationUnreadClosure && $isConversationUnread($conversation),
-                'fi-converse-conversation-list-item',
-                ])
-            >
-                @if ($shouldShowConversationImage)
-                    <x-filament-converse::conversation-image
-                        :conversation="$conversation"
-                        :conversation-name="$conversationName"
-                        :conversation-image-url="$getConversationImageUrl($conversation)"
-                        :get-default-conversation-image-data="$getDefaultConversationImageData"
-                    />
-                @endif
+                    wire:loading.attr="disabled"
+                    @class([
+                        'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
+                        'fi-converse-conversation-list-item-unread' => $hasIsConversationUnreadClosure && $isConversationUnread($conversation),
+                        'fi-converse-conversation-list-item',
+                    ])
+                >
+                    @if ($shouldShowConversationImage)
+                        <x-filament-converse::conversation-image
+                            :conversation="$conversation"
+                            :conversation-name="$conversationName"
+                            :conversation-image-url="$getConversationImageUrl($conversation)"
+                            :get-default-conversation-image-data="$getDefaultConversationImageData"
+                        />
+                    @endif
 
-                <div class="fi-converse-conversation-list-item-content">
-                    <div class="fi-converse-conversation-list-item-title">
-                        <h4 class="fi-converse-conversation-list-item-heading">
-                            {{ $conversationName }}
-                        </h4>
+                    <div class="fi-converse-conversation-list-item-content">
+                        <div class="fi-converse-conversation-list-item-title">
+                            <h4 class="fi-converse-conversation-list-item-heading">
+                                {{ $conversationName }}
+                            </h4>
 
-                        @if ($latestMessage)
-                            <p
-                                class="fi-converse-conversation-list-item-time-indicator"
-                            >
-                                {{ $getLatestMessageDateTime($conversation, $latestMessage) }}
-                            </p>
-                        @endif
+                            @if ($latestMessage)
+                                <p
+                                    class="fi-converse-conversation-list-item-time-indicator"
+                                >
+                                    {{ $getLatestMessageDateTime($conversation, $latestMessage) }}
+                                </p>
+                            @endif
+                        </div>
+                        <p
+                            class="fi-converse-conversation-list-item-last-message-description"
+                        >
+                            @if ($latestMessage)
+                                {{ $getLatestMessageContent($conversation, $latestMessage) }}
+                            @else
+                                {{ $getLatestMessageEmptyContent() }}
+                            @endif
+                        </p>
                     </div>
-                    <p
-                        class="fi-converse-conversation-list-item-last-message-description"
+                </li>
+            @endforeach
+
+            @if ($totalConversationsCount && $totalConversationsCount > count($conversations))
+                <div class="fi-converse-conversation-list-load-more-messages-indicator-container">
+                    <div
+                        x-intersect="loadMoreConversations()"
+                        aria-hidden="true"
+                    ></div>
+                    <div
+                        x-cloak
+                        x-show="isLoadingMoreConversations"
+                        class="fi-converse-conversation-list-load-more-messages-indicator"
                     >
-                        @if ($latestMessage)
-                            {{ $getLatestMessageContent($conversation, $latestMessage) }}
-                        @else
-                            {{ $getLatestMessageEmptyContent() }}
-                        @endif
-                    </p>
+                        {{ \Filament\Support\generate_loading_indicator_html() }}
+                    </div>
                 </div>
-            </li>
-        @empty
+            @endif
+        @else
             @if ($emptyState = $getEmptyState())
                 {{ $emptyState }}
             @else
@@ -203,6 +235,6 @@
                     </x-slot>
                 </x-filament::empty-state>
             @endif
-        @endforelse
+        @endif
     </ul>
 </div>

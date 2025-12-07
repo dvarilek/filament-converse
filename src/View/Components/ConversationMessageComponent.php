@@ -9,7 +9,7 @@ use Filament\Support\Facades\FilamentColor;
 use Filament\Support\View\Components\Contracts\HasColor;
 use Filament\Support\View\Components\Contracts\HasDefaultGrayColor;
 
-class ConversationMessageComponent implements HasColor, HasDefaultGrayColor
+class ConversationMessageComponent implements HasColor
 {
     /**
      * @param  array<int, string>  $color

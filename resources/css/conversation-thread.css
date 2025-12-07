@@ -70,20 +70,18 @@
     }
 
     & .fi-converse-conversation-thread-content {
-        @apply flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-6;
+        @apply flex min-h-0 flex-1 flex-col overflow-y-auto pt-6;
 
         &.fi-converse-relative {
             @apply relative;
         }
 
-        &
-            .fi-converse-conversation-thread-messages-load-more-message-loading-indicator {
+        & .fi-converse-conversation-thread-messages-load-more-message-loading-indicator {
             @apply flex w-full items-center justify-center pb-2;
         }
 
-        &
-            .fi-converse-conversation-thread-messages-users-typing-loading-indicator-container {
-            @apply mt-auto flex min-h-8 items-center;
+        & .fi-converse-conversation-thread-messages-content-footer {
+            @apply mt-auto flex min-h-10 items-center px-5;
             content: '';
 
             &
@@ -114,7 +112,7 @@
         }
 
         & .fi-converse-conversation-thread-upload-validation-message-container {
-            @apply bg-danger-100/95 dark:bg-danger-500/30 sticky -top-6 -mx-6 -mt-6 flex w-auto items-center justify-center px-3 py-1.5;
+            @apply bg-danger-100/95 dark:bg-danger-500/30 sticky -top-6  -mt-6 flex w-auto items-center justify-center px-3 py-1.5;
 
             & > p {
                 @apply w-full break-words text-center text-sm text-gray-500 dark:text-gray-400;
@@ -131,9 +129,9 @@
         }
 
         & .fi-converse-conversation-thread-message-container {
-            @apply mt-3 flex flex-col gap-1;
+            @apply mt-3 flex flex-col gap-1 px-4;
 
-            & .fi-converse-conversation-thread-message-timestamp {
+            & .fi-converse-conversation-thread-group-message-timestamp {
                 @apply flex w-full items-center justify-center text-xs text-gray-600 dark:text-gray-400;
             }
 
@@ -147,8 +145,16 @@
                 & .fi-converse-conversation-thread-message-content {
                     @apply flex flex-col gap-1;
 
-                    & .fi-converse-conversation-thread-message-author-name {
-                        @apply text-xs text-gray-600 dark:text-gray-400;
+                    & .fi-converse-conversation-thread-message-heading {
+                        @apply flex items-center gap-2;
+
+                        & .fi-converse-conversation-thread-message-author-name {
+                            @apply text-xs text-gray-600 dark:text-gray-400;
+                        }
+
+                        & .fi-converse-conversation-thread-message-timestamp {
+                            @apply text-xs text-gray-600 dark:text-gray-400;
+                        }
                     }
 
                     & .fi-converse-conversation-thread-message-body {
@@ -161,20 +167,16 @@
                                 @apply whitespace-normal break-words text-sm leading-6;
                             }
 
-                            &
-                                .fi-converse-conversation-thread-message-attachments {
+                            &  .fi-converse-conversation-thread-message-attachments {
                                 @apply w-full py-2;
 
                                 &.fi-converse-conversation-thread-message-attachments-with-generic-attachments {
                                     @apply grid gap-3;
-                                    grid-template-columns: repeat(
-                                        auto-fill,
-                                        minmax(1rem, 1fr)
-                                    );
+                                    grid-template-columns: repeat(auto-fill, minmax(1rem, 1fr));
                                 }
 
                                 &:not(
-                                    .fi-converse-conversation-thread-message-attachments-with-generic-attachments
+                                       .fi-converse-conversation-thread-message-attachments-with-generic-attachments
                                 ) {
                                     @apply max-w-73 flex flex-wrap gap-1.5;
                                 }
@@ -189,6 +191,7 @@
                             @apply flex gap-3 opacity-0 group-hover:opacity-100;
                         }
                     }
+
                 }
             }
 
@@ -200,7 +203,15 @@
                 & .fi-converse-conversation-thread-message-body {
                     @apply flex-row-reverse;
                 }
+
+                & .fi-converse-conversation-thread-message-heading {
+                    @apply flex-row-reverse;
+                }
             }
+        }
+
+        &:has(.fi-converse-conversation-thread-empty-state) {
+            @apply px-6;
         }
 
         & .fi-converse-conversation-thread-empty-state {

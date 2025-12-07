@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Events;
 
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class UserTyping implements ShouldBroadcast
+class ConversationRead implements ShouldBroadcast
 {
     use Dispatchable;
     use InteractsWithSockets;
     use SerializesModels;
 
     public function __construct(
-        public readonly int | string $userId,
-        public readonly string $userName,
+        public readonly int | string $readBy,
         public readonly Conversation $conversation
     ) {}
 
@@ -33,16 +33,13 @@ class UserTyping implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'user.typing';
+        return 'conversation.read';
     }
 
     public function broadcastWith(): array
     {
         return [
-            'user' => [
-                'id' => $this->userId,
-                'name' => $this->userName,
-            ],
+            'readBy' => $this->readBy,
         ];
     }
 }

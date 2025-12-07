@@ -58,6 +58,10 @@ class ConversationList extends Component
 
     protected string | Htmlable | Closure | null $latestMessageEmptyContent = null;
 
+    protected int | Closure | null $defaultLoadedConversationsCount = 10;
+
+    protected int | Closure | null $conversationsLoadedPerPage = 10;
+
     protected ?Closure $modifyCreateConversationActionUsing = null;
 
     protected ?Closure $modifyCreateDirectConversationActionUsing = null;
@@ -198,6 +202,20 @@ class ConversationList extends Component
         return $this;
     }
 
+    public function defaultLoadedConversationsCount(int | Closure | null $count): static
+    {
+        $this->defaultLoadedConversationsCount = $count;
+
+        return $this;
+    }
+
+    public function conversationsLoadedPerPage(int | Closure | null $count): static
+    {
+        $this->conversationsLoadedPerPage = $count;
+
+        return $this;
+    }
+
     public function createConversationAction(?Closure $callback): static
     {
         $this->modifyCreateConversationActionUsing = $callback;
@@ -290,6 +308,16 @@ class ConversationList extends Component
     public function getLatestMessageEmptyContent(): string | Htmlable | null
     {
         return $this->evaluate($this->latestMessageEmptyContent);
+    }
+
+    public function getDefaultLoadedConversationsCount(): int
+    {
+        return $this->evaluate($this->defaultLoadedConversationsCount) ?? 15;
+    }
+
+    public function getConversationsLoadedPerPage(): int
+    {
+        return $this->evaluate($this->conversationsLoadedPerPage) ?? 15;
     }
 
     protected function getCreateConversationAction(): Action

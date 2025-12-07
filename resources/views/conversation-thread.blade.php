@@ -30,7 +30,7 @@
         /* @var Collection<int, Message> $messages */
         $messages = $getMessagesQuery()?->get()?->reverse() ?? [];
         $totalMessagesCount = $getMessagesQuery(shouldPaginate: false)?->count() ?? 0;
-        $messageTimestampGroupingInterval = $getMessageTimestampGroupingInterval();
+        $messageGroupingInterval = $getmessageGroupingInterval();
         /* @var Carbon | null $previousMessageTimestamp */
         $previousMessageTimestamp = null;
 
@@ -38,7 +38,7 @@
             $getChildComponents(ConversationThread::HEADER_ACTIONS_KEY),
             static fn (Action | ActionGroup $action) => $action->isVisible()
         );
-        
+
         $messageActions = $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY);
 @endphp
 
@@ -51,27 +51,26 @@
             $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
             $maxFileAttachments = $getMaxFileAttachments();
         @endphp
-
         x-load
-    x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
-    x-data="conversationThread({
-                    key: @js($key),
-                    conversationKey: @js($conversationKey),
-                    statePath: @js($statePath),
-                    autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
-                    shouldDispatchUserTypingEvent: @js($shouldDispatchUserTypingEvent()),
-                    userTypingIndicatorTimeout: @js($getUserTypingIndicatorTimeout()),
-                    userTypingEventDispatchThreshold: @js($getUserTypingEventDispatchThreshold()),
-                    userTypingTranslations: @js($getUserTypingTranslations()),
-                    fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
-                    fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
-                    maxFileAttachments: @js($maxFileAttachments),
-                    fileAttachmentsAcceptedFileTypesValidationMessage: @js($getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentsAcceptedFileTypes)),
-                    fileAttachmentsMaxSizeValidationMessage: @js($getAttachmentsMaxFileSizeValidationMessage($fileAttachmentsMaxSize)),
-                    maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
-                    $wire,
-                })"
-    x-bind:class="{
+        x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
+        x-data="conversationThread({
+                        key: @js($key),
+                        conversationKey: @js($conversationKey),
+                        statePath: @js($statePath),
+                        autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
+                        shouldDispatchUserTypingEvent: @js($shouldDispatchUserTypingEvent()),
+                        userTypingIndicatorTimeout: @js($getUserTypingIndicatorTimeout()),
+                        userTypingEventDispatchThreshold: @js($getUserTypingEventDispatchThreshold()),
+                        userTypingTranslations: @js($getUserTypingTranslations()),
+                        fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
+                        fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
+                        maxFileAttachments: @js($maxFileAttachments),
+                        fileAttachmentsAcceptedFileTypesValidationMessage: @js($getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentsAcceptedFileTypes)),
+                        fileAttachmentsMaxSizeValidationMessage: @js($getAttachmentsMaxFileSizeValidationMessage($fileAttachmentsMaxSize)),
+                        maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
+                        $wire,
+                    })"
+        x-bind:class="{
             'fi-converse-highlight-conversation-thread': isDraggingFileAttachment,
         }"
     @endif
@@ -160,8 +159,8 @@
     <div
         @if ($hasConversation && count($messages))
             x-ref="conversationThreadContent"
-        wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}"
-        x-init="scrollToBottom()"
+            wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}"
+            x-init="scrollToBottom()"
         @endif
         @class([
             "fi-converse-conversation-thread-content",
@@ -179,7 +178,7 @@
                 <x-filament::icon-button
                     color="gray"
                     :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
-                    icon-size="lg"
+                    icon-size="md"
                     :label="__('filament-converse::conversation-thread.attachments.validation-message-close-button-label')"
                     tabindex="-1"
                     x-on:click="fileAttachmentUploadValidationMessage = null"
@@ -207,32 +206,35 @@
             @foreach ($messages as $message)
                 @php
                     $messageAuthor = $message->author->participant;
-                    $messageAuthorName = $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
-
+                    $messageColor = $getMessageColor($message, $messages);
                     $messageTimestamp = $message->created_at;
-                    $formattedMessageTimestamp = $formatMessageTimestamp($messageTimestamp, $message);
+                    $formattedMessageTimestamp = $formatMessageTimestamp($messageTimestamp, $message, $messages);
+                    $messageAuthorName = $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
+                    $showMessageReadByIndicator = $shouldShowMessageReadByIndicator($message, $messages);
+                    $showMessageAuthorAvatar = $shouldShowMessageAuthorAvatar($message, $messages);
+                    $showMessageAuthorName = $shouldShowMessageAuthorName($message, $messages);
 
                     $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
                 @endphp
 
                 <div
                     @class([
-                    'fi-converse-conversation-thread-message-container',
-                    'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
+                        'fi-converse-conversation-thread-message-container',
+                        'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
                     ])
                 >
-                    @if ((! $previousMessageTimestamp || $previousMessageTimestamp->addSeconds($messageTimestampGroupingInterval)->lt($messageTimestamp)) && filled($formattedMessageTimestamp))
+                    @if ((! $previousMessageTimestamp || $previousMessageTimestamp->addSeconds($messageGroupingInterval)->lt($messageTimestamp)) && filled($formattedMessageGroupTimestamp = $formatMessageGroupTimestamp($messageTimestamp, $message, $messages)))
                         <div
-                            class="fi-converse-conversation-thread-message-timestamp"
+                            class="fi-converse-conversation-thread-group-message-timestamp"
                         >
-                            {{ $formattedMessageTimestamp }}
+                            {{ $formattedMessageGroupTimestamp }}
                         </div>
                     @endif
 
                     <div
                         class="fi-converse-conversation-thread-message-layout group"
                     >
-                        @if (! $isAuthoredByAuthenticatedUser)
+                        @if ($showMessageAuthorAvatar)
                             <x-filament::avatar
                                 class="fi-converse-conversation-thread-message-avatar"
                                 :src="filament()->getUserAvatarUrl($messageAuthor)"
@@ -244,11 +246,23 @@
                         <div
                             class="fi-converse-conversation-thread-message-content"
                         >
-                            @if (! $isAuthoredByAuthenticatedUser)
-                                <div
-                                    class="fi-converse-conversation-thread-message-author-name"
-                                >
-                                    {{ $messageAuthorName }}
+                            @if ($showMessageAuthorName || $formattedMessageTimestamp)
+                                <div class="fi-converse-conversation-thread-message-heading">
+                                    @if ($showMessageAuthorName)
+                                        <div
+                                            class="fi-converse-conversation-thread-message-author-name"
+                                        >
+                                            {{ $messageAuthorName }}
+                                        </div>
+                                    @endif
+
+                                    @if ($formattedMessageTimestamp)
+                                        <div
+                                            class="fi-converse-conversation-thread-message-timestamp"
+                                        >
+                                            {{ $formattedMessageTimestamp }}
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
 
@@ -260,13 +274,11 @@
                                 @endphp
 
                                 <div
-                                    {{
-                                        (new ComponentAttributeBag())
-                                            ->color(ConversationMessageComponent::class, $getMessageColor($message))
+                                    {{ (new ComponentAttributeBag())
+                                        ->color(ConversationMessageComponent::class, $messageColor)
                                             ->class([
                                                 "fi-converse-conversation-thread-message",
-                                            ])
-                                    }}
+                                            ]) }}
                                 >
                                     @if ($hasMessageContent)
                                         <p>
@@ -276,7 +288,7 @@
 
                                     @if (count($message->attachments))
                                         @php
-                                            $attachmentData = $getMessageAttachmentData($message);
+                                            $attachmentData = $getMessageAttachmentData($message, $messages);
 
                                             $hasOnlyImageAttachments = collect($attachmentData)
                                                 ->every(static fn(array $data) => $data['hasImageMimeType'] && $data['shouldShowOnlyMessageImageAttachment']);
@@ -298,23 +310,23 @@
 
                                                 <x-filament-converse::conversation-attachment
                                                     :has-image-mime-type="$hasImageMimeType"
-                                                    :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                    :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                    :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
+                                                    :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
                                                     :should-show-only-image-attachment="$data['shouldShowOnlyMessageImageAttachment']"
                                                     :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentPath) : null"
-                                                    :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                    :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                    :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                    :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
-                                                    :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message)"
+                                                    :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
+                                                    :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
+                                                    :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
+                                                    :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
+                                                    :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
                                                     :image-attachment-container-extra-attributes-bag="
-                                                        (new ComponentAttributeBag())
-                                                        ->class(['fi-converse-image-attachment-container-grid'])
-                                                    "
+                                                            (new ComponentAttributeBag())
+                                                                ->class(['fi-converse-image-attachment-container-grid'])
+                                                        "
                                                     :generic-attachment-container-extra-attributes-bag="
-                                                        (new ComponentAttributeBag())
-                                                        ->class(['fi-converse-generic-attachment-container-grid'])
-                                                    "
+                                                            (new ComponentAttributeBag())
+                                                                ->class(['fi-converse-generic-attachment-container-grid'])
+                                                        "
                                                 />
                                             @endforeach
                                         </div>
@@ -371,23 +383,25 @@
         @endif
 
         <div
-            class="fi-converse-conversation-thread-messages-users-typing-loading-indicator-container"
+            class="fi-converse-conversation-thread-messages-content-footer"
         >
-            <div
-                x-cloak
-                x-show="areOtherUsersTyping()"
-                class="fi-converse-conversation-thread-messages-users-typing-loading-indicator"
-            >
-                <div class="typing-dots-container">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
+            @if ($shouldShowTypingIndicator())
                 <div
-                    x-text="getTypingUsersMessage()"
-                    class="typing-dots-container"
-                ></div>
-            </div>
+                    x-cloak
+                    x-show="areOtherUsersTyping()"
+                    class="fi-converse-conversation-thread-messages-users-typing-loading-indicator"
+                >
+                    <div class="typing-dots-container">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <div
+                        x-text="getTypingUsersMessage()"
+                        class="typing-dots-container"
+                    ></div>
+                </div>
+            @endif
         </div>
 
         <div

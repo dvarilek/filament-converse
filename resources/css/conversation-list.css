@@ -52,6 +52,14 @@
     & .fi-converse-conversation-area {
         @apply flex flex-col gap-3 overflow-y-auto px-6 pb-6 pt-3;
 
+        & .fi-converse-conversation-list-load-more-messages-indicator-container {
+            @apply flex flex-col;
+
+            & .fi-converse-conversation-list-load-more-messages-indicator {
+                @apply flex w-full items-center justify-center;
+            }
+        }
+
         & .fi-converse-conversation-list-item {
             @apply min-h-18 flex cursor-pointer items-center gap-3 rounded-xl p-2;
 

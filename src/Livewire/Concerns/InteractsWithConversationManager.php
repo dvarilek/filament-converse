@@ -6,6 +6,7 @@ namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationSchema;
 use Filament\Schemas\Components\Component;
+use Livewire\WithPagination;
 
 trait InteractsWithConversationManager
 {

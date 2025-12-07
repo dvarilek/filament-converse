@@ -22,6 +22,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -46,7 +47,11 @@ class ConversationThread extends Textarea
 
     protected int | Closure | null $messagesLoadedPerPage = 15;
 
-    protected int | Closure | null $messageTimestampGroupingInterval = 420;
+    protected ?Closure $formatMessageTimestampUsing = null;
+
+    protected int | Closure | null $messageGroupingInterval = 420;
+
+    protected ?Closure $formatMessageGroupTimestampUsing = null;
 
     protected int | Closure | null $autoScrollOnForeignMessagesThreshold = 300;
 
@@ -58,12 +63,12 @@ class ConversationThread extends Textarea
 
     protected int | Closure | null $userTypingEventDispatchThreshold = 3000;
 
+    protected bool | Closure $shouldShowTypingIndicator = true;
+
     /**
      * @var array{single: string, double: string, multiple: string, other: string, others: string}|Closure
      */
     protected array | Closure $userTypingTranslations = [];
-
-    protected ?Closure $formatMessageTimestampUsing = null;
 
     protected ?Closure $modifyMessagesQueryUsing = null;
 
@@ -71,6 +76,12 @@ class ConversationThread extends Textarea
      * @param  string | array<string> | Closure | null  $messageColor
      */
     protected string | array | Closure | null $messageColor = null;
+
+    protected bool | Closure $shouldShowMessageReadByIndicator = true;
+
+    protected bool | Closure $shouldShowMessageAuthorAvatar = true;
+
+    protected bool | Closure $shouldShowMessageAuthorName = true;
 
     protected ?Closure $modifyEditConversationActionUsing = null;
 
@@ -103,15 +114,7 @@ class ConversationThread extends Textarea
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
-        $this->userTypingTranslations([
-            'single' => __('filament-converse::conversation-thread.typing-indicator.single'),
-            'double' => __('filament-converse::conversation-thread.typing-indicator.double'),
-            'multiple' => __('filament-converse::conversation-thread.typing-indicator.multiple'),
-            'other' => __('filament-converse::conversation-thread.typing-indicator.other'),
-            'others' => __('filament-converse::conversation-thread.typing-indicator.others'),
-        ]);
-
-        $this->formatMessageTimestampUsing(static function (Carbon $timestamp, Message $message): string {
+        $this->formatMessageGroupTimestampUsing(static function (Carbon $timestamp, Message $message): string {
             return match (true) {
                 ! $timestamp->isCurrentYear() => $timestamp->isoFormat('L LT'),
                 $timestamp->isCurrentWeek() && ! $timestamp->isCurrentDay() => $timestamp->isoFormat('ddd LT'),
@@ -121,7 +124,36 @@ class ConversationThread extends Textarea
         });
 
         $this->messageColor(static function (Message $message): string {
-            return $message->author->participant->getKey() === auth()->id() ? 'primary' : 'danger';
+            return $message->author->participant->getKey() === auth()->id() ? 'primary' : 'gray';
+        });
+
+        $this->userTypingTranslations([
+            'single' => __('filament-converse::conversation-thread.typing-indicator.single'),
+            'double' => __('filament-converse::conversation-thread.typing-indicator.double'),
+            'multiple' => __('filament-converse::conversation-thread.typing-indicator.multiple'),
+            'other' => __('filament-converse::conversation-thread.typing-indicator.other'),
+            'others' => __('filament-converse::conversation-thread.typing-indicator.others'),
+        ]);
+
+        $this->showMessageReadByIndicator(static function (Message $message, Collection $messages): bool {
+            $latestUserMessage = $messages
+                ->filter(fn (Message $msg) => $msg->author->participant->getKey() === auth()->id())
+                ->sortByDesc('created_at')
+                ->first();
+
+            if (!$latestUserMessage) {
+                return false;
+            }
+
+            return $latestUserMessage->getKey() === $message->getKey();
+        });
+
+        $this->showMessageAuthorAvatar(static function (Message $message): bool {
+            return $message->author->participant->getKey() !== auth()->id();
+        });
+
+        $this->showMessageAuthorName(static function (Message $message): bool {
+            return $message->author->participant->getKey() !== auth()->id();
         });
 
         $this->fileAttachmentsAcceptedFileTypes([
@@ -222,9 +254,16 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function messageTimestampGroupingInterval(string | Closure | null $seconds): static
+    public function formatMessageTimestampUsing(?Closure $callback): static
     {
-        $this->messageTimestampGroupingInterval = $seconds;
+        $this->formatMessageTimestampUsing = $callback;
+
+        return $this;
+    }
+
+    public function messageGroupingInterval(string | Closure | null $seconds): static
+    {
+        $this->messageGroupingInterval = $seconds;
 
         return $this;
     }
@@ -264,6 +303,13 @@ class ConversationThread extends Textarea
         return $this;
     }
 
+    public function showTypingIndicator(bool | Closure $condition): static
+    {
+        $this->shouldShowTypingIndicator = $condition;
+
+        return $this;
+    }
+
     /**
      * @param  array{single: string, double: string, multiple: string, other: string, others: string}|Closure  $translations
      */
@@ -274,9 +320,9 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function formatMessageTimestampUsing(?Closure $callback): static
+    public function formatMessageGroupTimestampUsing(?Closure $callback): static
     {
-        $this->formatMessageTimestampUsing = $callback;
+        $this->formatMessageGroupTimestampUsing = $callback;
 
         return $this;
     }
@@ -287,6 +333,27 @@ class ConversationThread extends Textarea
     public function messageColor(string | array | Closure | null $color = null): static
     {
         $this->messageColor = $color;
+
+        return $this;
+    }
+
+    public function showMessageReadByIndicator(bool | Closure $condition = true): static
+    {
+        $this->shouldShowMessageReadByIndicator = $condition;
+
+        return $this;
+    }
+
+    public function showMessageAuthorAvatar(bool | Closure $condition = true): static
+    {
+        $this->shouldShowMessageAuthorAvatar = $condition;
+
+        return $this;
+    }
+
+    public function showMessageAuthorName(bool | Closure $condition = true): static
+    {
+        $this->shouldShowMessageAuthorName = $condition;
 
         return $this;
     }
@@ -341,9 +408,25 @@ class ConversationThread extends Textarea
         return $this->evaluate($this->messagesLoadedPerPage) ?? 15;
     }
 
-    public function getMessageTimestampGroupingInterval(): int
+    /**
+     * @param Collection<int, Message> $messages
+     */
+    public function formatMessageTimestamp(Carbon $timestamp, Message $message, Collection $messages): ?string
     {
-        return $this->evaluate($this->messageTimestampGroupingInterval) ?? 420;
+        return $this->evaluate($this->formatMessageTimestampUsing, [
+            'timestamp' => $timestamp,
+            'message' => $message,
+            'messages' => $messages,
+        ], [
+            Carbon::class => $timestamp,
+            Message::class => $message,
+            Collection::class => $messages,
+        ]);
+    }
+
+    public function getmessageGroupingInterval(): int
+    {
+        return $this->evaluate($this->messageGroupingInterval) ?? 420;
     }
 
     public function getAutoScrollOnForeignMessagesThreshold(): int
@@ -366,6 +449,11 @@ class ConversationThread extends Textarea
         return $this->evaluate($this->userTypingEventDispatchThreshold);
     }
 
+    public function shouldShowTypingIndicator(): bool
+    {
+        return (bool) $this->evaluate($this->shouldShowTypingIndicator);
+    }
+
     /**
      * @return array{single: string, double: string, multiple: string, other: string, others: string}
      */
@@ -374,24 +462,76 @@ class ConversationThread extends Textarea
         return $this->evaluate($this->userTypingTranslations) ?? [];
     }
 
-    public function formatMessageTimestamp(Carbon $timestamp, Message $message): ?string
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function formatMessageGroupTimestamp(Carbon $timestamp, Message $message, Collection $messages): ?string
     {
-        return $this->evaluate($this->formatMessageTimestampUsing, [
+        return $this->evaluate($this->formatMessageGroupTimestampUsing, [
             'timestamp' => $timestamp,
             'message' => $message,
+            'messages' => $messages,
         ], [
             Carbon::class => $timestamp,
             Message::class => $message,
+            Collection::class => $messages,
         ]);
     }
 
-    public function getMessageColor(Message $message): string | array
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function getMessageColor(Message $message, Collection $messages): string | array
     {
         return $this->evaluate($this->messageColor, [
             'message' => $message,
+            'messages' => $messages,
         ], [
             Message::class => $message,
+            Collection::class => $messages,
         ]) ?? 'gray';
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function shouldShowMessageReadByIndicator(Message $message, Collection $messages): bool
+    {
+        return (bool) $this->evaluate($this->shouldShowMessageReadByIndicator, [
+            'message' => $message,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Collection::class => $messages,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function shouldShowMessageAuthorAvatar(Message $message, Collection $messages): bool
+    {
+        return (bool) $this->evaluate($this->shouldShowMessageAuthorAvatar, [
+            'message' => $message,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Collection::class => $messages,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function shouldShowMessageAuthorName(Message $message, Collection $messages): bool
+    {
+        return (bool) $this->evaluate($this->shouldShowMessageAuthorName, [
+            'message' => $message,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Collection::class => $messages,
+        ]);
     }
 
     /**
@@ -542,6 +682,7 @@ class ConversationThread extends Textarea
         return match ($parameterName) {
             'conversation',
             'activeConversation' => [$this->getActiveConversation()],
+            'messages' => [$this->getMessagesQuery(false)?->get()],
             default => []
         };
     }
@@ -553,6 +694,7 @@ class ConversationThread extends Textarea
     {
         return match ($parameterType) {
             Message::class => [$this->getActiveConversation()],
+            Collection::class => [$this->getMessagesQuery(false)?->get()],
             default => []
         };
     }

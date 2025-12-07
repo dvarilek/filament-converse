@@ -1,33 +1,33 @@
 @props([
-'hasImageMimeType',
-'fileAttachmentName',
-'fileAttachmentToolbar',
-'shouldShowOnlyImageAttachment',
-'shouldPreviewImageAttachment',
-'fileAttachmentUrl',
-'fileAttachmentIcon',
-'mimeTypeBadgeLabel',
-'mimeTypeBadgeIcon',
-'mimeTypeBadgeColor',
-'isRemovable' => false,
-'fileAttachmentRemoveHandler' => null,
-'isDownloadable' => false,
-'fileAttachmentDownloadHandler' => null,
-'imageAttachmentContainerExtraAttributesBag' => new \Illuminate\View\ComponentAttributeBag,
-'genericAttachmentContainerExtraAttributesBag' => new \Illuminate\View\ComponentAttributeBag,
+    'hasImageMimeType',
+    'fileAttachmentName',
+    'fileAttachmentToolbar',
+    'shouldShowOnlyImageAttachment',
+    'shouldPreviewImageAttachment',
+    'fileAttachmentUrl',
+    'fileAttachmentIcon',
+    'mimeTypeBadgeLabel',
+    'mimeTypeBadgeIcon',
+    'mimeTypeBadgeColor',
+    'isRemovable' => false,
+    'fileAttachmentRemoveHandler' => null,
+    'isDownloadable' => false,
+    'fileAttachmentDownloadHandler' => null,
+    'imageAttachmentContainerExtraAttributesBag' => new \Illuminate\View\ComponentAttributeBag,
+    'genericAttachmentContainerExtraAttributesBag' => new \Illuminate\View\ComponentAttributeBag,
 ])
 
 @php
     use Filament\Schemas\Components\Icon;
-        use Filament\Support\Icons\Heroicon;
-        use Illuminate\Contracts\Support\Htmlable;
+    use Filament\Support\Icons\Heroicon;
+    use Illuminate\Contracts\Support\Htmlable;
 @endphp
 
 @if ($hasImageMimeType && $shouldShowOnlyImageAttachment)
     <div
         {{
             $imageAttachmentContainerExtraAttributesBag
-            ->class(['fi-converse-image-attachment-container'])
+                ->class(['fi-converse-image-attachment-container'])
         }}
     >
         <img
@@ -58,7 +58,7 @@
     <div
         {{
             $genericAttachmentContainerExtraAttributesBag
-            ->class(['fi-converse-generic-attachment-container'])
+                ->class(['fi-converse-generic-attachment-container'])
         }}
     >
         @php
@@ -83,8 +83,8 @@
         @endif
         <div
             @class([
-            'fi-converse-attachment-information-container',
-            'fi-converse-attachment-has-mime-type-name' => $hasMimeTypeBadge,
+                'fi-converse-attachment-information-container',
+                'fi-converse-attachment-has-mime-type-name' => $hasMimeTypeBadge,
             ])
             @if (filled($fileAttachmentToolbar))
                 x-tooltip="{

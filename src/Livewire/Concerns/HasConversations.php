@@ -6,6 +6,7 @@ use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -17,8 +18,9 @@ trait HasConversations
 {
     public ?string $activeConversationKey = null;
 
-    public int $activeConversationMessagesPage = 1;
+    public int $conversationListPage = 1;
 
+    public int $activeConversationMessagesPage = 1;
 
     /**
      * It is structured this way mainly so the scrollToBottom functionality works as expected.
@@ -84,12 +86,14 @@ trait HasConversations
     #[Computed]
     public function conversations(): Collection
     {
-        $query = $this->getBaseConversationsQuery();
+        $conversationList = $this->getConversationSchema()->getConversationList();
 
-        $this->applyConversationListSearch($query);
-        $this->applyConversationListFilters($query);
-
-        return $query->get();
+        return $this->getBaseFilteredConversationsQuery()
+            ->limit(
+        $conversationList->getDefaultLoadedConversationsCount()
+                    + (($this->getConversationListPage() - 1)) * $conversationList->getConversationsLoadedPerPage()
+            )
+            ->get();
     }
 
     public function getActiveConversation(): ?Conversation
@@ -98,10 +102,10 @@ trait HasConversations
             return null;
         }
 
-        $helperInstance = new Conversation;
+        $instance = new Conversation;
 
         $conversation = $this->conversations
-            ->firstWhere($helperInstance->getKeyName(), $this->activeConversationKey);
+            ->firstWhere($instance->getKeyName(), $this->activeConversationKey);
 
         if ($conversation) {
             return $conversation;
@@ -112,12 +116,22 @@ trait HasConversations
         }
 
         return $this->getBaseConversationsQuery()
-            ->firstWhere($helperInstance->getQualifiedKeyName(), $this->activeConversationKey);
+            ->firstWhere($instance->getQualifiedKeyName(), $this->activeConversationKey);
+    }
+
+    public function getConversationListPage(): int
+    {
+        return $this->conversationListPage;
     }
 
     public function getActiveConversationMessagesPage(): int
     {
         return $this->activeConversationMessagesPage;
+    }
+
+    public function incrementConversationListPage(): void
+    {
+        $this->conversationListPage++;
     }
 
     public function incrementActiveConversationMessagesPage(): void
@@ -157,7 +171,7 @@ trait HasConversations
 
         return "{$identifier}_active_conversation";
     }
-    
+
     /**
      * @return Builder<Conversation>
      */
@@ -179,6 +193,19 @@ trait HasConversations
             ]);
     }
 
+    /**
+     * @return Builder<Conversation>
+     */
+    public function getBaseFilteredConversationsQuery(): Builder
+    {
+        $query = $this->getBaseConversationsQuery();
+        
+        $this->applyConversationListSearch($query);
+        $this->applyConversationListFilters($query);
+        
+        return $query;
+    }
+    
     public function getActiveConversationAuthenticatedUserParticipation(): ConversationParticipation
     {
         $user = auth()->user();
