@@ -10,9 +10,11 @@ use Dvarilek\FilamentConverse\Events\UserTyping;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
+use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Concerns\HasTypingIndicator;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
@@ -31,6 +33,8 @@ class ConversationThread extends Textarea
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
     use Concerns\HasFileAttachments;
+    use Concerns\HasReadReceipts;
+    use Concerns\HasTypingIndicator;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
 
@@ -55,29 +59,12 @@ class ConversationThread extends Textarea
 
     protected int | Closure | null $autoScrollOnForeignMessagesThreshold = 300;
 
-    protected bool | Closure $shouldDispatchUserTypingEvent = true;
-
-    protected ?Closure $formatTypingUserNameUsing = null;
-
-    protected int | Closure $userTypingIndicatorTimeout = 3500;
-
-    protected int | Closure | null $userTypingEventDispatchThreshold = 3000;
-
-    protected bool | Closure $shouldShowTypingIndicator = true;
-
-    /**
-     * @var array{single: string, double: string, multiple: string, other: string, others: string}|Closure
-     */
-    protected array | Closure $userTypingTranslations = [];
-
     protected ?Closure $modifyMessagesQueryUsing = null;
 
     /**
      * @param  string | array<string> | Closure | null  $messageColor
      */
     protected string | array | Closure | null $messageColor = null;
-
-    protected bool | Closure $shouldShowMessageReadByIndicator = true;
 
     protected bool | Closure $shouldShowMessageAuthorAvatar = true;
 
@@ -127,6 +114,31 @@ class ConversationThread extends Textarea
             return $message->author->participant->getKey() === auth()->id() ? 'primary' : 'gray';
         });
 
+        $this->messageRead(static function (Message $message): bool {
+            // TODO: FIx = read by logic
+            $lastReadAt = $message->author->last_read_at;
+
+            return $lastReadAt && $lastReadAt->gte($message->created_at);
+        });
+
+        $this->showReadReceipts(static function (Message $message, Conversation $conversation): bool {
+            $authenticatedUserKey = auth()->id();
+
+            // Actually make this generic - not for message. Determine if it gets shown per message by the result of count($readByUsers)
+            
+            foreach ($conversation->participations as $participation) {
+                if ($participation->participant_id === $authenticatedUserKey) {
+                    continue;
+                }
+
+                if ($participation->last_read_at && $message->created_at->lte($participation->last_read_at)) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
         $this->userTypingTranslations([
             'single' => __('filament-converse::conversation-thread.typing-indicator.single'),
             'double' => __('filament-converse::conversation-thread.typing-indicator.double'),
@@ -134,19 +146,6 @@ class ConversationThread extends Textarea
             'other' => __('filament-converse::conversation-thread.typing-indicator.other'),
             'others' => __('filament-converse::conversation-thread.typing-indicator.others'),
         ]);
-
-        $this->showMessageReadByIndicator(static function (Message $message, Collection $messages): bool {
-            $latestUserMessage = $messages
-                ->filter(fn (Message $msg) => $msg->author->participant->getKey() === auth()->id())
-                ->sortByDesc('created_at')
-                ->first();
-
-            if (!$latestUserMessage) {
-                return false;
-            }
-
-            return $latestUserMessage->getKey() === $message->getKey();
-        });
 
         $this->showMessageAuthorAvatar(static function (Message $message): bool {
             return $message->author->participant->getKey() !== auth()->id();
@@ -275,51 +274,6 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function dispatchUserTypingEvent(bool | Closure $condition): static
-    {
-        $this->shouldDispatchUserTypingEvent = $condition;
-
-        return $this;
-    }
-
-    public function formatTypingUserNameUsing(?Closure $callback = null): static
-    {
-        $this->getTypingUserNameUsing = $callback;
-
-        return $this;
-    }
-
-    public function userTypingIndicatorTimeout(int | Closure | null $milliseconds): static
-    {
-        $this->userTypingIndicatorTimeout = $milliseconds;
-
-        return $this;
-    }
-
-    public function userTypingEventDispatchThreshold(int | Closure | null $millisecond): static
-    {
-        $this->userTypingEventDispatchThreshold = $millisecond;
-
-        return $this;
-    }
-
-    public function showTypingIndicator(bool | Closure $condition): static
-    {
-        $this->shouldShowTypingIndicator = $condition;
-
-        return $this;
-    }
-
-    /**
-     * @param  array{single: string, double: string, multiple: string, other: string, others: string}|Closure  $translations
-     */
-    public function userTypingTranslations(array | Closure $translations): static
-    {
-        $this->userTypingTranslations = $translations;
-
-        return $this;
-    }
-
     public function formatMessageGroupTimestampUsing(?Closure $callback): static
     {
         $this->formatMessageGroupTimestampUsing = $callback;
@@ -333,13 +287,6 @@ class ConversationThread extends Textarea
     public function messageColor(string | array | Closure | null $color = null): static
     {
         $this->messageColor = $color;
-
-        return $this;
-    }
-
-    public function showMessageReadByIndicator(bool | Closure $condition = true): static
-    {
-        $this->shouldShowMessageReadByIndicator = $condition;
 
         return $this;
     }
@@ -434,34 +381,6 @@ class ConversationThread extends Textarea
         return $this->evaluate($this->autoScrollOnForeignMessagesThreshold) ?? 300;
     }
 
-    public function shouldDispatchUserTypingEvent(): bool
-    {
-        return (bool) $this->evaluate($this->shouldDispatchUserTypingEvent);
-    }
-
-    public function getUserTypingIndicatorTimeout(): int
-    {
-        return $this->evaluate($this->userTypingIndicatorTimeout) ?? 3500;
-    }
-
-    public function getUserTypingEventDispatchThreshold(): ?int
-    {
-        return $this->evaluate($this->userTypingEventDispatchThreshold);
-    }
-
-    public function shouldShowTypingIndicator(): bool
-    {
-        return (bool) $this->evaluate($this->shouldShowTypingIndicator);
-    }
-
-    /**
-     * @return array{single: string, double: string, multiple: string, other: string, others: string}
-     */
-    public function getUserTypingTranslations(): array
-    {
-        return $this->evaluate($this->userTypingTranslations) ?? [];
-    }
-
     /**
      * @param  Collection<int, Message>  $messages
      */
@@ -490,20 +409,6 @@ class ConversationThread extends Textarea
             Message::class => $message,
             Collection::class => $messages,
         ]) ?? 'gray';
-    }
-
-    /**
-     * @param  Collection<int, Message>  $messages
-     */
-    public function shouldShowMessageReadByIndicator(Message $message, Collection $messages): bool
-    {
-        return (bool) $this->evaluate($this->shouldShowMessageReadByIndicator, [
-            'message' => $message,
-            'messages' => $messages,
-        ], [
-            Message::class => $message,
-            Collection::class => $messages,
-        ]);
     }
 
     /**

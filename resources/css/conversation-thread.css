@@ -146,28 +146,24 @@
                     @apply flex flex-col gap-1;
 
                     & .fi-converse-conversation-thread-message-heading {
-                        @apply flex items-center gap-2;
+                        @apply w-full max-w-4/5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 dark:text-gray-400 overflow-hidden;
 
-                        & .fi-converse-conversation-thread-message-author-name {
-                            @apply text-xs text-gray-600 dark:text-gray-400;
-                        }
-
-                        & .fi-converse-conversation-thread-message-timestamp {
-                            @apply text-xs text-gray-600 dark:text-gray-400;
+                        & > * {
+                            @apply break-words min-w-0 hyphens-auto;
                         }
                     }
 
-                    & .fi-converse-conversation-thread-message-body {
-                        @apply flex w-full items-center gap-2;
+                    & .fi-converse-conversation-thread-message-body-container {
+                        @apply flex w-full gap-3;
 
-                        & .fi-converse-conversation-thread-message {
-                            @apply bg-color-100 dark:bg-color-400/10 max-w-4/5 rounded-xl px-3 py-1;
+                        & .fi-converse-conversation-thread-message-body {
+                            @apply flex flex-col bg-color-100 max-w-4/5 dark:bg-color-400/10 rounded-xl px-3 py-1 self-start;
 
                             & > p {
-                                @apply whitespace-normal break-words text-sm leading-6;
+                                @apply whitespace-normal break-words text-sm leading-6 flex items-center;
                             }
 
-                            &  .fi-converse-conversation-thread-message-attachments {
+                            & .fi-converse-conversation-thread-message-attachments {
                                 @apply w-full py-2;
 
                                 &.fi-converse-conversation-thread-message-attachments-with-generic-attachments {
@@ -175,9 +171,7 @@
                                     grid-template-columns: repeat(auto-fill, minmax(1rem, 1fr));
                                 }
 
-                                &:not(
-                                       .fi-converse-conversation-thread-message-attachments-with-generic-attachments
-                                ) {
+                                &:not(.fi-converse-conversation-thread-message-attachments-with-generic-attachments) {
                                     @apply max-w-73 flex flex-wrap gap-1.5;
                                 }
 
@@ -188,20 +182,31 @@
                         }
 
                         & .fi-converse-conversation-thread-message-actions {
-                            @apply flex gap-3 opacity-0 group-hover:opacity-100;
+                            @apply flex gap-3 opacity-0 group-hover:opacity-100 items-center;
                         }
                     }
+                }
+            }
 
+            & .fi-converse-conversation-thread-read-by-indicator {
+                @apply flex w-full items-center text-xs text-gray-600 dark:text-gray-400 justify-end overflow-hidden;
+
+                & > span {
+                    @apply break-words hyphens-auto max-w-1/2;
                 }
             }
 
             &.fi-converse-conversation-thread-message-container-reversed {
                 & .fi-converse-conversation-thread-message-layout {
                     @apply flex-row-reverse self-end;
-                }
 
-                & .fi-converse-conversation-thread-message-body {
-                    @apply flex-row-reverse;
+                    & .fi-converse-conversation-thread-message-body-container {
+                        @apply flex-row-reverse;
+                    }
+
+                    & .fi-converse-conversation-thread-message-body {
+                        @apply self-end;
+                    }
                 }
 
                 & .fi-converse-conversation-thread-message-heading {
