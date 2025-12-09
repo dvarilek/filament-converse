@@ -19,6 +19,6 @@ class ReadConversation
             'last_read_at' => now()
         ]));
 
-        broadcast(new ConversationRead($readBy, $conversation))->toOthers();
+        broadcast(new ConversationRead($readBy->getKey(), $conversation))->toOthers();
     }
 }

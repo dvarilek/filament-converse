@@ -188,7 +188,7 @@
                 }
             }
 
-            & .fi-converse-conversation-thread-read-by-indicator {
+            & .fi-converse-conversation-thread-read-receipt {
                 @apply flex w-full items-center text-xs text-gray-600 dark:text-gray-400 justify-end overflow-hidden;
 
                 & > span {

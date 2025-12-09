@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models;
 
+use Dvarilek\FilamentConverse\Actions\ReadConversation;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
+use Dvarilek\FilamentConverse\Events\ConversationRead;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -103,5 +105,10 @@ class ConversationParticipation extends Model
     public function sendMessage(Conversation $conversation, array $attributes): Message
     {
         return app(SendMessage::class)->handle($this, $conversation, $attributes);
+    }
+    
+    public function readConversation(Conversation $conversation): void
+    {
+        app(ReadConversation::class)->handle($this, $conversation);
     }
 }

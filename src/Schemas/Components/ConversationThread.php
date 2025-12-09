@@ -11,6 +11,7 @@ use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
@@ -115,28 +116,9 @@ class ConversationThread extends Textarea
         });
 
         $this->messageRead(static function (Message $message): bool {
-            // TODO: FIx = read by logic
             $lastReadAt = $message->author->last_read_at;
 
             return $lastReadAt && $lastReadAt->gte($message->created_at);
-        });
-
-        $this->showReadReceipts(static function (Message $message, Conversation $conversation): bool {
-            $authenticatedUserKey = auth()->id();
-
-            // Actually make this generic - not for message. Determine if it gets shown per message by the result of count($readByUsers)
-            
-            foreach ($conversation->participations as $participation) {
-                if ($participation->participant_id === $authenticatedUserKey) {
-                    continue;
-                }
-
-                if ($participation->last_read_at && $message->created_at->lte($participation->last_read_at)) {
-                    return true;
-                }
-            }
-
-            return false;
         });
 
         $this->userTypingTranslations([
@@ -602,35 +584,5 @@ class ConversationThread extends Textarea
             Collection::class => [$this->getMessagesQuery(false)?->get()],
             default => []
         };
-    }
-
-    #[Renderless]
-    #[ExposedLivewireMethod]
-    public function broadcastUserTypingEvent(): void
-    {
-        if (! $this->shouldDispatchUserTypingEvent()) {
-            return;
-        }
-
-        /* @var Model & Authenticatable */
-        $user = auth()->user();
-
-        if (! in_array(Conversable::class, class_uses_recursive($user))) {
-            FilamentConverseException::throwInvalidConversableUserException($user);
-        }
-
-        $name = $user->getAttributeValue($user::getFilamentNameAttribute());
-
-        if ($this->formatTypingUserNameUsing) {
-            $name = $this->evaluate($this->formatTypingUserNameUsing, [
-                'name' => $name,
-                'user' => $user,
-            ], [
-                Authenticatable::class => $user,
-                Model::class => $user,
-            ]);
-        }
-
-        broadcast(new UserTyping($user->getKey(), $name, $this->getActiveConversation()))->toOthers();
     }
 }

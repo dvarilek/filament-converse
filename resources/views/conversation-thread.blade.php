@@ -1,45 +1,46 @@
 @php
     use Carbon\Carbon;
-        use Dvarilek\FilamentConverse\Models\Conversation;
-        use Dvarilek\FilamentConverse\Models\Message;
-        use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
-        use Filament\Actions\Action;
-        use Filament\Actions\ActionGroup;
-        use Illuminate\Support\Collection;
-        use Illuminate\View\ComponentAttributeBag;
-        use Filament\Support\View\Components\ModalComponent\IconComponent;
-        use Filament\Schemas\Components\Icon;
-        use Dvarilek\FilamentConverse\View\Components\ConversationMessageComponent;
+    use Dvarilek\FilamentConverse\Models\Conversation;
+    use Dvarilek\FilamentConverse\Models\Message;
+    use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
+    use Filament\Actions\Action;
+    use Filament\Actions\ActionGroup;
+    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+    use Illuminate\Support\Collection;
+    use Illuminate\View\ComponentAttributeBag;
+    use Filament\Support\View\Components\ModalComponent\IconComponent;
+    use Filament\Schemas\Components\Icon;
+    use Dvarilek\FilamentConverse\View\Components\ConversationMessageComponent;
 
-        $id = $getId();
-        $fieldWrapperView = $getFieldWrapperView();
-        $extraAttributeBag = $getExtraAttributeBag();
-        $key = $getKey();
-        $statePath = $getStatePath();
+    $id = $getId();
+    $fieldWrapperView = $getFieldWrapperView();
+    $extraAttributeBag = $getExtraAttributeBag();
+    $key = $getKey();
+    $statePath = $getStatePath();
 
-        /* @var Conversation | null $conversation */
-        $conversation = $getActiveConversation();
-        $conversationKey = $conversation?->getKey();
-        $hasConversation = filled($conversation);
+    /* @var Conversation | null $conversation */
+    $conversation = $getActiveConversation();
+    $conversationKey = $conversation?->getKey();
+    $hasConversation = filled($conversation);
 
-        $isDisabled = $isDisabled();
-        $hasFileAttachments = $hasFileAttachments();
-        $canUploadFileAttachments = $hasConversation && $hasFileAttachments && ! $isDisabled;
-        $uploadedFileAttachments = $canUploadFileAttachments ? array_reverse($getUploadedFileAttachments()) : [];
+    $isDisabled = $isDisabled();
+    $hasFileAttachments = $hasFileAttachments();
+    $canUploadFileAttachments = $hasConversation && $hasFileAttachments && ! $isDisabled;
+    $uploadedFileAttachments = $canUploadFileAttachments ? array_reverse($getUploadedFileAttachments()) : [];
 
-        /* @var Collection<int, Message> $messages */
-        $messages = $getMessagesQuery()?->get()?->reverse() ?? [];
-        $totalMessagesCount = $getMessagesQuery(shouldPaginate: false)?->count() ?? 0;
-        $messageGroupingInterval = $getmessageGroupingInterval();
-        /* @var Carbon | null $previousMessageTimestamp */
-        $previousMessageTimestamp = null;
+    /* @var Collection<int, Message> $messages */
+    $messages = $getMessagesQuery()?->get()?->reverse() ?? [];
+    $totalMessagesCount = $getMessagesQuery(shouldPaginate: false)?->count() ?? 0;
+    $messageGroupingInterval = $getmessageGroupingInterval();
+    /* @var Carbon | null $previousMessageTimestamp */
+    $previousMessageTimestamp = null;
 
-        $headerActions = array_filter(
-            $getChildComponents(ConversationThread::HEADER_ACTIONS_KEY),
-            static fn (Action | ActionGroup $action) => $action->isVisible()
-        );
+    $headerActions = array_filter(
+        $getChildComponents(ConversationThread::HEADER_ACTIONS_KEY),
+        static fn (Action | ActionGroup $action) => $action->isVisible()
+    );
 
-        $messageActions = $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY);
+    $messageActions = $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY);
 @endphp
 
 <div
@@ -190,6 +191,11 @@
         @if ($renderedMessagesCount = count($messages))
             @php
                 $latestMessage = $messages->last();
+                /* @var ConversationParticipation $currentAuthenticatedUserParticipation */
+                $currentAuthenticatedUserParticipation = $getLivewire()->getActiveConversationAuthenticatedUserParticipation();
+
+                $shouldMarkConversationAsRead = $shouldMarkConversationAsRead();
+                $readReceiptsMap = $getReadReceiptsMap($messages);
             @endphp
 
             @if ($renderedMessagesCount < $totalMessagesCount)
@@ -219,9 +225,9 @@
                     $messageAuthorName = $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
                     $showMessageAuthorAvatar = $shouldShowMessageAuthorAvatar($message, $messages);
                     $showMessageAuthorName = filled($messageAuthorName) && $shouldShowMessageAuthorName($message, $messages);
+
                     $showReadReceipt = $shouldShowReadReceipts($message, $messages);
-                    $markConversationAsRead = $shouldMarkConversationAsRead($message, $messages);
-                    $messageRead = $isMessageRead($message, $messages);
+                    $isReadByCurrentUser = ($lastReadAt = $currentAuthenticatedUserParticipation->last_read_at) && $lastReadAt->gte($message->created_at);
 
                     $filteredMessageActions = array_filter(
                         $messageActions,
@@ -233,8 +239,11 @@
                     );
                 @endphp
                     <div
-                        @if ($message->getKey() === $latestMessage->getKey() && ! $messageRead && $markConversationAsRead)
-                            x-intersect.threshold.50.once="markConversationAsRead()"
+                        @if ($message->getKey() === $latestMessage->getKey() && ! $isReadByCurrentUser && $shouldMarkConversationAsRead)
+                            x-intersect.threshold.50.once="$wire.callSchemaComponentMethod(
+                                @js($key),
+                                'markCurrentConversationAsRead',
+                            )"
                         @endif
                         @class([
                             'fi-converse-conversation-thread-message-container',
@@ -362,14 +371,14 @@
 
                     @if ($showReadReceipt)
                         @php
-                            // TODO: + finish the x-intersect handler
+                            $messageReadBy = $readReceiptsMap[$message->getKey()]['readBy'] ?? [];
+                            $messageLastReadBy = $readReceiptsMap[$message->getKey()]['lastReadBy'] ?? [];
 
-                            $readByUsers = [1,2,3,4];
-                            $readByIndicatorMessage = "read by";
-                            $maxVisibleUsersInReadByIndicator = 3;
+                            $shortenedReadReceiptMessage = $getShortenedReadReceiptMessage($message, $messageReadBy, $messageLastReadBy, $messages);
+                            $fullReadReceiptMessage = $getFullReadReceiptMessage($message, $messageReadBy, $messageLastReadBy, $messages);
                         @endphp
                         <div
-                            class="fi-converse-conversation-thread-read-by-indicator"
+                            class="fi-converse-conversation-thread-read-receipt"
                         >
                             <span
                                 @if (count($readByUsers) > $maxVisibleUsersInReadByIndicator)
