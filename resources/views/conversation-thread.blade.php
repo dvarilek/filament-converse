@@ -195,7 +195,8 @@
                 $currentAuthenticatedUserParticipation = $getLivewire()->getActiveConversationAuthenticatedUserParticipation();
 
                 $shouldMarkConversationAsRead = $shouldMarkConversationAsRead();
-                $readReceiptsMap = $getReadReceiptsMap($messages);
+                /* @var array<string, array{readBy: list<ConversationParticipation>, readByAsLastMessage: list<ConversationParticipation>}> $messagesReadsMap*/
+                $messagesReadsMap = $getMessagesReadsMap($messages);
             @endphp
 
             @if ($renderedMessagesCount < $totalMessagesCount)
@@ -226,7 +227,12 @@
                     $showMessageAuthorAvatar = $shouldShowMessageAuthorAvatar($message, $messages);
                     $showMessageAuthorName = filled($messageAuthorName) && $shouldShowMessageAuthorName($message, $messages);
 
-                    $showReadReceipt = $shouldShowReadReceipts($message, $messages);
+                    /* @var Collection<int, ConversationParticipation> $readByParticipations */
+                    $readByParticipations = collect($messagesReadsMap[$message->getKey()]['readBy'] ?? []);
+                    /* @var Collection<int, ConversationParticipation> $readByParticipationsAsLastMessage */
+                    $readByParticipationsAsLastMessage = collect($messagesReadsMap[$message->getKey()]['readByAsLastMessage'] ?? []);
+
+                    $showReadReceipt = $shouldShowReadReceipts($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages);
                     $isReadByCurrentUser = ($lastReadAt = $currentAuthenticatedUserParticipation->last_read_at) && $lastReadAt->gte($message->created_at);
 
                     $filteredMessageActions = array_filter(
@@ -371,24 +377,22 @@
 
                     @if ($showReadReceipt)
                         @php
-                            $messageReadBy = $readReceiptsMap[$message->getKey()]['readBy'] ?? [];
-                            $messageLastReadBy = $readReceiptsMap[$message->getKey()]['lastReadBy'] ?? [];
-
-                            $shortenedReadReceiptMessage = $getShortenedReadReceiptMessage($message, $messageReadBy, $messageLastReadBy, $messages);
-                            $fullReadReceiptMessage = $getFullReadReceiptMessage($message, $messageReadBy, $messageLastReadBy, $messages);
+                            $showFullReadReceiptMessage = $shouldShowFullReadReceiptMessage($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages);
+                            $shortenedReadReceiptMessage = $getShortenedReadReceiptMessage($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages);
                         @endphp
                         <div
                             class="fi-converse-conversation-thread-read-receipt"
+                            @if ($showFullReadReceiptMessage)
+                                x-data="{expanded: false}"
+                                x-on:click="expanded = ! expanded"
+                            @endif
                         >
-                            <span
-                                @if (count($readByUsers) > $maxVisibleUsersInReadByIndicator)
-                                    x-data="{expanded: false}"
-                                    x-on:click="expanded = ! expanded"
-                                    x-text="expanded ? '{{ 'TODO: full indicator method' }}' : '{{ $readByIndicatorMessage }}'"
-                                @else
-                                    {{ $readByIndicatorMessage }}
-                                @endif
-                            >
+                            @if ($showFullReadReceiptMessage)
+                                <span x-show="expanded"> {{ $getFullReadReceiptMessage($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages) }}</span>
+                                <span x-show="! expanded"> {{ $shortenedReadReceiptMessage }} </span>
+                            @endif
+                            <span>
+                                {{ $shortenedReadReceiptMessage }}
                             </span>
                         </div
                     @endif

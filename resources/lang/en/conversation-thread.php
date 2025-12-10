@@ -46,6 +46,22 @@ return [
 
     ],
 
+    'read-receipt' => [
+
+        'seen' => 'Seen',
+
+        'seen-by-one' => 'Seen by {name}',
+
+        'seen-by-two' => 'Seen by :firstName and :secondName',
+
+        'seen-by-three' => 'Seen by :firstName, :secondName and :thirdName',
+
+        'seen-by-many' => 'Seen by :firstName, :secondName, :thirdName and :othersCount others',
+
+        'seen-by-all' => 'Seen by :names',
+
+    ],
+
     'typing-indicator' => [
 
         'single' => '{singleName} is typing...',

@@ -115,10 +115,101 @@ class ConversationThread extends Textarea
             return $message->author->participant->getKey() === auth()->id() ? 'primary' : 'gray';
         });
 
-        $this->messageRead(static function (Message $message): bool {
-            $lastReadAt = $message->author->last_read_at;
+        $this->showReadReceipts(static function (Collection $readByParticipationsAsLastMessage): bool {
+            $user = auth()->user();
 
-            return $lastReadAt && $lastReadAt->gte($message->created_at);
+            if (! in_array(Conversable::class, class_uses_recursive($user))) {
+                FilamentConverseException::throwInvalidConversableUserException($user);
+            }
+
+            return $readByParticipationsAsLastMessage
+                ->where('participant_id', '!=', $user->getKey())
+                ->isNotEmpty();
+        });
+
+        $this->showFullReadReceiptMessage(static function (Collection $readByParticipations): bool {
+            $user = auth()->user();
+
+            if (! in_array(Conversable::class, class_uses_recursive($user))) {
+                FilamentConverseException::throwInvalidConversableUserException($user);
+            }
+
+            return $readByParticipations->where('participant_id', $user->getKey())->count() > 4;
+        });
+
+        $this->shortenedReadReceiptMessage(static function (Conversation $conversation, Collection $readByParticipations): ?string {
+            $user = auth()->user();
+
+            if (! in_array(Conversable::class, class_uses_recursive($user))) {
+                FilamentConverseException::throwInvalidConversableUserException($user);
+            }
+
+            $userNameAttribute = $user::getFilamentNameAttribute();
+
+            $participantNames = $readByParticipations
+                ->where('participant_id', $user->getKey())
+                ->pluck('participant.' . $userNameAttribute);
+            $count = $participantNames->count();
+
+            return match (true) {
+                $count === 0 => null,
+                $count === 1 => $conversation->isDirect() || $conversation->participations->count(2)
+                    ? __('filament-converse::conversation-thread.read-receipt.seen')
+                    : __('filament-converse::conversation-thread.read-receipt.seen-by-one', [
+                        'name' => $participantNames->first()
+                    ]),
+                $count === 2 => __('filament-converse::conversation-thread.read-receipt.seen-by-two', [
+                    'firstName' => $participantNames->get(0),
+                    'secondName' => $participantNames->get(1)
+                ]),
+                $count === 3 => __('filament-converse::conversation-thread.read-receipt.seen-by-three', [
+                    'firstName' => $participantNames->get(0),
+                    'secondName' => $participantNames->get(1),
+                    'thirdName' => $participantNames->get(2),
+                ]),
+                default => __('filament-converse::conversation-thread.read-receipt.seen-by-many', [
+                    'firstName' => $participantNames->get(0),
+                    'secondName' => $participantNames->get(1),
+                    'thirdName' => $participantNames->get(2),
+                    'othersCount' => $count - 3
+                ])
+            };
+        });
+
+        $this->fullReadReceiptMessage(static function (Conversation $conversation, Collection $readByParticipations): ?string {
+            $user = auth()->user();
+
+            if (! in_array(Conversable::class, class_uses_recursive($user))) {
+                FilamentConverseException::throwInvalidConversableUserException($user);
+            }
+
+            $userNameAttribute = $user::getFilamentNameAttribute();
+
+            $participantNames = $readByParticipations
+                ->where('participant_id', $user->getKey())
+                ->pluck('participant.' . $userNameAttribute);
+            $count = $participantNames->count();
+
+            return match (true) {
+                $count === 0 => null,
+                $count === 1 => $conversation->isDirect() || $conversation->participations->count(2)
+                    ? __('filament-converse::conversation-thread.read-receipt.seen')
+                    : __('filament-converse::conversation-thread.read-receipt.seen-by-one', [
+                        'name' => $participantNames->first()
+                    ]),
+                $count === 2 => __('filament-converse::conversation-thread.read-receipt.seen-by-two', [
+                    'firstName' => $participantNames->get(0),
+                    'secondName' => $participantNames->get(1)
+                ]),
+                $count === 3 => __('filament-converse::conversation-thread.read-receipt.seen-by-three', [
+                    'firstName' => $participantNames->get(0),
+                    'secondName' => $participantNames->get(1),
+                    'thirdName' => $participantNames->get(2),
+                ]),
+                default => __('filament-converse::conversation-thread.read-receipt.seen-by-all', [
+                    'names' => $participantNames->join(', '),
+                ]),
+            };
         });
 
         $this->userTypingTranslations([
