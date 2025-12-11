@@ -17,8 +17,8 @@ use Illuminate\Support\Collection;
 /**
  * @mixin Model
  *
- * @property Collection<int, Conversation> $conversations
- * @property Collection<int, ConversationParticipation> $conversationParticipations
+ * @property-read Collection<int, Conversation> $conversations
+ * @property-read Collection<int, ConversationParticipation> $conversationParticipations
  *
  * @method Builder excludeSharedDirectConversationsWith(Authenticatable $participant)
  */

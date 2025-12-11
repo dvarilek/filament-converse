@@ -56,9 +56,11 @@ return [
 
         'seen-by-three' => 'Zobrazeno uživateli :firstName, :secondName a :thirdName',
 
-        'seen-by-many' => 'Zobrazeno uživateli :firstName, :secondName, :thirdName a :othersCount dalších',
+        'seen-by-many-shortened' => 'Zobrazeno uživateli :firstName, :secondName, :thirdName a :othersCount dalších',
 
-        'seen-by-all' => 'Zobrazeno uživateli :names',
+        'seen-by-everyone' => 'Zobrazeno všemi uživateli',
+        
+        'seen-by-many-full' => 'Zobrazeno uživateli :names a :lastName',
         
     ],
     

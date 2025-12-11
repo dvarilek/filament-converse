@@ -16,19 +16,19 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
 
 /**
- * @property ConversationTypeEnum $type
- * @property string|null $image
- * @property string|null $name
- * @property string|null $description
- * @property string $creator_id
- * @property int|string|null $subject_id
- * @property string|null $subject_type
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
- * @property Collection<int, ConversationParticipation> $participations
- * @property Collection<int, ConversationParticipation> $otherParticipations
- * @property Collection<int, Message> $messages
- * @property ConversationParticipation|null $creator
+ * @property-read ConversationTypeEnum $type
+ * @property-read string|null $image
+ * @property-read string|null $name
+ * @property-read string|null $description
+ * @property-read string $creator_id
+ * @property-read int|string|null $subject_id
+ * @property-read string|null $subject_type
+ * @property-read Carbon|null $created_at
+ * @property-read Carbon|null $updated_at
+ * @property-read Collection<int, ConversationParticipation> $participations
+ * @property-read Collection<int, ConversationParticipation> $otherParticipations
+ * @property-read Collection<int, Message> $messages
+ * @property-read ConversationParticipation|null $creator
  */
 class Conversation extends Model
 {

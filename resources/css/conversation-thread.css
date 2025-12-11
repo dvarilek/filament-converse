@@ -97,7 +97,7 @@
                 }
 
                 & .typing-dot {
-                    @apply size-1.5 rounded-full bg-gray-400 dark:bg-gray-500;
+                    @apply size-1 rounded-full bg-gray-400 dark:bg-gray-500;
                     animation: typing-dot 1s infinite;
                 }
 
@@ -157,26 +157,22 @@
                         @apply flex w-full gap-3;
 
                         & .fi-converse-conversation-thread-message-body {
-                            @apply flex flex-col bg-color-100 max-w-4/5 dark:bg-color-400/10 rounded-xl px-3 py-1 self-start;
+                            @apply flex flex-1 flex-col bg-color-100 max-w-4/5 dark:bg-color-400/10 rounded-xl px-3 py-1 self-start;
 
                             & > p {
-                                @apply whitespace-normal break-words text-sm leading-6 flex items-center;
+                                @apply wrap-anywhere text-sm leading-6;
                             }
 
                             & .fi-converse-conversation-thread-message-attachments {
-                                @apply w-full py-2;
+                                @apply w-full py-2 min-w-0 max-w-74;
 
                                 &.fi-converse-conversation-thread-message-attachments-with-generic-attachments {
                                     @apply grid gap-3;
-                                    grid-template-columns: repeat(auto-fill, minmax(1rem, 1fr));
+                                    grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
                                 }
 
                                 &:not(.fi-converse-conversation-thread-message-attachments-with-generic-attachments) {
-                                    @apply max-w-73 flex flex-wrap gap-1.5;
-                                }
-
-                                &.fi-converse-conversation-thread-message-attachments-without-message-content {
-                                    @apply max-w-73;
+                                    @apply flex flex-wrap gap-1.5;
                                 }
                             }
                         }
@@ -272,7 +268,7 @@
         @apply flex h-16 w-full gap-3 rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-950/50 dark:ring-white/10;
 
         &.fi-converse-generic-attachment-container-grid {
-            @apply col-span-full bg-white ring-gray-300 dark:bg-gray-900 dark:ring-gray-700;
+            @apply min-w-70 col-span-full bg-white ring-gray-300 dark:bg-gray-900 dark:ring-gray-700;
         }
 
         &.fi-converse-attachment-adaptable-width {
@@ -280,7 +276,7 @@
         }
 
         & .fi-converse-generic-attachment-image {
-            @apply w-12 rounded-xl object-cover;
+            @apply w-12 shrink-0 rounded-xl object-cover;
         }
 
         & .fi-converse-attachment-icon {

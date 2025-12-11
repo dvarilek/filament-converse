@@ -18,16 +18,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * @property Carbon|null $joined_at
- * @property Carbon|null $invited_at
- * @property Carbon|null $last_read_at
- * @property int|string $participant_id
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
- * @property Collection<int, Message> $messages
- * @property Message|null $latestMessage
- * @property Collection<int, Conversation> $createdConversations
- * @property Authenticatable&Model $participant
+ * @property-read Carbon|null $joined_at
+ * @property-read Carbon|null $invited_at
+ * @property-read Carbon|null $last_read_at
+ * @property-read int|string $participant_id
+ * @property-read Carbon|null $created_at
+ * @property-read Carbon|null $updated_at
+ * @property-read Collection<int, Message> $messages
+ * @property-read Message|null $latestMessage
+ * @property-read Collection<int, Conversation> $createdConversations
+ * @property-read Authenticatable&Model $participant
  */
 class ConversationParticipation extends Model
 {

@@ -50,15 +50,17 @@ return [
 
         'seen' => 'Seen',
 
-        'seen-by-one' => 'Seen by {name}',
+        'seen-by-one' => 'Seen by :name',
 
         'seen-by-two' => 'Seen by :firstName and :secondName',
 
         'seen-by-three' => 'Seen by :firstName, :secondName and :thirdName',
 
-        'seen-by-many' => 'Seen by :firstName, :secondName, :thirdName and :othersCount others',
+        'seen-by-many-shortened' => 'Seen by :firstName, :secondName, :thirdName and :othersCount others',
 
-        'seen-by-all' => 'Seen by :names',
+        'seen-by-everyone' => 'Seen by everyone',
+
+        'seen-by-many-full' => 'Seen by :names and :lastName',
 
     ],
 

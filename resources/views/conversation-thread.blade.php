@@ -219,7 +219,12 @@
                     $messageAuthor = $message->author->participant;
                     $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
 
-                    $hasMessageContent = filled($message->content);
+                    // TODO:
+                    //       refactor group message timestamp...
+                    //       Custom message view
+                    //       Remove joined_at and invited_at
+                    //       Download by tapping (temp solution)
+
                     $messageColor = $getMessageColor($message, $messages);
                     $messageTimestamp = $message->created_at;
                     $formattedMessageTimestamp = $formatMessageTimestamp($messageTimestamp, $message, $messages);
@@ -309,9 +314,9 @@
                                                 ])
                                         }}
                                     >
-                                        @if ($hasMessageContent)
+                                        @if (filled($messageContent = $message->content))
                                             <p>
-                                                {{ $message->content }}
+                                                {{ $messageContent }}
                                             </p>
                                         @endif
 
@@ -327,7 +332,6 @@
                                                 @class([
                                                     "fi-converse-conversation-thread-message-attachments",
                                                     "fi-converse-conversation-thread-message-attachments-with-generic-attachments" => ! $hasOnlyImageAttachments,
-                                                    "fi-converse-conversation-thread-message-attachments-without-message-content" => ! $hasMessageContent
                                                 ])
                                             >
                                                 @foreach ($attachmentData as $attachmentPath => $data)
@@ -349,13 +353,13 @@
                                                         :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
                                                         :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages)"
                                                         :image-attachment-container-extra-attributes-bag="
-                                                        (new ComponentAttributeBag())
-                                                            ->class(['fi-converse-image-attachment-container-grid'])
-                                                    "
-                                                        :generic-attachment-container-extra-attributes-bag="
-                                                        (new ComponentAttributeBag())
-                                                            ->class(['fi-converse-generic-attachment-container-grid'])
-                                                    "
+                                                            (new ComponentAttributeBag())
+                                                                ->class(['fi-converse-image-attachment-container-grid'])
+                                                        "
+                                                            :generic-attachment-container-extra-attributes-bag="
+                                                            (new ComponentAttributeBag())
+                                                                ->class(['fi-converse-generic-attachment-container-grid'])
+                                                        "
                                                     />
                                                 @endforeach
                                             </div>

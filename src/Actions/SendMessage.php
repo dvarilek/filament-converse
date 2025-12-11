@@ -18,12 +18,18 @@ class SendMessage
     public function handle(ConversationParticipation $author, Conversation $conversation, array $attributes): Message
     {
         /* @var Message */
-        $message = DB::transaction(static fn () => $author->messages()->create([
-            'content' => $attributes['content'] ?? null,
-            'attachments' => $attributes['attachments'] ?? [],
-            'attachment_file_names' => $attributes['attachment_file_names'] ?? [],
-            'reply_to_message_id' => $attributes['reply_to_message_id'] ?? null,
-        ]));
+        $message = DB::transaction(static function () use ($author, $attributes) {
+            $author->update([
+                'last_read_at' => now(),
+            ]);
+
+            return $author->messages()->create([
+                'content' => $attributes['content'] ?? null,
+                'attachments' => $attributes['attachments'] ?? [],
+                'attachment_file_names' => $attributes['attachment_file_names'] ?? [],
+                'reply_to_message_id' => $attributes['reply_to_message_id'] ?? null,
+            ]);
+        });
 
         broadcast(new MessageSent($message, $conversation))->toOthers();
 
