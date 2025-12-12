@@ -54,8 +54,6 @@ class CreateConversation
 
             /* @var ConversationParticipation $creatorParticipant */
             $creatorParticipant = $creator->conversationParticipations()->create([
-                'joined_at' => $timestamp,
-                'invited_at' => $timestamp,
                 'conversation_id' => $conversationKey,
             ]);
 
@@ -67,8 +65,6 @@ class CreateConversation
                 }
 
                 $participant->conversationParticipations()->create([
-                    'joined_at' => $timestamp,
-                    'invited_at' => $timestamp,
                     'conversation_id' => $conversationKey,
                 ]);
             });

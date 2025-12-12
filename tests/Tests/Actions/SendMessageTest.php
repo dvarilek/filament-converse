@@ -26,6 +26,7 @@ it('can send a message', function () {
 
     $message = app(SendMessage::class)->handle(
         $author,
+        $conversation,
         [
             'content' => 'Test message',
             'attachments' => [],
@@ -54,7 +55,7 @@ it('can send a message through message model', function () {
 
     $author = $conversation->creator;
 
-    $message = $author->sendMessage([
+    $message = $author->sendMessage($conversation, [
         'content' => 'Test message',
     ]);
 
@@ -80,11 +81,11 @@ it('can send a reply to a message', function () {
 
     $author = $conversation->creator;
 
-    $message = $author->sendMessage([
+    $message = $author->sendMessage($conversation, [
         'content' => 'First text message',
     ]);
 
-    $reply = $conversation->otherParticipations->first()->sendMessage([
+    $reply = $conversation->otherParticipations->first()->sendMessage($conversation, [
         'content' => 'Second text message',
         'reply_to_message_id' => $message->getKey(),
     ]);

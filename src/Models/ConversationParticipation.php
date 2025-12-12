@@ -18,8 +18,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * @property-read Carbon|null $joined_at
- * @property-read Carbon|null $invited_at
  * @property-read Carbon|null $last_read_at
  * @property-read int|string $participant_id
  * @property-read Carbon|null $created_at
@@ -37,8 +35,6 @@ class ConversationParticipation extends Model
      * @var array<string>
      */
     protected $fillable = [
-        'joined_at',
-        'invited_at',
         'last_read_at',
         'conversation_id',
         'participant_id',
@@ -49,8 +45,6 @@ class ConversationParticipation extends Model
      */
     protected $casts = [
         'id' => 'string',
-        'joined_at' => 'datetime',
-        'invited_at' => 'datetime',
         'last_read_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -94,11 +88,6 @@ class ConversationParticipation extends Model
         return $this->belongsTo(FilamentConverseServiceProvider::getFilamentConverseUserModel(), 'participant_id');
     }
 
-    public function isPending(): bool
-    {
-        return $this->joined_at === null;
-    }
-
     /**
      * @param  array<string, mixed>  $attributes
      */
@@ -106,7 +95,7 @@ class ConversationParticipation extends Model
     {
         return app(SendMessage::class)->handle($this, $conversation, $attributes);
     }
-    
+
     public function readConversation(Conversation $conversation): void
     {
         app(ReadConversation::class)->handle($this, $conversation);

@@ -68,21 +68,21 @@ describe('render', function () {
         $conversation = app(CreateConversation::class)->handle($creator, $otherUser, ['type' => ConversationTypeEnum::DIRECT]);
 
         livewire(ConversationManager::class)
-            ->assertSeeText(__('filament-converse::conversation-list.last-message.empty-state'));
+            ->assertSeeText(__('filament-converse::conversation-list.latest-message.empty-state'));
 
-        $firstMessage = app(SendMessage::class)->handle($conversation->creator, [
+        $firstMessage = app(SendMessage::class)->handle($conversation->creator, $conversation, [
             'content' => 'Test message',
         ]);
 
         livewire(ConversationManager::class)
-            ->assertSeeText(__('filament-converse::conversation-list.last-message.current-user') . ': ' . $firstMessage->content);
+            ->assertSeeText(__('filament-converse::conversation-list.latest-message.current-user') . ': ' . $firstMessage->content);
 
         Carbon::setTestNow(now()->addMinutes(5));
 
         /* @var ConversationParticipation $otherParticipant */
         $otherParticipant = $conversation->otherParticipations()->first();
 
-        $secondMessage = app(SendMessage::class)->handle($otherParticipant, [
+        $secondMessage = app(SendMessage::class)->handle($otherParticipant, $conversation, [
             'content' => 'Second test message',
         ]);
 
@@ -182,7 +182,7 @@ describe('actions', function () {
         $this->actingAs($creator);
 
         $livewire = livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateDirectConversationAction::getDefaultName())->schemaComponent('conversation-list'), [
+            ->callAction(TestAction::make(CreateDirectConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
                 'participant' => $otherUser->getKey(),
             ])
             ->assertHasNoErrors();
@@ -208,7 +208,7 @@ describe('actions', function () {
         $this->actingAs(User::factory()->create());
 
         livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateDirectConversationAction::getDefaultName())->schemaComponent('conversation-list'))
+            ->callAction(TestAction::make(CreateDirectConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'))
             ->assertHasFormErrors(['participant' => 'required']);
     });
 
@@ -220,7 +220,7 @@ describe('actions', function () {
         $this->actingAs($creator);
 
         $livewire = livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation-list'), [
+            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
             ])
             ->assertHasNoErrors();
@@ -250,7 +250,7 @@ describe('actions', function () {
         $this->actingAs($creator);
 
         $livewire = livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation-list'), [
+            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
                 'name' => 'Test conversation',
                 'description' => 'Test description',
@@ -278,7 +278,7 @@ describe('actions', function () {
         $this->actingAs(User::factory()->create());
 
         livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation-list'))
+            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'))
             ->assertHasFormErrors(['participants' => 'required']);
     });
 });

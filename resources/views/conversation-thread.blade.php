@@ -222,7 +222,6 @@
                     // TODO:
                     //       refactor group message timestamp...
                     //       Custom message view
-                    //       Remove joined_at and invited_at
                     //       Download by tapping (temp solution)
 
                     $messageColor = $getMessageColor($message, $messages);

@@ -32,6 +32,8 @@ abstract class TestCase extends OrchestraTestCase
 
         Filament::setCurrentPanel('default');
 
+        $this->withoutVite();
+
         $this->loadLaravelMigrations();
         $this->loadMigrationsFrom(__DIR__ . '/database/migrations');
 
