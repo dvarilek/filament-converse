@@ -9,13 +9,12 @@
     use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
 
-    $shouldShowConversationImage = $shouldShowConversationImage();
-    $hasIsConversationUnreadClosure = $hasIsConversationUnreadClosure();
-
     /* @var Collection<int, Conversation> $conversations */
     $conversations = $getConversations();
     $totalConversationsCount = $this->getBaseFilteredConversationsQuery()->count();
     $activeConversation = $getActiveConversation();
+    /* @var ComponentAttributeBag $extraConversationAttributeBag */
+    $extraConversationAttributeBag = $getExtraConversationAttributeBag();
 
     $headerActions = array_filter(
         $getChildComponents(ConversationList::HEADER_ACTIONS_KEY),
@@ -24,7 +23,6 @@
 @endphp
 
 <div
-    class="fi-converse-conversation-list"
     x-show="!isBelowLg || showConversationListSidebar"
     x-on:click.away="showConversationListSidebar = false"
     x-data="{
@@ -40,6 +38,12 @@
             }
         }
     }"
+    {{
+        $getExtraAttributeBag()
+            ->class([
+                "fi-converse-conversation-list"
+            ])
+    }}
 >
     <div class="fi-converse-conversation-list-header">
         <div class="fi-converse-conversation-list-header-top">
@@ -141,34 +145,31 @@
         @if (count($conversations))
             @foreach ($conversations as $conversation)
                 @php
+                    /* @var ?Message $latestMessage */
+                    $latestMessage = $getLatestMessage($conversation);
                     $conversationName = $getConversationName($conversation);
+                    $showConversationImage = $shouldShowConversationImage($conversation);
+                    $unreadMessagesCount = $getUnreadMessagesCount($conversation);
                     $conversationKey = $conversation->getKey();
-
-                    /* @var Message $latestMessage */
-                    $latestMessage = $conversation
-                        ->participations
-                        ->pluck('latestMessage')
-                        ->filter()
-                        ->sortByDesc('created_at')
-                        ->first();
-
-                    $latestMessage = $conversation->messages()->latest('created_at')->first();
                 @endphp
 
                 <li
                     wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}"
-                    x-on:click="
-                    await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
-                    showConversationListSidebar = false
-                "
                     wire:loading.attr="disabled"
-                    @class([
-                        'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
-                        'fi-converse-conversation-list-item-unread' => $hasIsConversationUnreadClosure && $isConversationUnread($conversation),
-                        'fi-converse-conversation-list-item',
-                    ])
+                    x-on:click="
+                        await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
+                        showConversationListSidebar = false
+                    "
+                    {{
+                        $extraConversationAttributeBag
+                            ->class([
+                                'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
+                                'fi-converse-conversation-list-item-unread' => $unreadMessagesCount,
+                                'fi-converse-conversation-list-item',
+                            ])
+                    }}
                 >
-                    @if ($shouldShowConversationImage)
+                    @if ($showConversationImage)
                         <x-filament-converse::conversation-image
                             :conversation="$conversation"
                             :conversation-name="$conversationName"
@@ -178,7 +179,7 @@
                     @endif
 
                     <div class="fi-converse-conversation-list-item-content">
-                        <div class="fi-converse-conversation-list-item-title">
+                        <div class="fi-converse-conversation-list-item-header">
                             <h4 class="fi-converse-conversation-list-item-heading">
                                 {{ $conversationName }}
                             </h4>
@@ -187,19 +188,33 @@
                                 <p
                                     class="fi-converse-conversation-list-item-time-indicator"
                                 >
-                                    {{ $getLatestMessageDateTime($conversation, $latestMessage) }}
+                                    {{ $getLatestMessageDateTime($latestMessage, $conversation) }}
                                 </p>
                             @endif
                         </div>
-                        <p
-                            class="fi-converse-conversation-list-item-last-message-description"
-                        >
-                            @if ($latestMessage)
-                                {{ $getLatestMessageContent($conversation, $latestMessage) }}
-                            @else
-                                {{ $getLatestMessageEmptyContent() }}
+
+                        <div class="fi-converse-conversation-list-item-footer">
+                            <p
+                                class="fi-converse-conversation-list-item-last-message-description"
+                            >
+                                @if ($latestMessage)
+                                    {{ $getLatestMessageContent($latestMessage, $conversation) }}
+                                @else
+                                    {{ $getLatestMessageEmptyContent($conversation) }}
+                                @endif
+                            </p>
+
+                            @if ($unreadMessagesCount)
+                                <x-filament::badge
+                                    :icon="$getUnreadMessagesBadgeIcon($latestMessage, $conversation)"
+                                    :color="$getUnreadMessagesBadgeColor($latestMessage, $conversation)"
+                                    size="sm"
+                                >
+                                    {{ $unreadMessagesCount > 100 ? "99+" : $unreadMessagesCount }}
+                                </x-filament::badge>
                             @endif
-                        </p>
+                        </div>
+
                     </div>
                 </li>
             @endforeach

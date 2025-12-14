@@ -17,7 +17,7 @@ trait BelongsToConversationSchema
 
     protected ?Closure $formatConversationNameUsing = null;
 
-    protected ?Closure $isConversationUnread = null;
+    protected ?Closure $getUnreadMessagesCountUsing = null;
 
     public function showConversationImage(bool | Closure | null $condition = true): static
     {
@@ -33,30 +33,36 @@ trait BelongsToConversationSchema
         return $this;
     }
 
-    public function isConversationUnreadUsing(?Closure $callback = null): static
+    public function getUnreadMessagesCountUsing(?Closure $callback = null): static
     {
-        $this->isConversationUnread = $callback;
+        $this->getUnreadMessagesCountUsing = $callback;
 
         return $this;
     }
 
-    public function shouldShowConversationImage(): bool
+    public function shouldShowConversationImage(Conversation $conversation): bool
     {
-        return (bool) $this->evaluate($this->shouldShowConversationImage);
-    }
-
-    public function isConversationUnread(Conversation $conversation): bool
-    {
-        return (bool) $this->evaluate($this->isConversationUnread, [
+        return (bool) $this->evaluate($this->shouldShowConversationImage, [
             'conversation' => $conversation,
         ], [
             Conversation::class => $conversation,
         ]);
     }
 
-    public function hasIsConversationUnreadClosure(): bool
+    public function getUnreadMessagesCount(Conversation $conversation): int
     {
-        return $this->isConversationUnread !== null;
+        if ($this->getUnreadMessagesCountUsing) {
+            return $this->evaluate($this->getUnreadMessagesCountUsing, [
+                'conversation' => $conversation,
+            ], [
+                Conversation::class => $conversation,
+            ]);
+        }
+        
+        return $conversation
+            ->participations
+            ->firstWhere('participant_id', auth()->id())
+            ->unread_messages_count;
     }
 
     public function getConversationName(Conversation $conversation): string | Htmlable | null

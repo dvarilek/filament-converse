@@ -69,16 +69,27 @@
 
             &:is(
                 .fi-converse-conversation-list-item-active,
-                .fi-converse-conversation-list-item-unread,
                 :hover
             ) {
                 @apply bg-gray-100 dark:bg-white/5;
             }
 
+            &.fi-converse-conversation-list-item-unread {
+                & .fi-converse-conversation-list-item-last-message-description {
+                    @apply text-gray-950 dark:text-white font-semibold;
+                }
+            }
+
+            &:not(.fi-converse-conversation-list-item-unread) {
+                & .fi-converse-conversation-list-item-last-message-description {
+                    @apply text-gray-600 dark:text-gray-400;
+                }
+            }
+
             & .fi-converse-conversation-list-item-content {
                 @apply min-w-0 flex-1;
 
-                & .fi-converse-conversation-list-item-title {
+                & .fi-converse-conversation-list-item-header {
                     @apply flex items-center justify-between gap-2;
 
                     & .fi-converse-conversation-list-item-heading {
@@ -90,8 +101,16 @@
                     }
                 }
 
-                & .fi-converse-conversation-list-item-last-message-description {
-                    @apply truncate pt-1.5 text-sm text-gray-600 dark:text-gray-400;
+                & .fi-converse-conversation-list-item-footer {
+                    @apply flex items-center gap-1 justify-between;
+
+                    & .fi-badge {
+                        @apply self-end;
+                    }
+
+                    & .fi-converse-conversation-list-item-last-message-description {
+                        @apply truncate pt-1.5 text-sm;
+                    }
                 }
             }
         }

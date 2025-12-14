@@ -131,7 +131,7 @@
         & .fi-converse-conversation-thread-message-container {
             @apply mt-3 flex flex-col gap-1 px-4;
 
-            & .fi-converse-conversation-thread-group-message-timestamp {
+            & .fi-converse-conversation-thread-message-divider-content {
                 @apply flex w-full items-center justify-center text-xs text-gray-600 dark:text-gray-400;
             }
 
@@ -143,10 +143,10 @@
                 }
 
                 & .fi-converse-conversation-thread-message-content {
-                    @apply flex flex-col gap-1;
+                    @apply flex flex-col gap-1 flex-1;
 
                     & .fi-converse-conversation-thread-message-heading {
-                        @apply w-full max-w-4/5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 dark:text-gray-400 overflow-hidden;
+                        @apply  max-w-4/5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600 dark:text-gray-400 overflow-hidden;
 
                         & > * {
                             @apply break-words min-w-0 hyphens-auto;
@@ -154,10 +154,10 @@
                     }
 
                     & .fi-converse-conversation-thread-message-body-container {
-                        @apply flex w-full gap-3;
+                        @apply flex w-fit gap-3;
 
                         & .fi-converse-conversation-thread-message-body {
-                            @apply flex flex-1 flex-col bg-color-100 max-w-4/5 dark:bg-color-400/10 rounded-xl px-3 py-1 self-start;
+                            @apply flex min-w-14 flex-1 flex-col bg-color-100 max-w-4/5 dark:bg-color-400/10 rounded-xl px-3 py-1 self-start;
 
                             & > p {
                                 @apply wrap-anywhere text-sm leading-6;
@@ -196,8 +196,12 @@
                 & .fi-converse-conversation-thread-message-layout {
                     @apply flex-row-reverse self-end;
 
+                    & .fi-converse-conversation-thread-message-heading {
+                        @apply flex-row-reverse self-end;
+                    }
+
                     & .fi-converse-conversation-thread-message-body-container {
-                        @apply flex-row-reverse;
+                        @apply flex-row-reverse self-end;
                     }
 
                     & .fi-converse-conversation-thread-message-body {

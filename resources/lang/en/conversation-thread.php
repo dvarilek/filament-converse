@@ -38,6 +38,14 @@ return [
 
     ],
 
+    'message-section-divider' => [
+        
+        'today' => 'Today',
+        
+        'yesterday' => 'Yesterday',
+        
+    ],
+    
     'footer-actions' => [
 
         'upload-attachment-label' => 'Upload Attachments',
@@ -45,7 +53,7 @@ return [
         'send-message-label' => 'Send Message',
 
     ],
-
+    
     'read-receipt' => [
 
         'seen' => 'Seen',

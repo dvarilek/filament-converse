@@ -12,6 +12,7 @@ use Filament\Forms\Components\Concerns\HasFileAttachments as BaseHasFileAttachme
 use Filament\Schemas\Components\Icon;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Arr;
@@ -34,6 +35,8 @@ trait HasFileAttachments
     protected string | Htmlable | Closure | null $attachmentModalHeading = null;
 
     protected string | Htmlable | Closure | null $attachmentModalDescription = null;
+
+    protected ?Closure $getMessageAttachmentDataUsing = null;
 
     protected string | Closure | null $attachmentsAcceptedFileTypesValidationMessage = null;
 
@@ -145,6 +148,13 @@ trait HasFileAttachments
     public function attachmentModalDescription(string | Htmlable | Closure | null $description): static
     {
         $this->attachmentModalDescription = $description;
+
+        return $this;
+    }
+
+    public function getMessageAttachmentDataUsing(?Closure $callback): static
+    {
+        $this->getMessageAttachmentDataUsing = $callback;
 
         return $this;
     }
@@ -409,6 +419,24 @@ trait HasFileAttachments
         return $this->evaluate($this->attachmentModalDescription);
     }
 
+    /**
+     * @param  Collection<int, Message> $messages
+     *
+     * @return array{attachmentOriginalName: string, attachmentMimeType: string, hasImageMimeType: bool, shouldShowOnlyMessageImageAttachment: bool}
+     */
+    public function getMessageAttachmentData(Message $message, Authenticatable $messageAuthor, Collection $messages): array
+    {
+        return $this->evaluate($this->getMessageAttachmentDataUsing, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+            Collection::class => $messages,
+        ]);
+    }
+
     public function getAttachmentsAcceptedFileTypesValidationMessage(array $fileAttachmentsAcceptedFileTypes): string
     {
         return $this->evaluate($this->attachmentsAcceptedFileTypesValidationMessage, [
@@ -628,16 +656,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function shouldShowOnlyMessageImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): bool
+    public function shouldShowOnlyMessageImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): bool
     {
         $result = $this->evaluate($this->shouldShowOnlyMessageImageAttachment, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]);
 
@@ -651,16 +681,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function shouldPreviewMessageImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): bool
+    public function shouldPreviewMessageImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): bool
     {
         $result = $this->evaluate($this->shouldPreviewMessageImageAttachment, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]);
 
@@ -674,16 +706,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getMessageFileAttachmentName(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): string | Htmlable
+    public function getMessageFileAttachmentName(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable
     {
         return $this->evaluate($this->formatMessageFileAttachmentName, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]) ?? $attachmentOriginalName;
     }
@@ -691,16 +725,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getMessageFileAttachmentToolbar(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): string | Htmlable | null
+    public function getMessageFileAttachmentToolbar(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable | null
     {
         return $this->evaluate($this->messageFileAttachmentToolbar, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]);
     }
@@ -708,16 +744,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getMessageFileAttachmentIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): Htmlable | Icon | null
+    public function getMessageFileAttachmentIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): Htmlable | Icon | null
     {
         $icon = $this->evaluate($this->messageFileAttachmentIcon, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]);
 
@@ -739,16 +777,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getMessageFileAttachmentIconColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): string | array
+    public function getMessageFileAttachmentIconColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): string | array
     {
         return $this->evaluate($this->messageFileAttachmentIconColor, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]) ?? $this->getDefaultFileAttachmentIconColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
@@ -756,16 +796,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getMessageFileAttachmentMimeTypeBadgeLabel(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): string | Htmlable | null
+    public function getMessageFileAttachmentMimeTypeBadgeLabel(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable | null
     {
         return $this->evaluate($this->messageFileAttachmentMimeTypeBadgeLabel, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
@@ -773,16 +815,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getMessageFileAttachmentMimeTypeBadgeIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): string | BackedEnum | null
+    public function getMessageFileAttachmentMimeTypeBadgeIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): string | BackedEnum | null
     {
         return $this->evaluate($this->messageFileAttachmentMimeTypeBadgeIcon, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
@@ -790,16 +834,18 @@ trait HasFileAttachments
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getMessageFileAttachmentMimeTypeBadgeColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Collection $messages): string | array
+    public function getMessageFileAttachmentMimeTypeBadgeColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, Message $message, Authenticatable $messageAuthor, Collection $messages): string | array
     {
         return $this->evaluate($this->messageFileAttachmentMimeTypeBadgeColor, [
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]) ?? $this->getDefaultFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType);
     }
@@ -882,32 +928,5 @@ trait HasFileAttachments
         }
 
         return $attachments;
-    }
-
-    /**
-     * @param  Collection<int, Message> $messages
-     * 
-     * @return array{attachmentOriginalName: string, attachmentMimeType: string, hasImageMimeType: bool, shouldShowOnlyMessageImageAttachment: bool}
-     */
-    public function getMessageAttachmentData(Message $message, Collection $messages): array
-    {
-        $fileAttachmentsDisk = $this->getFileAttachmentsDisk();
-
-        return collect(array_combine($message->attachments, $message->attachment_file_names))
-            ->filter(static fn (string $attachmentOriginalName, string $attachmentPath) => $fileAttachmentsDisk->exists($attachmentPath))
-            ->mapWithKeys(function (string $attachmentOriginalName, string $attachmentPath) use ($fileAttachmentsDisk, $message, $messages) {
-                $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentPath);
-                $hasImageMimeType = $this->isImageMimeType($attachmentMimeType);
-
-                return [
-                    $attachmentPath => [
-                        'attachmentOriginalName' => $attachmentOriginalName,
-                        'attachmentMimeType' => $attachmentMimeType,
-                        'hasImageMimeType' => $hasImageMimeType,
-                        'shouldShowOnlyMessageImageAttachment' => $this->shouldShowOnlyMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messages),
-                    ],
-                ];
-            })
-            ->toArray();
     }
 }

@@ -10,6 +10,8 @@ use Dvarilek\FilamentConverse\Events\UserTyping;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
+use Filament\Support\Concerns\HasExtraAttributes;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
@@ -22,10 +24,11 @@ use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -36,6 +39,8 @@ class ConversationThread extends Textarea
     use Concerns\HasFileAttachments;
     use Concerns\HasReadReceipts;
     use Concerns\HasTypingIndicator;
+    use Concerns\HasExtraMessageAttributes;
+    use HasExtraAttributes;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
 
@@ -52,24 +57,24 @@ class ConversationThread extends Textarea
 
     protected int | Closure | null $messagesLoadedPerPage = 15;
 
-    protected ?Closure $formatMessageTimestampUsing = null;
+    protected ?Closure $getMessageAuthorNameUsing = null;
 
-    protected int | Closure | null $messageGroupingInterval = 420;
+    protected ?Closure $getMessageAuthorAvatarUsing = null;
 
-    protected ?Closure $formatMessageGroupTimestampUsing = null;
+    protected ?Closure $getMessageTimestampUsing = null;
 
-    protected int | Closure | null $autoScrollOnForeignMessagesThreshold = 300;
+    protected ?Closure $getMessageContentUsing = null;
 
-    protected ?Closure $modifyMessagesQueryUsing = null;
+    protected string | Htmlable | Closure | null $messageDividerContent = null;
 
     /**
      * @param  string | array<string> | Closure | null  $messageColor
      */
     protected string | array | Closure | null $messageColor = null;
 
-    protected bool | Closure $shouldShowMessageAuthorAvatar = true;
+    protected int | Closure | null $autoScrollOnForeignMessagesThreshold = 300;
 
-    protected bool | Closure $shouldShowMessageAuthorName = true;
+    protected ?Closure $modifyMessagesQueryUsing = null;
 
     protected ?Closure $modifyEditConversationActionUsing = null;
 
@@ -102,50 +107,38 @@ class ConversationThread extends Textarea
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
-        $this->formatMessageGroupTimestampUsing(static function (Carbon $timestamp, Message $message): string {
-            return match (true) {
-                ! $timestamp->isCurrentYear() => $timestamp->isoFormat('L LT'),
-                $timestamp->isCurrentWeek() && ! $timestamp->isCurrentDay() => $timestamp->isoFormat('ddd LT'),
-                ! $timestamp->isCurrentDay() => $timestamp->isoFormat('D MMMM LT'),
-                default => $timestamp->isoFormat('LT'),
-            };
+        $this->getMessageContentUsing(static function (Message $message): ?string {
+            return $message->content;
         });
 
-        $this->messageColor(static function (Message $message): string {
-            return $message->author->participant->getKey() === auth()->id() ? 'primary' : 'gray';
+        $this->getMessageAttachmentDataUsing(static function (ConversationThread $component, Message $message, Authenticatable $messageAuthor, Collection $messages): array {
+            $fileAttachmentsDisk = $component->getFileAttachmentsDisk();
+
+            return collect(array_combine($message->attachments, $message->attachment_file_names))
+                ->filter(static fn (string $attachmentOriginalName, string $attachmentPath) => $fileAttachmentsDisk->exists($attachmentPath))
+                ->mapWithKeys(function (string $attachmentOriginalName, string $attachmentPath) use ($component, $fileAttachmentsDisk, $message, $messageAuthor, $messages, ) {
+                    $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentPath);
+                    $hasImageMimeType = $component->isImageMimeType($attachmentMimeType);
+
+                    return [
+                        $attachmentPath => [
+                            'attachmentOriginalName' => $attachmentOriginalName,
+                            'attachmentMimeType' => $attachmentMimeType,
+                            'hasImageMimeType' => $hasImageMimeType,
+                            'shouldShowOnlyMessageImageAttachment' => $component->shouldShowOnlyMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages),
+                        ],
+                    ];
+                })
+                ->toArray();
         });
 
-        $this->showReadReceipts(static function (Message $message, Collection $readByParticipationsAsLastMessage): bool {
-            $user = auth()->user();
+        $this->messenger();
 
-            if (! in_array(Conversable::class, class_uses_recursive($user))) {
-                FilamentConverseException::throwInvalidConversableUserException($user);
-            }
-
-            return $readByParticipationsAsLastMessage
-                ->reject(static fn(ConversationParticipation $participation) =>
-                    $participation->getKey() === $message->author_id ||
-                    $participation->participant_id === $user->getKey()
-                )
-                ->isNotEmpty();
+        $this->messageColor(static function (Authenticatable $messageAuthor): string {
+            return $messageAuthor->getKey() === auth()->id() ? 'primary' : 'gray';
         });
 
-        $this->showFullReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipations): bool {
-            $user = auth()->user();
-
-            if (! in_array(Conversable::class, class_uses_recursive($user))) {
-                FilamentConverseException::throwInvalidConversableUserException($user);
-            }
-
-            $otherReadByParticipations = $readByParticipations->reject(static fn(ConversationParticipation $participation) =>
-                $participation->getKey() === $message->author_id ||
-                $participation->participant_id === $user->getKey()
-            );
-
-            return $readByParticipations->count() !== $conversation->participations->count() && $otherReadByParticipations->count() > 4;
-        });
-
-        $this->shortenedReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipations): ?string {
+        $this->shortenedReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipationsAsLastMessage): ?string {
             $user = auth()->user();
 
             if (! in_array(Conversable::class, class_uses_recursive($user))) {
@@ -154,7 +147,7 @@ class ConversationThread extends Textarea
 
             $userNameAttribute = $user::getFilamentNameAttribute();
 
-            $otherParticipantNames = $readByParticipations
+            $otherParticipantNames = $readByParticipationsAsLastMessage
                 ->reject(static fn(ConversationParticipation $participation) =>
                     $participation->getKey() === $message->author_id ||
                     $participation->participant_id === $user->getKey()
@@ -178,7 +171,7 @@ class ConversationThread extends Textarea
                     'secondName' => $otherParticipantNames->get(1),
                     'thirdName' => $otherParticipantNames->get(2),
                 ]),
-                $readByParticipations->count() === $conversation->participations->count() => __('filament-converse::conversation-thread.read-receipt.seen-by-everyone'),
+                $readByParticipationsAsLastMessage->count() === $conversation->participations->count() => __('filament-converse::conversation-thread.read-receipt.seen-by-everyone'),
                 default => __('filament-converse::conversation-thread.read-receipt.seen-by-many-shortened', [
                     'firstName' => $otherParticipantNames->get(0),
                     'secondName' => $otherParticipantNames->get(1),
@@ -188,7 +181,22 @@ class ConversationThread extends Textarea
             };
         });
 
-        $this->fullReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipations): ?string {
+        $this->showFullReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipationsAsLastMessage): bool {
+            $user = auth()->user();
+
+            if (! in_array(Conversable::class, class_uses_recursive($user))) {
+                FilamentConverseException::throwInvalidConversableUserException($user);
+            }
+
+            $otherReadByParticipations = $readByParticipationsAsLastMessage->reject(static fn(ConversationParticipation $participation) =>
+                $participation->getKey() === $message->author_id ||
+                $participation->participant_id === $user->getKey()
+            );
+
+            return $readByParticipationsAsLastMessage->count() !== $conversation->participations->count() && $otherReadByParticipations->count() > 4;
+        });
+
+        $this->fullReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipationsAsLastMessage): ?string {
             $user = auth()->user();
 
             if (! in_array(Conversable::class, class_uses_recursive($user))) {
@@ -197,7 +205,7 @@ class ConversationThread extends Textarea
 
             $userNameAttribute = $user::getFilamentNameAttribute();
 
-            $otherParticipantNames = $readByParticipations
+            $otherParticipantNames = $readByParticipationsAsLastMessage
                 ->reject(static fn(ConversationParticipation $participation) =>
                     $participation->getKey() === $message->author_id ||
                     $participation->participant_id === $user->getKey()
@@ -212,7 +220,7 @@ class ConversationThread extends Textarea
                     : __('filament-converse::conversation-thread.read-receipt.seen-by-one', [
                         'name' => $otherParticipantNames->first()
                     ]),
-                $readByParticipations->count() === $conversation->participations->count() => __('filament-converse::conversation-thread.read-receipt.seen-by-everyone'),
+                $readByParticipationsAsLastMessage->count() === $conversation->participations->count() => __('filament-converse::conversation-thread.read-receipt.seen-by-everyone'),
                 default => __('filament-converse::conversation-thread.read-receipt.seen-by-many-full', [
                     'names'    => $otherParticipantNames->slice(0, -1)->join(', '),
                     'lastName' => $otherParticipantNames->last(),
@@ -227,14 +235,6 @@ class ConversationThread extends Textarea
             'other' => __('filament-converse::conversation-thread.typing-indicator.other'),
             'others' => __('filament-converse::conversation-thread.typing-indicator.others'),
         ]);
-
-        $this->showMessageAuthorAvatar(static function (Message $message): bool {
-            return $message->author->participant->getKey() !== auth()->id();
-        });
-
-        $this->showMessageAuthorName(static function (Message $message): bool {
-            return $message->author->participant->getKey() !== auth()->id();
-        });
 
         $this->fileAttachmentsAcceptedFileTypes([
             'image/png',
@@ -313,6 +313,123 @@ class ConversationThread extends Textarea
         ]);
     }
 
+    public function classic(): static
+    {
+        $this->getMessageAuthorNameUsing(static function (Authenticatable $messageAuthor): ?string {
+            return $messageAuthor->getKey() !== auth()->id() ? $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute()) : null;
+        });
+
+        $this->getMessageAuthorAvatarUsing(static function (Authenticatable $messageAuthor): ?string {
+            return $messageAuthor->getKey() !== auth()->id() ? filament()->getUserAvatarUrl($messageAuthor) : null;
+        });
+
+        $this->getMessageTimestampUsing(static function (Message $message): string {
+            $timestamp = $message->created_at;
+
+            return match (true) {
+                !$timestamp->isCurrentYear() => $timestamp->isoFormat('L LT'),
+                $timestamp->isToday() => $timestamp->isoFormat('LT'),
+                default => $timestamp->isoFormat('D.M LT'),
+            };
+        });
+
+        $this->messageDividerContent(static function (Message $message, Collection $messages): ?string {
+            $currentMessageIndex = $messages->search(static fn (Message $msg) => $msg->getKey() === $message->getKey());
+
+            if ($currentMessageIndex === false) {
+                return null;
+            }
+            /* @var ?Message $nextMessage */
+            $nextMessage = $messages->get($currentMessageIndex + 1);
+            $currentMessageTimestamp = $message->created_at;
+
+            if ($nextMessage && $currentMessageTimestamp->isSameDay($nextMessage->created_at)) {
+                return null;
+            }
+
+            return match (true) {
+                $currentMessageTimestamp->isToday() => __('filament-converse::conversation-thread.message-section-divider.today'),
+                $currentMessageTimestamp->isYesterday() => __('filament-converse::conversation-thread.message-section-divider.yesterday'),
+                $currentMessageTimestamp->isCurrentWeek() => $currentMessageTimestamp->isoFormat('dddd'),
+                $currentMessageTimestamp->isCurrentYear() => $currentMessageTimestamp->isoFormat('D MMMM'),
+                default => $currentMessageTimestamp->isoFormat('L'),
+            };
+        });
+
+        return $this;
+    }
+
+    public function messenger(): static
+    {
+        $this->getMessageAuthorNameUsing(static function (Conversation $conversation, Message $message, Authenticatable $messageAuthor, Collection $messages): ?string {
+            if ($messageAuthor->getKey() === auth()->id()) {
+                return null;
+            }
+
+            $currentMessageIndex = $messages->search(static fn (Message $msg) => $msg->getKey() === $message->getKey());
+
+            if ($currentMessageIndex === false) {
+                return null;
+            }
+
+            /* @var ?Message $nextMessage */
+            $nextMessage = $messages->get($currentMessageIndex + 1);
+
+            if ($nextMessage && $conversation->participations->firstWhere((new ConversationParticipation())->getKeyName(), $nextMessage->author_id)->participant_id === $messageAuthor->getKey()) {
+                return null;
+            }
+
+            return $messageAuthor->getAttributeValue($messageAuthor::getFilamentNameAttribute());
+        });
+
+        $this->getMessageAuthorAvatarUsing(static function (Conversation $conversation, Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable | null {
+            if ($messageAuthor->getKey() === auth()->id()) {
+                return null;
+            }
+
+            $currentMessageIndex = $messages->search(static fn (Message $msg) => $msg->getKey() === $message->getKey());
+
+            if ($currentMessageIndex === false) {
+                return null;
+            }
+
+            /* @var ?Message $previousMessage */
+            $previousMessage = $messages->get($currentMessageIndex - 1);
+
+            if ($previousMessage && $conversation->participations->firstWhere((new ConversationParticipation())->getKeyName(), $previousMessage->author_id)->participant_id === $messageAuthor->getKey()) {
+                return new HtmlString("<div style='width: 32px' content: ''></div>");
+            }
+
+            return filament()->getUserAvatarUrl($messageAuthor);
+        });
+
+        $this->getMessageTimestampUsing();
+
+        $this->messageDividerContent(static function (Message $message, Collection $messages): ?string {
+            $currentMessageIndex = $messages->search(static fn (Message $msg) => $msg->getKey() === $message->getKey());
+
+            if ($currentMessageIndex === false) {
+                return null;
+            }
+            /* @var ?Message $nextMessage */
+            $nextMessage = $messages->get($currentMessageIndex + 1);
+            $currentMessageTimestamp = $message->created_at;
+
+            if ($nextMessage && $nextMessage->created_at->diffInMinutes($currentMessageTimestamp) <= 7) {
+                return null;
+            }
+
+            return match (true) {
+                !$currentMessageTimestamp->isCurrentYear() => $currentMessageTimestamp->isoFormat('L LT'),
+                $currentMessageTimestamp->isCurrentWeek() && !$currentMessageTimestamp->isToday() => $currentMessageTimestamp->isoFormat('ddd LT'),
+                !$currentMessageTimestamp->isToday() => $currentMessageTimestamp->isoFormat('D MMMM LT'),
+                default => $currentMessageTimestamp->isoFormat('LT'),
+            };
+        });
+
+        return $this;
+    }
+
     public function maxHeight(int | Closure | null $maxHeight): static
     {
         $this->maxHeight = $maxHeight;
@@ -334,30 +451,37 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function formatMessageTimestampUsing(?Closure $callback): static
+    public function getMessageAuthorNameUsing(?Closure $callback = null): static
     {
-        $this->formatMessageTimestampUsing = $callback;
+        $this->getMessageAuthorNameUsing = $callback;
 
         return $this;
     }
 
-    public function messageGroupingInterval(string | Closure | null $seconds): static
+    public function getMessageAuthorAvatarUsing(?Closure $callback = null): static
     {
-        $this->messageGroupingInterval = $seconds;
+        $this->getMessageAuthorAvatarUsing = $callback;
 
         return $this;
     }
 
-    public function autoScrollOnForeignMessagesThreshold(int | Closure | null $pixels): static
+    public function getMessageTimestampUsing(?Closure $callback = null): static
     {
-        $this->autoScrollOnForeignMessagesThreshold = $pixels;
+        $this->getMessageTimestampUsing = $callback;
 
         return $this;
     }
 
-    public function formatMessageGroupTimestampUsing(?Closure $callback): static
+    public function getMessageContentUsing(?Closure $callback = null): static
     {
-        $this->formatMessageGroupTimestampUsing = $callback;
+        $this->getMessageContentUsing = $callback;
+
+        return $this;
+    }
+
+    public function messageDividerContent(string | Htmlable | Closure | null $content): static
+    {
+        $this->messageDividerContent = $content;
 
         return $this;
     }
@@ -372,16 +496,9 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function showMessageAuthorAvatar(bool | Closure $condition = true): static
+    public function autoScrollOnForeignMessagesThreshold(int | Closure | null $pixels): static
     {
-        $this->shouldShowMessageAuthorAvatar = $condition;
-
-        return $this;
-    }
-
-    public function showMessageAuthorName(bool | Closure $condition = true): static
-    {
-        $this->shouldShowMessageAuthorName = $condition;
+        $this->autoScrollOnForeignMessagesThreshold = $pixels;
 
         return $this;
     }
@@ -437,87 +554,104 @@ class ConversationThread extends Textarea
     }
 
     /**
-     * @param Collection<int, Message> $messages
+     * @param  Collection<int, Message>  $messages
      */
-    public function formatMessageTimestamp(Carbon $timestamp, Message $message, Collection $messages): ?string
+    public function getMessageAuthorName(Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable | null
     {
-        return $this->evaluate($this->formatMessageTimestampUsing, [
-            'timestamp' => $timestamp,
+        return $this->evaluate($this->getMessageAuthorNameUsing, [
             'message' => $message,
+            'messageAuthor' => $messageAuthor,
             'messages' => $messages,
         ], [
-            Carbon::class => $timestamp,
             Message::class => $message,
+            Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]);
     }
 
-    public function getmessageGroupingInterval(): int
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function getMessageAuthorAvatar(Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable | null
     {
-        return $this->evaluate($this->messageGroupingInterval) ?? 420;
+        return $this->evaluate($this->getMessageAuthorAvatarUsing, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+            Collection::class => $messages,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function getMessageTimestamp(Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable | null
+    {
+        return $this->evaluate($this->getMessageTimestampUsing, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+            Collection::class => $messages,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function getMessageContent(Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable | null
+    {
+        return $this->evaluate($this->getMessageContentUsing, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+            Collection::class => $messages,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function getMessageDividerContent(Message $message, Authenticatable $messageAuthor, Collection $messages): string | Htmlable | null
+    {
+        return $this->evaluate($this->messageDividerContent, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+            Collection::class => $messages,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     */
+    public function getMessageColor(Message $message, Authenticatable $messageAuthor, Collection $messages): string | array
+    {
+        return $this->evaluate($this->messageColor, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+            Collection::class => $messages,
+        ]) ?? 'gray';
     }
 
     public function getAutoScrollOnForeignMessagesThreshold(): int
     {
         return $this->evaluate($this->autoScrollOnForeignMessagesThreshold) ?? 300;
-    }
-
-    /**
-     * @param  Collection<int, Message>  $messages
-     */
-    public function formatMessageGroupTimestamp(Carbon $timestamp, Message $message, Collection $messages): ?string
-    {
-        return $this->evaluate($this->formatMessageGroupTimestampUsing, [
-            'timestamp' => $timestamp,
-            'message' => $message,
-            'messages' => $messages,
-        ], [
-            Carbon::class => $timestamp,
-            Message::class => $message,
-            Collection::class => $messages,
-        ]);
-    }
-
-    /**
-     * @param  Collection<int, Message>  $messages
-     */
-    public function getMessageColor(Message $message, Collection $messages): string | array
-    {
-        return $this->evaluate($this->messageColor, [
-            'message' => $message,
-            'messages' => $messages,
-        ], [
-            Message::class => $message,
-            Collection::class => $messages,
-        ]) ?? 'gray';
-    }
-
-    /**
-     * @param  Collection<int, Message>  $messages
-     */
-    public function shouldShowMessageAuthorAvatar(Message $message, Collection $messages): bool
-    {
-        return (bool) $this->evaluate($this->shouldShowMessageAuthorAvatar, [
-            'message' => $message,
-            'messages' => $messages,
-        ], [
-            Message::class => $message,
-            Collection::class => $messages,
-        ]);
-    }
-
-    /**
-     * @param  Collection<int, Message>  $messages
-     */
-    public function shouldShowMessageAuthorName(Message $message, Collection $messages): bool
-    {
-        return (bool) $this->evaluate($this->shouldShowMessageAuthorName, [
-            'message' => $message,
-            'messages' => $messages,
-        ], [
-            Message::class => $message,
-            Collection::class => $messages,
-        ]);
     }
 
     /**
@@ -679,7 +813,7 @@ class ConversationThread extends Textarea
     protected function resolveDefaultClosureDependencyForEvaluationByType(string $parameterType): array
     {
         return match ($parameterType) {
-            Message::class => [$this->getActiveConversation()],
+            Conversation::class => [$this->getActiveConversation()],
             Collection::class => [$this->getMessagesQuery(false)?->get()],
             default => []
         };

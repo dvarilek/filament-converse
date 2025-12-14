@@ -6,8 +6,10 @@ use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 
@@ -175,6 +177,19 @@ trait HasConversations
     /**
      * @return Builder<Conversation>
      */
+    public function getBaseFilteredConversationsQuery(): Builder
+    {
+        $query = $this->getBaseConversationsQuery();
+
+        $this->applyConversationListSearch($query);
+        $this->applyConversationListFilters($query);
+
+        return $query;
+    }
+
+    /**
+     * @return Builder<Conversation>
+     */
     protected function getBaseConversationsQuery(): Builder
     {
         $user = auth()->user();
@@ -188,24 +203,12 @@ trait HasConversations
             ->select('conversations.*')
             ->getQuery()
             ->with([
+                'participations' => static fn (HasMany $relation) => $relation->unreadMessagesCount(),
                 'participations.latestMessage',
                 'participations.participant',
             ]);
     }
 
-    /**
-     * @return Builder<Conversation>
-     */
-    public function getBaseFilteredConversationsQuery(): Builder
-    {
-        $query = $this->getBaseConversationsQuery();
-        
-        $this->applyConversationListSearch($query);
-        $this->applyConversationListFilters($query);
-        
-        return $query;
-    }
-    
     public function getActiveConversationAuthenticatedUserParticipation(): ConversationParticipation
     {
         $user = auth()->user();

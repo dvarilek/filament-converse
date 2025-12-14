@@ -19,13 +19,13 @@ trait HasReadReceipts
     protected bool | Closure $shouldShowReadReceipts = true;
 
     protected bool | Closure $shouldMarkConversationAsRead = true;
-    
-    protected bool | Closure $shouldShowFullReadReceiptMessage = false;
 
     protected string | Htmlable | Closure | null $shortenedReadReceiptMessage = null;
 
+    protected bool | Closure $shouldShowFullReadReceiptMessage = false;
+
     protected string | Htmlable | Closure | null $fullReadReceiptMessage = null;
-    
+
     public function showReadReceipts(bool | Closure $condition = true): static
     {
         $this->shouldShowReadReceipts = $condition;
@@ -40,24 +40,24 @@ trait HasReadReceipts
         return $this;
     }
 
-    public function showFullReadReceiptMessage(bool | Closure $condition = true): static
-    {
-        $this->shouldShowFullReadReceiptMessage = $condition;
-        
-        return $this;
-    }
-    
     public function shortenedReadReceiptMessage(string | Htmlable | Closure | null $message): static
     {
         $this->shortenedReadReceiptMessage = $message;
-        
+
+        return $this;
+    }
+
+    public function showFullReadReceiptMessage(bool | Closure $condition = true): static
+    {
+        $this->shouldShowFullReadReceiptMessage = $condition;
+
         return $this;
     }
 
     public function fullReadReceiptMessage(string | Htmlable | Closure | null $message): static
     {
         $this->fullReadReceiptMessage = $message;
-        
+
         return $this;
     }
 
@@ -88,9 +88,9 @@ trait HasReadReceipts
      * @param Collection $readByParticipationsAsLastMessage
      * @param Collection<int, Message> $messages
      */
-    public function shouldShowFullReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): bool
+    public function getShortenedReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): string | Htmlable | null
     {
-        return (bool) $this->evaluate($this->shouldShowFullReadReceiptMessage, [
+        return $this->evaluate($this->shortenedReadReceiptMessage, [
             'message' => $message,
             'messages' => $messages,
             'readByParticipations' => $readByParticipations,
@@ -105,9 +105,9 @@ trait HasReadReceipts
      * @param Collection $readByParticipationsAsLastMessage
      * @param Collection<int, Message> $messages
      */
-    public function getShortenedReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): string | Htmlable | null
+    public function shouldShowFullReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): bool
     {
-        return $this->evaluate($this->shortenedReadReceiptMessage, [
+        return (bool) $this->evaluate($this->shouldShowFullReadReceiptMessage, [
             'message' => $message,
             'messages' => $messages,
             'readByParticipations' => $readByParticipations,
@@ -133,7 +133,7 @@ trait HasReadReceipts
             Message::class => $message,
         ]);
     }
-    
+
     #[Renderless]
     #[ExposedLivewireMethod]
     public function markCurrentConversationAsRead(): void

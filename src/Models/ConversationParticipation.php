@@ -9,6 +9,7 @@ use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Events\ConversationRead;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +27,8 @@ use Illuminate\Support\Collection;
  * @property-read Message|null $latestMessage
  * @property-read Collection<int, Conversation> $createdConversations
  * @property-read Authenticatable&Model $participant
+ *
+ * @method void unreadMessagesCount()
  */
 class ConversationParticipation extends Model
 {
@@ -99,5 +102,22 @@ class ConversationParticipation extends Model
     public function readConversation(Conversation $conversation): void
     {
         app(ReadConversation::class)->handle($this, $conversation);
+    }
+
+    /**
+     * @param Builder<static> $query
+     */
+    public function scopeUnreadMessagesCount(Builder $query): void
+    {
+        $query->addSelect([
+            'conversation_participations.*',
+            'unread_messages_count' => Message::selectRaw('count(*)')
+                ->join('conversation_participations as author_cp', 'messages.author_id', '=', 'author_cp.id')
+                ->whereColumn('author_cp.conversation_id', 'conversation_participations.conversation_id')
+                ->where(function (Builder $subQuery) {
+                    $subQuery->whereColumn('messages.created_at', '>', 'conversation_participations.last_read_at')
+                        ->orWhereNull('conversation_participations.last_read_at');
+                })
+        ]);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
+use BackedEnum;
 use Closure;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\Models\Conversation;
@@ -16,9 +17,11 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Concerns\HasExtraCellAttributes;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\HtmlString;
@@ -29,6 +32,8 @@ class ConversationList extends Component
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
     use Concerns\HasSearch;
+    use Concerns\HasExtraConversationAttributes;
+    use HasExtraAttributes;
     use HasKey;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
@@ -52,15 +57,21 @@ class ConversationList extends Component
 
     protected string | BackedEnum | Htmlable | Closure | false | null $headingBadgeIcon = null;
 
+    protected int | Closure | null $defaultLoadedConversationsCount = 10;
+
+    protected int | Closure | null $conversationsLoadedPerPage = 10;
+
+    protected ?Closure $getLatestMessageUsing = null;
+
     protected ?Closure $getLatestMessageDateTimeUsing = null;
 
     protected ?Closure $getLatestMessageContentUsing = null;
 
     protected string | Htmlable | Closure | null $latestMessageEmptyContent = null;
 
-    protected int | Closure | null $defaultLoadedConversationsCount = 10;
+    protected string | array | Closure | null $unreadMessagesBadgeColor = null;
 
-    protected int | Closure | null $conversationsLoadedPerPage = 10;
+    protected string | BackedEnum | Htmlable | Closure | false | null $unreadMessagesBadgeIcon = null;
 
     protected ?Closure $modifyCreateConversationActionUsing = null;
 
@@ -84,7 +95,7 @@ class ConversationList extends Component
     protected function setUp(): void
     {
         parent::setUp();
-
+        
         $this->key('conversation-list');
 
         $this->searchPlaceholder(__('filament-converse::conversation-list.search.placeholder'));
@@ -99,24 +110,31 @@ class ConversationList extends Component
             }
         });
 
-        $this->headingBadgeState(static function (HasConversationSchema $livewire) {
-            return $livewire->conversations->count();
+        $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string {
+            $authenticatedUserKey = auth()->id();
+
+            return $livewire->conversations->sum(static function (Conversation $conversation) use ($authenticatedUserKey) {
+                return $conversation
+                    ->participations
+                    ->firstWhere('participant_id', $authenticatedUserKey)
+                    ->unread_messages_count;
+            });
         });
 
-        $this->childComponents(fn () => [
-            $this->getCreateConversationAction(),
-        ], static::HEADER_ACTIONS_KEY);
-
-        $this->childComponents(fn () => [
-            $this->getCreateDirectConversationAction(),
-            $this->getCreateGroupConversationAction(),
-        ], static::CREATE_CONVERSATION_NESTED_ACTIONS_KEY);
-
-        $this->getLatestMessageDateTimeUsing(static function (Message $latestMessage) {
+        $this->getLatestMessageDateTimeUsing(static function (Message $latestMessage): string {
             return $latestMessage->created_at->shortAbsoluteDiffForHumans();
         });
 
-        $this->getLatestMessageContentUsing(static function (Conversation $conversation, Message $latestMessage, HasConversationSchema $livewire) {
+        $this->getLatestMessageUsing(static function (Conversation $conversation): ?Message {
+            return $conversation
+                ->participations
+                ->pluck('latestMessage')
+                ->filter()
+                ->sortByDesc('created_at')
+                ->first();
+        });
+
+        $this->getLatestMessageContentUsing(static function (Conversation $conversation, Message $latestMessage, HasConversationSchema $livewire): string {
             $participantWithLatestMessage = $conversation
                 ->participations
                 ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
@@ -134,6 +152,15 @@ class ConversationList extends Component
 
             return $messagePrefix . ': ' . $message;
         });
+
+        $this->childComponents(fn () => [
+            $this->getCreateConversationAction(),
+        ], static::HEADER_ACTIONS_KEY);
+
+        $this->childComponents(fn () => [
+            $this->getCreateDirectConversationAction(),
+            $this->getCreateGroupConversationAction(),
+        ], static::CREATE_CONVERSATION_NESTED_ACTIONS_KEY);
     }
 
     public function heading(string | Htmlable | Closure | null $heading): static
@@ -181,6 +208,27 @@ class ConversationList extends Component
         return $this;
     }
 
+    public function defaultLoadedConversationsCount(int | Closure | null $count): static
+    {
+        $this->defaultLoadedConversationsCount = $count;
+
+        return $this;
+    }
+
+    public function conversationsLoadedPerPage(int | Closure | null $count): static
+    {
+        $this->conversationsLoadedPerPage = $count;
+
+        return $this;
+    }
+
+    public function getLatestMessageUsing(?Closure $callback = null): static
+    {
+        $this->getLatestMessageUsing = $callback;
+
+        return $this;
+    }
+
     public function getLatestMessageDateTimeUsing(?Closure $callback = null): static
     {
         $this->getLatestMessageDateTimeUsing = $callback;
@@ -202,16 +250,19 @@ class ConversationList extends Component
         return $this;
     }
 
-    public function defaultLoadedConversationsCount(int | Closure | null $count): static
+    /**
+     * @param  string | array<string> | Closure | null  $color
+     */
+    public function unreadMessagesBadgeColor(string | array | Closure | null $color): static
     {
-        $this->defaultLoadedConversationsCount = $count;
+        $this->unreadMessagesBadgeColor = $color;
 
         return $this;
     }
 
-    public function conversationsLoadedPerPage(int | Closure | null $count): static
+    public function unreadMessagesBadgeIcon(string | BackedEnum | Htmlable | Closure | null $icon): static
     {
-        $this->conversationsLoadedPerPage = $count;
+        $this->unreadMessagesBadgeIcon = filled($icon) ? $icon : false;
 
         return $this;
     }
@@ -281,35 +332,6 @@ class ConversationList extends Component
         return $icon;
     }
 
-    public function getLatestMessageDateTime(Conversation $conversation, Message $latestMessage): ?string
-    {
-        return $this->evaluate($this->getLatestMessageDateTimeUsing, [
-            'conversation' => $conversation,
-            'latestMessage' => $latestMessage,
-            'message' => $latestMessage,
-        ], [
-            Conversation::class => $conversation,
-            Message::class => $latestMessage,
-        ]);
-    }
-
-    public function getLatestMessageContent(Conversation $conversation, Message $latestMessage): ?string
-    {
-        return $this->evaluate($this->getLatestMessageContentUsing, [
-            'conversation' => $conversation,
-            'latestMessage' => $latestMessage,
-            'message' => $latestMessage,
-        ], [
-            Conversation::class => $conversation,
-            Message::class => $latestMessage,
-        ]);
-    }
-
-    public function getLatestMessageEmptyContent(): string | Htmlable | null
-    {
-        return $this->evaluate($this->latestMessageEmptyContent);
-    }
-
     public function getDefaultLoadedConversationsCount(): int
     {
         return $this->evaluate($this->defaultLoadedConversationsCount) ?? 15;
@@ -318,6 +340,67 @@ class ConversationList extends Component
     public function getConversationsLoadedPerPage(): int
     {
         return $this->evaluate($this->conversationsLoadedPerPage) ?? 15;
+    }
+
+    public function getLatestMessage(Conversation $conversation): ?Message
+    {
+        return $this->evaluate($this->getLatestMessageUsing, [
+            'conversation' => $conversation,
+        ], [
+            Conversation::class => $conversation,
+        ]);
+    }
+
+    public function getLatestMessageDateTime(Message $latestMessage, Conversation $conversation): ?string
+    {
+        return $this->evaluate($this->getLatestMessageDateTimeUsing, [
+            'latestMessage' => $latestMessage,
+            'conversation' => $conversation,
+        ], [
+            Message::class => $latestMessage,
+            Conversation::class => $conversation,
+        ]);
+    }
+
+    public function getLatestMessageContent(Message $latestMessage, Conversation $conversation): ?string
+    {
+        return $this->evaluate($this->getLatestMessageContentUsing, [
+            'latestMessage' => $latestMessage,
+            'conversation' => $conversation,
+        ], [
+            Message::class => $latestMessage,
+            Conversation::class => $conversation,
+        ]);
+    }
+
+    public function getLatestMessageEmptyContent(Conversation $conversation): string | Htmlable | null
+    {
+        return $this->evaluate($this->latestMessageEmptyContent, [
+            'conversation' => $conversation,
+        ], [
+            Conversation::class => $conversation,
+        ]);
+    }
+
+    public function getUnreadMessagesBadgeColor(Message $latestMessage, Conversation $conversation): string | array | null
+    {
+        return $this->evaluate($this->unreadMessagesBadgeColor, [
+            'latestMessage' => $latestMessage,
+            'conversation' => $conversation,
+        ], [
+            Message::class => $latestMessage,
+            Conversation::class => $conversation,
+        ]);
+    }
+
+    public function getUnreadMessagesBadgeIcon(Message $latestMessage, Conversation $conversation): string | BackedEnum | Htmlable | null
+    {
+        return $this->evaluate($this->unreadMessagesBadgeIcon, [
+            'conversation' => $conversation,
+        ], [
+            Message::class => $latestMessage,
+            Conversation::class => $conversation,
+        ]);
     }
 
     protected function getCreateConversationAction(): Action
