@@ -1,17 +1,17 @@
 @php
-    use Carbon\Carbon;
     use Dvarilek\FilamentConverse\Models\Conversation;
+    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
     use Dvarilek\FilamentConverse\Models\Message;
     use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
+    use Dvarilek\FilamentConverse\View\Components\ConversationMessageComponent;
+    use Dvarilek\FilamentConverse\View\Components\UnreadMessagesDividerComponent;
     use Filament\Actions\Action;
     use Filament\Actions\ActionGroup;
-    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+    use Filament\Schemas\Components\Icon;
+    use Filament\Support\View\Components\ModalComponent\IconComponent;
+    use Illuminate\Contracts\Support\Htmlable;
     use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
-    use Filament\Support\View\Components\ModalComponent\IconComponent;
-    use Filament\Schemas\Components\Icon;
-    use Illuminate\Contracts\Support\Htmlable;
-    use Dvarilek\FilamentConverse\View\Components\ConversationMessageComponent;
 
     $id = $getId();
     $fieldWrapperView = $getFieldWrapperView();
@@ -32,7 +32,7 @@
     /* @var Collection<int, Message> $messages */
     $messages = $getMessagesQuery()?->get()?->reverse() ?? [];
     $totalMessagesCount = $getMessagesQuery(shouldPaginate: false)?->count() ?? 0;
-     /* @var ComponentAttributeBag $extraMessageAttributeBag */
+    /* @var ComponentAttributeBag $extraMessageAttributeBag */
     $extraMessageAttributeBag = $getExtraMessageAttributeBag();
 
     $headerActions = array_filter(
@@ -51,29 +51,30 @@
             $fileAttachmentsMaxSize = $getFileAttachmentsMaxSize();
             $maxFileAttachments = $getMaxFileAttachments();
         @endphp
+
         x-load
         x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
         x-data="conversationThread({
-                        key: @js($key),
-                        conversationKey: @js($conversationKey),
-                        statePath: @js($statePath),
-                        autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
-                        shouldDispatchUserTypingEvent: @js($shouldDispatchUserTypingEvent()),
-                        userTypingIndicatorTimeout: @js($getUserTypingIndicatorTimeout()),
-                        userTypingEventDispatchThreshold: @js($getUserTypingEventDispatchThreshold()),
-                        userTypingTranslations: @js($getUserTypingTranslations()),
-                        fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
-                        fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
-                        maxFileAttachments: @js($maxFileAttachments),
-                        fileAttachmentsAcceptedFileTypesValidationMessage: @js($getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentsAcceptedFileTypes)),
-                        fileAttachmentsMaxSizeValidationMessage: @js($getAttachmentsMaxFileSizeValidationMessage($fileAttachmentsMaxSize)),
-                        maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
-                        $wire,
-                    })"
+                    key: @js($key),
+                    conversationKey: @js($conversationKey),
+                    statePath: @js($statePath),
+                    autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
+                    shouldDispatchUserTypingEvent: @js($shouldDispatchUserTypingEvent()),
+                    userTypingIndicatorTimeout: @js($getUserTypingIndicatorTimeout()),
+                    userTypingEventDispatchThreshold: @js($getUserTypingEventDispatchThreshold()),
+                    userTypingTranslations: @js($getUserTypingTranslations()),
+                    fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
+                    fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
+                    maxFileAttachments: @js($maxFileAttachments),
+                    fileAttachmentsAcceptedFileTypesValidationMessage: @js($getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentsAcceptedFileTypes)),
+                    fileAttachmentsMaxSizeValidationMessage: @js($getAttachmentsMaxFileSizeValidationMessage($fileAttachmentsMaxSize)),
+                    maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
+                    $wire,
+                })"
         {{
             $getExtraAttributeBag()
                 ->class([
-                    "fi-converse-conversation-thread"
+                    'fi-converse-conversation-thread',
                 ])
         }}
         x-bind:class="{
@@ -172,8 +173,8 @@
             x-init="scrollToBottom()"
         @endif
         @class([
-            "fi-converse-conversation-thread-content",
-            "fi-converse-relative" => $canUploadFileAttachments
+            'fi-converse-conversation-thread-content',
+            'fi-converse-relative' => $canUploadFileAttachments,
         ])
     >
         @if ($canUploadFileAttachments)
@@ -198,12 +199,17 @@
 
         @if ($renderedMessagesCount = count($messages))
             @php
-                $latestMessage = $messages->last();
                 /* @var ConversationParticipation $currentAuthenticatedUserParticipation */
-                $currentAuthenticatedUserParticipation = $getLivewire()->getActiveConversationAuthenticatedUserParticipation();
+                $currentAuthenticatedUserParticipation = $this->getActiveConversationAuthenticatedUserParticipation();
+                $latestMessage = $messages->last();
+
                 $shouldMarkConversationAsRead = $shouldMarkConversationAsRead();
-                /* @var array<string, array{readBy: list<ConversationParticipation>, readByAsLastMessage: list<ConversationParticipation>}> $messagesReadsMap*/
-                $messagesReadsMap = $getMessagesReadsMap($messages);
+                /* @var array<string, array{readBy: list<ConversationParticipation>, readByAsLastMessage: list<ConversationParticipation>}> $messageReadsMap */
+                $messageReadsMap = $getMessageReadsMap($messages);
+                /* @var Collection<int, Message> $unreadMessages */
+                $unreadMessages = ($lastReadAt = $currentAuthenticatedUserParticipation->last_read_at)
+                    ? $messages->filter(static fn (Message $message) => $lastReadAt->lt($message->created_at))
+                    : $messages;
             @endphp
 
             @if ($renderedMessagesCount < $totalMessagesCount)
@@ -223,9 +229,7 @@
 
             @foreach ($messages as $message)
                 @php
-                    // TODO: add unread messages divider content in conversation thread
-
-                    $messageAuthor = $conversation->participations->firstWhere((new ConversationParticipation())->getKeyName(), $message->author_id)->participant;
+                    $messageAuthor = $conversation->participations->firstWhere((new ConversationParticipation)->getKeyName(), $message->author_id)->participant;
                     $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
                     $messageAuthorName = $getMessageAuthorName($message, $messageAuthor, $messages);
                     $messageAuthorAvatar = $getMessageAuthorAvatar($message, $messageAuthor, $messages);
@@ -239,15 +243,14 @@
                     $hasMessageTimestamp = filled($messageTimestamp);
 
                     /* @var Collection<int, ConversationParticipation> $readByParticipations */
-                    $readByParticipations = collect($messagesReadsMap[$message->getKey()]['readBy'] ?? []);
+                    $readByParticipations = collect($messageReadsMap[$message->getKey()]['readBy'] ?? []);
                     /* @var Collection<int, ConversationParticipation> $readByParticipationsAsLastMessage */
-                    $readByParticipationsAsLastMessage = collect($messagesReadsMap[$message->getKey()]['readByAsLastMessage'] ?? []);
+                    $readByParticipationsAsLastMessage = collect($messageReadsMap[$message->getKey()]['readByAsLastMessage'] ?? []);
                     $showReadReceipt = $shouldShowReadReceipts($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages);
 
-                    $lastReadAt = $currentAuthenticatedUserParticipation->last_read_at;
-                    $markConversationAsRead = $message->getKey() === $latestMessage->getKey()
-                        && (($lastReadAt = $currentAuthenticatedUserParticipation->last_read_at) === null || $lastReadAt->lt($message->created_at))
-                        && $shouldMarkConversationAsRead;
+                    $unreadMessagesDividerContent = $getUnreadMessagesDividerContent($message, $messageAuthor, $messages, $unreadMessages);
+                    $isMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
+                    $markConversationAsRead = $message->getKey() === $latestMessage->getKey() && $isMessageUnread && $shouldMarkConversationAsRead;
 
                     $filteredMessageActions = array_filter(
                         $messageActions,
@@ -258,172 +261,208 @@
                         }
                     );
                 @endphp
-                    <div
-                        @if ($markConversationAsRead)
-                            x-intersect.threshold.50.once="
-                                await $wire.callSchemaComponentMethod(
-                                   @js($key),
-                                    'markCurrentConversationAsRead',
-                                )
 
-                                $wire.$refresh()
-                            "
-                        @endif
-                        {{
-                            $extraMessageAttributeBag
-                                ->class([
-                                    'fi-converse-conversation-thread-message-container',
-                                    'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
-                                ])
-                        }}
-                    >
-                        @if (filled($messageDividerContent))
-                            @if ($messageDividerContent instanceof Htmlable)
-                                {{ $messageDividerContent }}
-                            @else
+                <div
+                    @if ($markConversationAsRead)
+                        x-intersect.threshold.50.once="$wire.callSchemaComponentMethod(@js($key), 'markCurrentConversationAsRead')"
+                    @endif
+                    {{
+                        $extraMessageAttributeBag
+                            ->class([
+                                'fi-converse-conversation-thread-message-container',
+                                'fi-converse-conversation-thread-message-container-reversed' => $isAuthoredByAuthenticatedUser,
+                            ])
+                    }}
+                >
+                    @if ($isMessageUnread && filled($unreadMessagesDividerContent))
+                        @if ($unreadMessagesDividerContent instanceof Htmlable)
+                            {{ $unreadMessagesDividerContent }}
+                        @else
+                            @php
+                                $unreadMessagesDividerColor = $getUnreadMessagesDividerColor($message, $messageAuthor, $messages, $unreadMessages);
+                            @endphp
+
+                            <div
+                                {{
+                                    (new ComponentAttributeBag)
+                                        ->color(UnreadMessagesDividerComponent::class, $unreadMessagesDividerColor)
+                                        ->class([
+                                            'fi-converse-conversation-thread-unread-messages-divider-content',
+                                        ])
+                                }}
+                            >
                                 <div
-                                    class="fi-converse-conversation-thread-message-divider-content"
+                                    class="fi-converse-conversation-thread-unread-messages-divider-separator"
+                                ></div>
+                                <div
+                                    class="fi-converse-conversation-thread-unread-messages-divider-text"
                                 >
-                                    {{ $messageDividerContent }}
+                                    {{ $unreadMessagesDividerContent }}
                                 </div>
+                                <div
+                                    class="fi-converse-conversation-thread-unread-messages-divider-separator"
+                                ></div>
+                            </div>
+                        @endif
+                    @endif
+
+                    @if (filled($messageDividerContent))
+                        @if ($messageDividerContent instanceof Htmlable)
+                            {{ $messageDividerContent }}
+                        @else
+                            <div
+                                class="fi-converse-conversation-thread-message-divider-content"
+                            >
+                                {{ $messageDividerContent }}
+                            </div>
+                        @endif
+                    @endif
+
+                    <div
+                        class="fi-converse-conversation-thread-message-layout group"
+                    >
+                        @if (filled($messageAuthorAvatar))
+                            @if ($messageAuthorAvatar instanceof Htmlable)
+                                {{ $messageAuthorAvatar }}
+                            @else
+                                <x-filament::avatar
+                                    class="fi-converse-conversation-thread-message-avatar"
+                                    :src="$messageAuthorAvatar"
+                                    :alt="$messageAuthorName"
+                                    size="md"
+                                />
                             @endif
                         @endif
 
                         <div
-                            class="fi-converse-conversation-thread-message-layout group"
+                            class="fi-converse-conversation-thread-message-content"
                         >
-                            @if (filled($messageAuthorAvatar))
-                                @if ($messageAuthorAvatar instanceof Htmlable)
-                                    {{ $messageAuthorAvatar }}
-                                @else
-                                    <x-filament::avatar
-                                        class="fi-converse-conversation-thread-message-avatar"
-                                        :src="$messageAuthorAvatar"
-                                        :alt="$messageAuthorName"
-                                        size="md"
-                                    />
-                                @endif
+                            @if ($hasMessageAuthorName || $hasMessageTimestamp)
+                                <div
+                                    class="fi-converse-conversation-thread-message-heading"
+                                >
+                                    @if ($hasMessageAuthorName)
+                                        <div
+                                            class="fi-converse-conversation-thread-message-author-name"
+                                        >
+                                            {{ $messageAuthorName }}
+                                        </div>
+                                    @endif
+
+                                    @if ($hasMessageTimestamp)
+                                        <div
+                                            class="fi-converse-conversation-thread-message-timestamp"
+                                        >
+                                            {{ $messageTimestamp }}
+                                        </div>
+                                    @endif
+                                </div>
                             @endif
 
                             <div
-                                class="fi-converse-conversation-thread-message-content"
+                                class="fi-converse-conversation-thread-message-body-container"
                             >
-                                @if ($hasMessageAuthorName || $hasMessageTimestamp)
-                                    <div class="fi-converse-conversation-thread-message-heading">
-                                        @if ($hasMessageAuthorName)
-                                            <div
-                                                class="fi-converse-conversation-thread-message-author-name"
-                                            >
-                                                {{ $messageAuthorName }}
-                                            </div>
-                                        @endif
-
-                                        @if ($hasMessageTimestamp)
-                                            <div
-                                                class="fi-converse-conversation-thread-message-timestamp"
-                                            >
-                                                {{ $messageTimestamp }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                @endif
-
-                                <div class="fi-converse-conversation-thread-message-body-container">
-                                    <div
-                                        {{
-                                            (new ComponentAttributeBag())
-                                                ->color(ConversationMessageComponent::class, $messageColor)
-                                                ->class([
-                                                    "fi-converse-conversation-thread-message-body",
-                                                ])
-                                        }}
-                                    >
-                                        @if (filled($messageContent))
-                                            @if ($messageContent instanceof Htmlable)
+                                <div
+                                    {{
+                                        (new ComponentAttributeBag)
+                                            ->color(ConversationMessageComponent::class, $messageColor)
+                                            ->class([
+                                                'fi-converse-conversation-thread-message-body',
+                                            ])
+                                    }}
+                                >
+                                    @if (filled($messageContent))
+                                        @if ($messageContent instanceof Htmlable)
+                                            {{ $messageContent }}
+                                        @else
+                                            <p>
                                                 {{ $messageContent }}
-                                            @else
-                                                <p>
-                                                    {{ $messageContent }}
-                                                </p>
-                                            @endif
+                                            </p>
                                         @endif
+                                    @endif
 
-                                        @if (count($messageAttachmentData))
-                                            @php
-                                                $hasOnlyImageAttachments = collect($messageAttachmentData)
-                                                    ->every(static fn(array $data) => $data['hasImageMimeType'] && $data['shouldShowOnlyMessageImageAttachment']);
-                                            @endphp
+                                    @if (count($messageAttachmentData))
+                                        @php
+                                            $hasOnlyImageAttachments = collect($messageAttachmentData)
+                                                ->every(static fn (array $data) => $data['hasImageMimeType'] && $data['shouldShowOnlyMessageImageAttachment']);
+                                        @endphp
 
-                                            <div
-                                                @class([
-                                                    "fi-converse-conversation-thread-message-attachments",
-                                                    "fi-converse-conversation-thread-message-attachments-with-generic-attachments" => ! $hasOnlyImageAttachments,
-                                                ])
-                                            >
-                                                @foreach ($messageAttachmentData as $attachmentPath => $data)
-                                                    @php
-                                                        $attachmentOriginalName = $data['attachmentOriginalName'];
-                                                        $attachmentMimeType = $data['attachmentMimeType'];
-                                                        $hasImageMimeType = $data['hasImageMimeType'];
-                                                    @endphp
-
-                                                    <x-filament-converse::conversation-attachment
-                                                        :has-image-mime-type="$hasImageMimeType"
-                                                        :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
-                                                        :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
-                                                        :should-show-only-image-attachment="$data['shouldShowOnlyMessageImageAttachment']"
-                                                        :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentPath) : null"
-                                                        :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
-                                                        :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
-                                                        :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
-                                                        :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
-                                                        :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
-                                                        :image-attachment-container-extra-attributes-bag="
-                                                            (new ComponentAttributeBag())
-                                                                ->class(['fi-converse-image-attachment-container-grid'])
-                                                        "
-                                                            :generic-attachment-container-extra-attributes-bag="
-                                                            (new ComponentAttributeBag())
-                                                                ->class(['fi-converse-generic-attachment-container-grid'])
-                                                        "
-                                                    />
-                                                @endforeach
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    @if (count($filteredMessageActions))
                                         <div
-                                            class="fi-converse-conversation-thread-message-actions"
+                                            @class([
+                                                'fi-converse-conversation-thread-message-attachments',
+                                                'fi-converse-conversation-thread-message-attachments-with-generic-attachments' => ! $hasOnlyImageAttachments,
+                                            ])
                                         >
-                                            @foreach ($filteredMessageActions as $action)
-                                                {{ $action }}
+                                            @foreach ($messageAttachmentData as $attachmentPath => $data)
+                                                @php
+                                                    $attachmentOriginalName = $data['attachmentOriginalName'];
+                                                    $attachmentMimeType = $data['attachmentMimeType'];
+                                                    $hasImageMimeType = $data['hasImageMimeType'];
+                                                @endphp
+
+                                                <x-filament-converse::conversation-attachment
+                                                    :has-image-mime-type="$hasImageMimeType"
+                                                    :file-attachment-name="$getMessageFileAttachmentName($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
+                                                    :file-attachment-toolbar="$getMessageFileAttachmentToolbar($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
+                                                    :should-show-only-image-attachment="$data['shouldShowOnlyMessageImageAttachment']"
+                                                    :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentPath) : null"
+                                                    :should-preview-image-attachment="$shouldPreviewMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
+                                                    :file-attachment-icon="$getMessageFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
+                                                    :mime-type-badge-label="$getMessageFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
+                                                    :mime-type-badge-icon="$getMessageFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
+                                                    :mime-type-badge-color="$getMessageFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages)"
+                                                    :image-attachment-container-extra-attributes-bag="
+                                                        (new ComponentAttributeBag)
+                                                            ->class(['fi-converse-image-attachment-container-grid'])
+                                                    "
+                                                    :generic-attachment-container-extra-attributes-bag="
+                                                        (new ComponentAttributeBag)
+                                                            ->class(['fi-converse-generic-attachment-container-grid'])
+                                                    "
+                                                />
                                             @endforeach
                                         </div>
                                     @endif
                                 </div>
+
+                                @if (count($filteredMessageActions))
+                                    <div
+                                        class="fi-converse-conversation-thread-message-actions"
+                                    >
+                                        @foreach ($filteredMessageActions as $action)
+                                            {{ $action }}
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
                         </div>
+                    </div>
 
                     @if ($showReadReceipt && ($shortenedReadReceiptMessage = $getShortenedReadReceiptMessage($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages)))
                         @php
                             $showFullReadReceiptMessage = $shouldShowFullReadReceiptMessage($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages);
                         @endphp
+
                         <div
                             class="fi-converse-conversation-thread-read-receipt"
                             @if ($showFullReadReceiptMessage)
-                                x-data="{expanded: false}"
+                                x-data="{ expanded: false }"
                                 x-on:click="expanded = ! expanded"
                             @endif
                         >
                             @if ($showFullReadReceiptMessage)
-                                <span x-show="expanded"> {{ $getFullReadReceiptMessage($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages) }}</span>
-                                <span x-show="! expanded"> {{ $shortenedReadReceiptMessage }} </span>
+                                <span x-show="expanded">
+                                    {{ $getFullReadReceiptMessage($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages) }}
+                                </span>
+                                <span x-show="! expanded">
+                                    {{ $shortenedReadReceiptMessage }}
+                                </span>
                             @endif
+
                             <span>
                                 {{ $shortenedReadReceiptMessage }}
                             </span>
-                        </div
+                        </div>
                     @endif
                 </div>
             @endforeach
@@ -446,9 +485,7 @@
             @endif
         @endif
 
-        <div
-            class="fi-converse-conversation-thread-messages-content-footer"
-        >
+        <div class="fi-converse-conversation-thread-messages-content-footer">
             @if ($shouldShowTypingIndicator())
                 <div
                     x-cloak
@@ -498,10 +535,10 @@
                 :valid="! $errors->has($statePath)"
                 :attributes="
                     \Filament\Support\prepare_inherited_attributes($extraAttributeBag)
-                    ->class([
-                        'fi-fo-textarea fi-converse-conversation-thread-message-input ',
-                        'fi-autosizable' => $shouldAutosize,
-                    ])
+                        ->class([
+                            'fi-fo-textarea fi-converse-conversation-thread-message-input ',
+                            'fi-autosizable' => $shouldAutosize,
+                        ])
                 "
             >
                 @if ($hasFileAttachments)
@@ -528,7 +565,7 @@
                                     x-show="file.type.startsWith('image/')"
                                     class="fi-converse-image-attachment-skeleton"
                                 >
-                                    {{ Icon::make(\Filament\Support\Icons\Heroicon::OutlinedPhoto)->color('gray')->extraAttributes(['class' => "fi-size-2xl"]) }}
+                                    {{ Icon::make(\Filament\Support\Icons\Heroicon::OutlinedPhoto)->color('gray')->extraAttributes(['class' => 'fi-size-2xl']) }}
                                 </div>
 
                                 <div
@@ -571,8 +608,8 @@
                                 :is-removable="true"
                                 file-attachment-remove-handler="$wire.removeUpload('componentFileAttachments.{{ $statePath }}.{{ $conversationKey }}', '{{ $fileAttachment->getFilename() }}')"
                                 :generic-attachment-container-extra-attributes-bag="
-                                    (new ComponentAttributeBag())
-                                    ->class(['fi-converse-attachment-adaptable-width'])
+                                    (new ComponentAttributeBag)
+                                        ->class(['fi-converse-attachment-adaptable-width'])
                                 "
                             />
                         @endforeach
@@ -581,7 +618,7 @@
 
                 <div
                     @style([
-                    'max-height: ' . $maxHeight . 'rem; overflow: auto' => filled($maxHeight),
+                        'max-height: ' . $maxHeight . 'rem; overflow: auto' => filled($maxHeight),
                     ])
                 >
                     <div
@@ -598,31 +635,33 @@
                                     })"
                             @if ($shouldAutosize)
                                 x-intersect.once="resize()"
-                            x-on:resize.window="resize()"
+                                x-on:resize.window="resize()"
                             @endif
                             x-model="state"
                             @if ($isGrammarlyDisabled())
                                 data-gramm="false"
-                            data-gramm_editor="false"
-                            data-enable-grammarly="false"
+                                data-gramm_editor="false"
+                                data-enable-grammarly="false"
                             @endif
                             x-on:keydown="$nextTick(() => fireUserTypingEvent($event))"
                             {{ $getExtraAlpineAttributeBag() }}
-                            {{ $getExtraInputAttributeBag()
-                                ->merge([
-                                'autocomplete' => $getAutocomplete(),
-                                'autofocus' => $isAutofocused(),
-                                'cols' => $getCols(),
-                                'disabled' => $isDisabled,
-                                'id' => $getId(),
-                                'maxlength' => (! $isConcealed) ? $getMaxLength() : null,
-                                'minlength' => (! $isConcealed) ? $getMinLength() : null,
-                                'placeholder' => filled($placeholder) ? e($placeholder) : null,
-                                'readonly' => $isReadOnly(),
-                                'required' => $isRequired() && (! $isConcealed),
-                                'rows' => $rows,
-                                $applyStateBindingModifiers('wire:model') => $statePath,
-                                ], escape: false) }}
+                            {{
+                                $getExtraInputAttributeBag()
+                                    ->merge([
+                                        'autocomplete' => $getAutocomplete(),
+                                        'autofocus' => $isAutofocused(),
+                                        'cols' => $getCols(),
+                                        'disabled' => $isDisabled,
+                                        'id' => $getId(),
+                                        'maxlength' => (! $isConcealed) ? $getMaxLength() : null,
+                                        'minlength' => (! $isConcealed) ? $getMinLength() : null,
+                                        'placeholder' => filled($placeholder) ? e($placeholder) : null,
+                                        'readonly' => $isReadOnly(),
+                                        'required' => $isRequired() && (! $isConcealed),
+                                        'rows' => $rows,
+                                        $applyStateBindingModifiers('wire:model') => $statePath,
+                                    ], escape: false)
+                            }}
                         ></textarea>
                     </div>
                 </div>

@@ -38,6 +38,20 @@ return [
 
     ],
 
+    'unread-messages-divider-content' => [
+
+        'label' => '{1} :count nová zpráva|[2,4] :count nové zprávy|[5,*] :count nových zpráv',
+
+    ],
+
+    'message-divider-content' => [
+
+        'today' => 'Dnes',
+
+        'yesterday' => 'Včera',
+
+    ],
+
     'footer-actions' => [
 
         'upload-attachment-label' => 'Nahrát přílohu',
@@ -59,11 +73,11 @@ return [
         'seen-by-many-shortened' => 'Zobrazeno uživateli :firstName, :secondName, :thirdName a :othersCount dalších',
 
         'seen-by-everyone' => 'Zobrazeno všemi uživateli',
-        
+
         'seen-by-many-full' => 'Zobrazeno uživateli :names a :lastName',
-        
+
     ],
-    
+
     'typing-indicator' => [
 
         'single' => '{singleName} píše...',

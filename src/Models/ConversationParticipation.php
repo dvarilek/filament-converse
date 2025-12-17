@@ -6,7 +6,6 @@ namespace Dvarilek\FilamentConverse\Models;
 
 use Dvarilek\FilamentConverse\Actions\ReadConversation;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
-use Dvarilek\FilamentConverse\Events\ConversationRead;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
@@ -105,7 +104,7 @@ class ConversationParticipation extends Model
     }
 
     /**
-     * @param Builder<static> $query
+     * @param  Builder<static>  $query
      */
     public function scopeUnreadMessagesCount(Builder $query): void
     {
@@ -117,7 +116,7 @@ class ConversationParticipation extends Model
                 ->where(function (Builder $subQuery) {
                     $subQuery->whereColumn('messages.created_at', '>', 'conversation_participations.last_read_at')
                         ->orWhereNull('conversation_participations.last_read_at');
-                })
+                }),
         ]);
     }
 }

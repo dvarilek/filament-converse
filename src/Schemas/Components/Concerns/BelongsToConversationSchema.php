@@ -58,7 +58,7 @@ trait BelongsToConversationSchema
                 Conversation::class => $conversation,
             ]);
         }
-        
+
         return $conversation
             ->participations
             ->firstWhere('participant_id', auth()->id())

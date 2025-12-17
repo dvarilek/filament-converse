@@ -6,8 +6,6 @@ use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -25,7 +23,7 @@ trait HasConversations
     public int $activeConversationMessagesPage = 1;
 
     /**
-     * It is structured this way mainly so the scrollToBottom functionality works as expected.
+     * This property and its exact structure is required for scrollToBottom functionality to work as expected.
      *
      * @var array<string, array{exists: bool, createdByAuthenticatedUser: bool}>
      */
@@ -38,10 +36,7 @@ trait HasConversations
 
     public function mountHasConversations(): void
     {
-        $this->conversationSchema = $this->makeConversationSchema();
-
         $conversationSchema = $this->getConversationSchema();
-
         $activeConversationSessionKey = $this->getActiveConversationSessionKey();
 
         if (
@@ -53,9 +48,6 @@ trait HasConversations
         } else {
             $this->activeConversationKey = $conversationSchema->getDefaultActiveConversation()?->getKey();
         }
-
-        $conversationThread = $conversationSchema->getConversationThread();
-        $statePath = $conversationThread->getStatePath();
     }
 
     public function updateActiveConversation(string $conversationKey): void
@@ -92,7 +84,7 @@ trait HasConversations
 
         return $this->getBaseFilteredConversationsQuery()
             ->limit(
-        $conversationList->getDefaultLoadedConversationsCount()
+                $conversationList->getDefaultLoadedConversationsCount()
                     + (($this->getConversationListPage() - 1)) * $conversationList->getConversationsLoadedPerPage()
             )
             ->get();
@@ -151,16 +143,6 @@ trait HasConversations
             'exists' => $exists,
             'createdByAuthenticatedUser' => $messageAuthorKey === auth()->id(),
         ];
-    }
-
-    public function getMessagesSentDuringConversationSessionCount(): int
-    {
-        return count(array_filter($this->messagesCreatedDuringConversationSession, static fn (array $data) => $data['createdByAuthenticatedUser'] === true));
-    }
-
-    public function getForeignMessagesReceivedDuringConversationSessionCount(): int
-    {
-        return count(array_filter($this->messagesCreatedDuringConversationSession, static fn (array $data) => $data['createdByAuthenticatedUser'] === false));
     }
 
     public function getActiveConversationSessionKey(): string

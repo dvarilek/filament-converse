@@ -4,42 +4,36 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
-use Carbon\Carbon;
 use Closure;
-use Dvarilek\FilamentConverse\Events\UserTyping;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
-use Filament\Support\Concerns\HasExtraAttributes;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
-use Dvarilek\FilamentConverse\Schemas\Components\Concerns\HasTypingIndicator;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
-use Filament\Support\Components\Attributes\ExposedLivewireMethod;
+use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
-use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ConversationThread extends Textarea
 {
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
+    use Concerns\HasExtraMessageAttributes;
     use Concerns\HasFileAttachments;
     use Concerns\HasReadReceipts;
     use Concerns\HasTypingIndicator;
-    use Concerns\HasExtraMessageAttributes;
     use HasExtraAttributes;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
@@ -67,8 +61,15 @@ class ConversationThread extends Textarea
 
     protected string | Htmlable | Closure | null $messageDividerContent = null;
 
+    protected ?Closure $getUnreadMessagesDividerContentUsing = null;
+
     /**
-     * @param  string | array<string> | Closure | null  $messageColor
+     * @var string | array<string> | Closure | null
+     */
+    protected string | array | Closure | null $unreadMessagesDividerColor = 'primary';
+
+    /**
+     * @var string | array<string> | Closure | null
      */
     protected string | array | Closure | null $messageColor = null;
 
@@ -116,7 +117,7 @@ class ConversationThread extends Textarea
 
             return collect(array_combine($message->attachments, $message->attachment_file_names))
                 ->filter(static fn (string $attachmentOriginalName, string $attachmentPath) => $fileAttachmentsDisk->exists($attachmentPath))
-                ->mapWithKeys(function (string $attachmentOriginalName, string $attachmentPath) use ($component, $fileAttachmentsDisk, $message, $messageAuthor, $messages, ) {
+                ->mapWithKeys(function (string $attachmentOriginalName, string $attachmentPath) use ($component, $fileAttachmentsDisk, $message, $messageAuthor, $messages) {
                     $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentPath);
                     $hasImageMimeType = $component->isImageMimeType($attachmentMimeType);
 
@@ -134,6 +135,14 @@ class ConversationThread extends Textarea
 
         $this->messenger();
 
+        $this->getUnreadMessagesDividerContentUsing(static function (Collection $unreadMessages): string {
+            $unreadMessagesCount = $unreadMessages->count();
+
+            return trans_choice('filament-converse::conversation-thread.unread-messages-divider-content.label', $unreadMessagesCount, [
+                'count' => $unreadMessagesCount,
+            ]);
+        });
+
         $this->messageColor(static function (Authenticatable $messageAuthor): string {
             return $messageAuthor->getKey() === auth()->id() ? 'primary' : 'gray';
         });
@@ -148,8 +157,8 @@ class ConversationThread extends Textarea
             $userNameAttribute = $user::getFilamentNameAttribute();
 
             $otherParticipantNames = $readByParticipationsAsLastMessage
-                ->reject(static fn(ConversationParticipation $participation) =>
-                    $participation->getKey() === $message->author_id ||
+                ->reject(
+                    static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id ||
                     $participation->participant_id === $user->getKey()
                 )
                 ->pluck('participant.' . $userNameAttribute);
@@ -160,11 +169,11 @@ class ConversationThread extends Textarea
                 $readByOtherParticipationsCount === 1 => $conversation->isDirect() || ($conversation->participations->count() === 2)
                     ? __('filament-converse::conversation-thread.read-receipt.seen')
                     : __('filament-converse::conversation-thread.read-receipt.seen-by-one', [
-                        'name' => $otherParticipantNames->first()
+                        'name' => $otherParticipantNames->first(),
                     ]),
                 $readByOtherParticipationsCount === 2 => __('filament-converse::conversation-thread.read-receipt.seen-by-two', [
                     'firstName' => $otherParticipantNames->get(0),
-                    'secondName' => $otherParticipantNames->get(1)
+                    'secondName' => $otherParticipantNames->get(1),
                 ]),
                 $readByOtherParticipationsCount === 3 => __('filament-converse::conversation-thread.read-receipt.seen-by-three', [
                     'firstName' => $otherParticipantNames->get(0),
@@ -176,7 +185,7 @@ class ConversationThread extends Textarea
                     'firstName' => $otherParticipantNames->get(0),
                     'secondName' => $otherParticipantNames->get(1),
                     'thirdName' => $otherParticipantNames->get(2),
-                    'othersCount' => $readByOtherParticipationsCount - 3
+                    'othersCount' => $readByOtherParticipationsCount - 3,
                 ])
             };
         });
@@ -188,8 +197,8 @@ class ConversationThread extends Textarea
                 FilamentConverseException::throwInvalidConversableUserException($user);
             }
 
-            $otherReadByParticipations = $readByParticipationsAsLastMessage->reject(static fn(ConversationParticipation $participation) =>
-                $participation->getKey() === $message->author_id ||
+            $otherReadByParticipations = $readByParticipationsAsLastMessage->reject(
+                static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id ||
                 $participation->participant_id === $user->getKey()
             );
 
@@ -206,8 +215,8 @@ class ConversationThread extends Textarea
             $userNameAttribute = $user::getFilamentNameAttribute();
 
             $otherParticipantNames = $readByParticipationsAsLastMessage
-                ->reject(static fn(ConversationParticipation $participation) =>
-                    $participation->getKey() === $message->author_id ||
+                ->reject(
+                    static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id ||
                     $participation->participant_id === $user->getKey()
                 )
                 ->pluck('participant.' . $userNameAttribute);
@@ -218,11 +227,11 @@ class ConversationThread extends Textarea
                 $readByOtherParticipationsCount === 1 => $conversation->isDirect() || ($conversation->participations->count() === 2)
                     ? __('filament-converse::conversation-thread.read-receipt.seen')
                     : __('filament-converse::conversation-thread.read-receipt.seen-by-one', [
-                        'name' => $otherParticipantNames->first()
+                        'name' => $otherParticipantNames->first(),
                     ]),
                 $readByParticipationsAsLastMessage->count() === $conversation->participations->count() => __('filament-converse::conversation-thread.read-receipt.seen-by-everyone'),
                 default => __('filament-converse::conversation-thread.read-receipt.seen-by-many-full', [
-                    'names'    => $otherParticipantNames->slice(0, -1)->join(', '),
+                    'names' => $otherParticipantNames->slice(0, -1)->join(', '),
                     'lastName' => $otherParticipantNames->last(),
                 ]),
             };
@@ -327,7 +336,7 @@ class ConversationThread extends Textarea
             $timestamp = $message->created_at;
 
             return match (true) {
-                !$timestamp->isCurrentYear() => $timestamp->isoFormat('L LT'),
+                ! $timestamp->isCurrentYear() => $timestamp->isoFormat('L LT'),
                 $timestamp->isToday() => $timestamp->isoFormat('LT'),
                 default => $timestamp->isoFormat('D.M LT'),
             };
@@ -348,8 +357,8 @@ class ConversationThread extends Textarea
             }
 
             return match (true) {
-                $currentMessageTimestamp->isToday() => __('filament-converse::conversation-thread.message-section-divider.today'),
-                $currentMessageTimestamp->isYesterday() => __('filament-converse::conversation-thread.message-section-divider.yesterday'),
+                $currentMessageTimestamp->isToday() => __('filament-converse::conversation-thread.message-divider-content.today'),
+                $currentMessageTimestamp->isYesterday() => __('filament-converse::conversation-thread.message-divider-content.yesterday'),
                 $currentMessageTimestamp->isCurrentWeek() => $currentMessageTimestamp->isoFormat('dddd'),
                 $currentMessageTimestamp->isCurrentYear() => $currentMessageTimestamp->isoFormat('D MMMM'),
                 default => $currentMessageTimestamp->isoFormat('L'),
@@ -375,7 +384,7 @@ class ConversationThread extends Textarea
             /* @var ?Message $nextMessage */
             $nextMessage = $messages->get($currentMessageIndex + 1);
 
-            if ($nextMessage && $conversation->participations->firstWhere((new ConversationParticipation())->getKeyName(), $nextMessage->author_id)->participant_id === $messageAuthor->getKey()) {
+            if ($nextMessage && $conversation->participations->firstWhere((new ConversationParticipation)->getKeyName(), $nextMessage->author_id)->participant_id === $messageAuthor->getKey()) {
                 return null;
             }
 
@@ -396,7 +405,7 @@ class ConversationThread extends Textarea
             /* @var ?Message $previousMessage */
             $previousMessage = $messages->get($currentMessageIndex - 1);
 
-            if ($previousMessage && $conversation->participations->firstWhere((new ConversationParticipation())->getKeyName(), $previousMessage->author_id)->participant_id === $messageAuthor->getKey()) {
+            if ($previousMessage && $conversation->participations->firstWhere((new ConversationParticipation)->getKeyName(), $previousMessage->author_id)->participant_id === $messageAuthor->getKey()) {
                 return new HtmlString("<div style='width: 32px' content: ''></div>");
             }
 
@@ -420,9 +429,9 @@ class ConversationThread extends Textarea
             }
 
             return match (true) {
-                !$currentMessageTimestamp->isCurrentYear() => $currentMessageTimestamp->isoFormat('L LT'),
-                $currentMessageTimestamp->isCurrentWeek() && !$currentMessageTimestamp->isToday() => $currentMessageTimestamp->isoFormat('ddd LT'),
-                !$currentMessageTimestamp->isToday() => $currentMessageTimestamp->isoFormat('D MMMM LT'),
+                ! $currentMessageTimestamp->isCurrentYear() => $currentMessageTimestamp->isoFormat('L LT'),
+                $currentMessageTimestamp->isCurrentWeek() && ! $currentMessageTimestamp->isToday() => $currentMessageTimestamp->isoFormat('ddd LT'),
+                ! $currentMessageTimestamp->isToday() => $currentMessageTimestamp->isoFormat('D MMMM LT'),
                 default => $currentMessageTimestamp->isoFormat('LT'),
             };
         });
@@ -482,6 +491,23 @@ class ConversationThread extends Textarea
     public function messageDividerContent(string | Htmlable | Closure | null $content): static
     {
         $this->messageDividerContent = $content;
+
+        return $this;
+    }
+
+    public function getUnreadMessagesDividerContentUsing(?Closure $callback = null): static
+    {
+        $this->getUnreadMessagesDividerContentUsing = $callback;
+
+        return $this;
+    }
+
+    /**
+     * @param  string | array<string> | Closure | null  $color
+     */
+    public function unreadMessagesDividerColor(string | array | Closure | null $color): static
+    {
+        $this->unreadMessagesDividerColor = $color;
 
         return $this;
     }
@@ -631,6 +657,40 @@ class ConversationThread extends Textarea
             Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     * @param  Collection<int, Message>  $unreadMessages
+     */
+    public function getUnreadMessagesDividerContent(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): string | Htmlable | null
+    {
+        return $this->evaluate($this->getUnreadMessagesDividerContentUsing, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+            'unreadMessages' => $unreadMessages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     * @param  Collection<int, Message>  $unreadMessages
+     */
+    public function getUnreadMessagesDividerColor(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): string | array
+    {
+        return $this->evaluate($this->unreadMessagesDividerColor, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+            'unreadMessages' => $unreadMessages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+        ]) ?? 'primary';
     }
 
     /**

@@ -13,6 +13,7 @@
     $conversations = $getConversations();
     $totalConversationsCount = $this->getBaseFilteredConversationsQuery()->count();
     $activeConversation = $getActiveConversation();
+
     /* @var ComponentAttributeBag $extraConversationAttributeBag */
     $extraConversationAttributeBag = $getExtraConversationAttributeBag();
 
@@ -29,19 +30,19 @@
         isLoadingMoreConversations: false,
 
         async loadMoreConversations() {
-            this.isLoadingMoreConversations = true;
+            this.isLoadingMoreConversations = true
 
             try {
                 await $wire.call('incrementConversationListPage')
             } finally {
-                this.isLoadingMoreConversations = false;
+                this.isLoadingMoreConversations = false
             }
-        }
+        },
     }"
     {{
         $getExtraAttributeBag()
             ->class([
-                "fi-converse-conversation-list"
+                'fi-converse-conversation-list',
             ])
     }}
 >
@@ -154,18 +155,26 @@
                 @endphp
 
                 <li
-                    wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}"
+                    wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}-{{ $unreadMessagesCount }}"
                     wire:loading.attr="disabled"
+                    x-data="{ unreadMessagesCount: {{ $unreadMessagesCount }} }"
                     x-on:click="
                         await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
                         showConversationListSidebar = false
+                    "
+                    x-on:filament-converse-conversation-read.window="
+                        if ($event.detail.conversationKey === '{{ $conversationKey }}') {
+                            unreadMessagesCount = 0
+                        }
                     "
                     {{
                         $extraConversationAttributeBag
                             ->class([
                                 'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
-                                'fi-converse-conversation-list-item-unread' => $unreadMessagesCount,
                                 'fi-converse-conversation-list-item',
+                            ])
+                            ->merge([
+                                'x-bind:class' => "{ 'fi-converse-conversation-list-item-unread': unreadMessagesCount > 0 }",
                             ])
                     }}
                 >
@@ -180,7 +189,9 @@
 
                     <div class="fi-converse-conversation-list-item-content">
                         <div class="fi-converse-conversation-list-item-header">
-                            <h4 class="fi-converse-conversation-list-item-heading">
+                            <h4
+                                class="fi-converse-conversation-list-item-heading"
+                            >
                                 {{ $conversationName }}
                             </h4>
 
@@ -206,21 +217,23 @@
 
                             @if ($unreadMessagesCount)
                                 <x-filament::badge
+                                    x-show="unreadMessagesCount > 0"
                                     :icon="$getUnreadMessagesBadgeIcon($latestMessage, $conversation)"
                                     :color="$getUnreadMessagesBadgeColor($latestMessage, $conversation)"
                                     size="sm"
                                 >
-                                    {{ $unreadMessagesCount > 100 ? "99+" : $unreadMessagesCount }}
+                                    {{ $unreadMessagesCount > 100 ? '99+' : $unreadMessagesCount }}
                                 </x-filament::badge>
                             @endif
                         </div>
-
                     </div>
                 </li>
             @endforeach
 
             @if ($totalConversationsCount && $totalConversationsCount > count($conversations))
-                <div class="fi-converse-conversation-list-load-more-messages-indicator-container">
+                <div
+                    class="fi-converse-conversation-list-load-more-messages-indicator-container"
+                >
                     <div
                         x-intersect="loadMoreConversations()"
                         aria-hidden="true"

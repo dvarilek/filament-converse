@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Events;
 
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;

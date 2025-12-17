@@ -1,20 +1,20 @@
 export function conversationThread({
-                                       key,
-                                       conversationKey,
-                                       statePath,
-                                       autoScrollOnForeignMessagesThreshold,
-                                       shouldDispatchUserTypingEvent,
-                                       userTypingIndicatorTimeout,
-                                       userTypingEventDispatchThreshold,
-                                       userTypingTranslations,
-                                       fileAttachmentAcceptedFileTypes,
-                                       fileAttachmentMaxSize,
-                                       maxFileAttachments,
-                                       fileAttachmentsAcceptedFileTypesValidationMessage,
-                                       fileAttachmentsMaxSizeValidationMessage,
-                                       maxFileAttachmentsValidationMessage,
-                                       $wire,
-                                   }) {
+    key,
+    conversationKey,
+    statePath,
+    autoScrollOnForeignMessagesThreshold,
+    shouldDispatchUserTypingEvent,
+    userTypingIndicatorTimeout,
+    userTypingEventDispatchThreshold,
+    userTypingTranslations,
+    fileAttachmentAcceptedFileTypes,
+    fileAttachmentMaxSize,
+    maxFileAttachments,
+    fileAttachmentsAcceptedFileTypesValidationMessage,
+    fileAttachmentsMaxSizeValidationMessage,
+    maxFileAttachmentsValidationMessage,
+    $wire,
+}) {
     return {
         messagesCreatedDuringConversationSession: $wire.entangle(
             'messagesCreatedDuringConversationSession',
@@ -167,7 +167,7 @@ export function conversationThread({
             if (
                 this.lastUserTypingEventSentAt &&
                 now - this.lastUserTypingEventSentAt <
-                userTypingEventDispatchThreshold
+                    userTypingEventDispatchThreshold
             ) {
                 return
             }
@@ -199,8 +199,8 @@ export function conversationThread({
 
             return (
                 element.scrollHeight -
-                element.scrollTop -
-                element.clientHeight <
+                    element.scrollTop -
+                    element.clientHeight <
                 (autoScrollOnForeignMessagesThreshold ?? 0)
             )
         },

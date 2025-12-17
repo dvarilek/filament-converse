@@ -21,7 +21,6 @@ use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\Concerns\HasExtraCellAttributes;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\HtmlString;
@@ -31,8 +30,8 @@ class ConversationList extends Component
 {
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
-    use Concerns\HasSearch;
     use Concerns\HasExtraConversationAttributes;
+    use Concerns\HasSearch;
     use HasExtraAttributes;
     use HasKey;
 
@@ -95,7 +94,7 @@ class ConversationList extends Component
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->key('conversation-list');
 
         $this->searchPlaceholder(__('filament-converse::conversation-list.search.placeholder'));

@@ -28,6 +28,9 @@ trait HasFileAttachments
 
     protected int | Closure | null $maxFileAttachments = null;
 
+    /**
+     * @var string | array<string> | Closure | null
+     */
     protected string | array | Closure | null $attachmentModalIconColor = null;
 
     protected string | BackedEnum | Htmlable | Closure | false | null $attachmentModalIcon = null;
@@ -51,7 +54,7 @@ trait HasFileAttachments
     protected string | BackedEnum | Htmlable | Closure | null $defaultFileAttachmentIcon = null;
 
     /**
-     * @param  string | array<string> | Closure | null  $defaultFileAttachmentIconColor
+     * @var string | array<string> | Closure | null
      */
     protected string | array | Closure | null $defaultFileAttachmentIconColor = 'primary';
 
@@ -60,7 +63,7 @@ trait HasFileAttachments
     protected string | BackedEnum | Closure | null $defaultFileAttachmentMimeTypeBadgeIcon = null;
 
     /**
-     * @param  string | array<string> | Closure | null  $defaultFileAttachmentMimeTypeBadgeColor
+     * @var string | array<string> | Closure | null
      */
     protected string | array | Closure | null $defaultFileAttachmentMimeTypeBadgeColor = 'gray';
 
@@ -75,7 +78,7 @@ trait HasFileAttachments
     protected string | BackedEnum | Htmlable | Closure | null $uploadedFileAttachmentIcon = null;
 
     /**
-     * @param  string | array<string> | Closure | null  $uploadedFileAttachmentIconColor
+     * @var string | array<string> | Closure | null
      */
     protected string | array | Closure | null $uploadedFileAttachmentIconColor = 'primary';
 
@@ -84,7 +87,7 @@ trait HasFileAttachments
     protected string | BackedEnum | Closure | null $uploadedFileAttachmentMimeTypeBadgeIcon = null;
 
     /**
-     * @param  string | array<string> | Closure | null  $uploadedFileAttachmentMimeTypeBadgeColor
+     * @var string | array<string> | Closure | null
      */
     protected string | array | Closure | null $uploadedFileAttachmentMimeTypeBadgeColor = 'gray';
 
@@ -99,7 +102,7 @@ trait HasFileAttachments
     protected string | BackedEnum | Htmlable | Closure | null $messageFileAttachmentIcon = null;
 
     /**
-     * @param  string | array<string> | Closure | null  $messageFileAttachmentIconColor
+     * @var string | array<string> | Closure | null
      */
     protected string | array | Closure | null $messageFileAttachmentIconColor = 'primary';
 
@@ -108,7 +111,7 @@ trait HasFileAttachments
     protected string | BackedEnum | Closure | null $messageFileAttachmentMimeTypeBadgeIcon = null;
 
     /**
-     * @param  string | array<string> | Closure | null  $messageFileAttachmentMimeTypeBadgeColor
+     * @var string | array<string> | Closure | null
      */
     protected string | array | Closure | null $messageFileAttachmentMimeTypeBadgeColor = 'gray';
 
@@ -420,8 +423,7 @@ trait HasFileAttachments
     }
 
     /**
-     * @param  Collection<int, Message> $messages
-     *
+     * @param  Collection<int, Message>  $messages
      * @return array{attachmentOriginalName: string, attachmentMimeType: string, hasImageMimeType: bool, shouldShowOnlyMessageImageAttachment: bool}
      */
     public function getMessageAttachmentData(Message $message, Authenticatable $messageAuthor, Collection $messages): array

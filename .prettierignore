@@ -1,4 +1,5 @@
 *.md
 /vendor
+/resources/js/dist
 composer.lock
 tests/

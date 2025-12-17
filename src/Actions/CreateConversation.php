@@ -59,7 +59,7 @@ class CreateConversation
 
             $conversation->creator()->associate($creatorParticipant)->save();
 
-            $participants->each(function (Authenticatable & Model $participant) use ($conversationKey, $timestamp) {
+            $participants->each(function (Authenticatable & Model $participant) use ($conversationKey) {
                 if (! in_array(Conversable::class, class_uses_recursive($participant))) {
                     FilamentConverseException::throwInvalidConversableUserException($participant);
                 }

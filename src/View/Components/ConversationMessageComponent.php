@@ -7,7 +7,6 @@ namespace Dvarilek\FilamentConverse\View\Components;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Support\View\Components\Contracts\HasColor;
-use Filament\Support\View\Components\Contracts\HasDefaultGrayColor;
 
 class ConversationMessageComponent implements HasColor
 {

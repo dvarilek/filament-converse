@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 
-use Dvarilek\FilamentConverse\Actions\ReadConversation;
-use Dvarilek\FilamentConverse\Events\ConversationRead;
+use Closure;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Message;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
-use Closure;
 use Livewire\Attributes\Renderless;
 
 trait HasReadReceipts
@@ -62,9 +60,7 @@ trait HasReadReceipts
     }
 
     /**
-     * @param Collection $readByParticipations
-     * @param Collection $readByParticipationsAsLastMessage
-     * @param Collection<int, Message> $messages
+     * @param  Collection<int, Message>  $messages
      */
     public function shouldShowReadReceipts(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): bool
     {
@@ -84,9 +80,7 @@ trait HasReadReceipts
     }
 
     /**
-     * @param Collection $readByParticipations
-     * @param Collection $readByParticipationsAsLastMessage
-     * @param Collection<int, Message> $messages
+     * @param  Collection<int, Message>  $messages
      */
     public function getShortenedReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): string | Htmlable | null
     {
@@ -101,9 +95,7 @@ trait HasReadReceipts
     }
 
     /**
-     * @param Collection $readByParticipations
-     * @param Collection $readByParticipationsAsLastMessage
-     * @param Collection<int, Message> $messages
+     * @param  Collection<int, Message>  $messages
      */
     public function shouldShowFullReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): bool
     {
@@ -118,9 +110,7 @@ trait HasReadReceipts
     }
 
     /**
-     * @param Collection $readByParticipations
-     * @param Collection $readByParticipationsAsLastMessage
-     * @param Collection<int, Message> $messages
+     * @param  Collection<int, Message>  $messages
      */
     public function getFullReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): string | Htmlable | null
     {
@@ -148,21 +138,25 @@ trait HasReadReceipts
         $livewire->getActiveConversationAuthenticatedUserParticipation()->readConversation(
             $livewire->getActiveConversation()
         );
+
+        $livewire->dispatch(
+            'filament-converse-conversation-read',
+            conversationKey: $livewire->getActiveConversation()->getKey()
+        );
     }
 
     /**
-     * @param Collection<int, Message> $orderedMessages
-     *
+     * @param  Collection<int, Message>  $orderedMessages
      * @return array<string, array{readBy: list<ConversationParticipation>, readByAsLastMessage: list<ConversationParticipation>}>
      */
-    public function getMessagesReadsMap(Collection $orderedMessages): array
+    public function getMessageReadsMap(Collection $orderedMessages): array
     {
-        $messagesReadsMap = [];
+        $messageReadsMap = [];
 
         foreach ($orderedMessages as $message) {
-            $messagesReadsMap[$message->getKey()] = [
+            $messageReadsMap[$message->getKey()] = [
                 'readBy' => [],
-                'readByAsLastMessage' => []
+                'readByAsLastMessage' => [],
             ];
         }
 
@@ -179,15 +173,15 @@ trait HasReadReceipts
                 }
 
                 $messageKey = $message->getKey();
-                $messagesReadsMap[$messageKey]['readBy'][] = $participation;
+                $messageReadsMap[$messageKey]['readBy'][] = $participation;
                 $lastReadMessageKey = $messageKey;
             }
 
             if ($lastReadMessageKey !== null) {
-                $messagesReadsMap[$lastReadMessageKey]['readByAsLastMessage'][] = $participation;
+                $messageReadsMap[$lastReadMessageKey]['readByAsLastMessage'][] = $participation;
             }
         }
 
-        return $messagesReadsMap;
+        return $messageReadsMap;
     }
 }
