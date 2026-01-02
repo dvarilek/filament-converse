@@ -14,12 +14,8 @@
                     @apply flex-1;
                 }
 
-                & .fi-converse-conversation-list-header-title {
-                    @apply flex items-center gap-3;
-
-                    & .fi-converse-conversation-list-header-heading {
-                        @apply text-xl font-bold leading-6 text-gray-950 dark:text-white;
-                    }
+                & .fi-converse-conversation-list-header-heading {
+                    @apply flex items-center text-xl font-bold leading-6 text-gray-950 dark:text-white;
                 }
 
                 & .fi-converse-conversation-list-header-description {

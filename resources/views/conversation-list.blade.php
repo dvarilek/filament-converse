@@ -49,19 +49,10 @@
     <div class="fi-converse-conversation-list-header">
         <div class="fi-converse-conversation-list-header-top">
             <div class="fi-converse-conversation-list-header-content">
-                <div class="fi-converse-conversation-list-header-title">
-                    <h2 class="fi-converse-conversation-list-header-heading">
-                        {{ $getHeading() }}
-                    </h2>
-                    @if ($hasHeadingBadge() && filled($headingBadgeState = $getHeadingBadgeState()))
-                        <x-filament::badge
-                            :icon="$getHeadingBadgeIcon()"
-                            :color="$getHeadingBadgeColor()"
-                        >
-                            {{ $headingBadgeState }}
-                        </x-filament::badge>
-                    @endif
-                </div>
+                <h2 class="fi-converse-conversation-list-header-heading">
+                    {{ $getHeading() }}
+                </h2>
+
                 @if (filled($description = $getDescription()))
                     <p class="fi-converse-conversation-list-header-description">
                         {{ $description }}
@@ -146,12 +137,12 @@
         @if (count($conversations))
             @foreach ($conversations as $conversation)
                 @php
+                    $conversationKey = $conversation->getKey();
                     /* @var ?Message $latestMessage */
                     $latestMessage = $getLatestMessage($conversation);
                     $conversationName = $getConversationName($conversation);
                     $showConversationImage = $shouldShowConversationImage($conversation);
                     $unreadMessagesCount = $getUnreadMessagesCount($conversation);
-                    $conversationKey = $conversation->getKey();
                 @endphp
 
                 <li

@@ -248,9 +248,9 @@
                     $readByParticipationsAsLastMessage = collect($messageReadsMap[$message->getKey()]['readByAsLastMessage'] ?? []);
                     $showReadReceipt = $shouldShowReadReceipts($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages);
 
-                    $unreadMessagesDividerContent = $getUnreadMessagesDividerContent($message, $messageAuthor, $messages, $unreadMessages);
                     $isMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
                     $markConversationAsRead = $message->getKey() === $latestMessage->getKey() && $isMessageUnread && $shouldMarkConversationAsRead;
+                    $unreadMessagesDividerContent = $getUnreadMessagesDividerContent($message, $messageAuthor, $messages, $unreadMessages);
 
                     $filteredMessageActions = array_filter(
                         $messageActions,
@@ -264,7 +264,7 @@
 
                 <div
                     @if ($markConversationAsRead)
-                        x-intersect.threshold.50.once="$wire.callSchemaComponentMethod(@js($key), 'markCurrentConversationAsRead')"
+                        x-intersect.threshold.50.once="await $wire.callSchemaComponentMethod(@js($key), 'markCurrentConversationAsRead')"
                     @endif
                     {{
                         $extraMessageAttributeBag
@@ -274,7 +274,7 @@
                             ])
                     }}
                 >
-                    @if ($isMessageUnread && filled($unreadMessagesDividerContent))
+                    @if (filled($unreadMessagesDividerContent) && $shouldShowUnreadMessagesDivider($message, $messageAuthor, $messages, $unreadMessages))
                         @if ($unreadMessagesDividerContent instanceof Htmlable)
                             {{ $unreadMessagesDividerContent }}
                         @else

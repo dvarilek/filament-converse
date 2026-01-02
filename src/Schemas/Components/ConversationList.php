@@ -22,8 +22,6 @@ use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Contracts\Support\Renderable;
-use Illuminate\Support\HtmlString;
 use Livewire\Component as LivewireComponent;
 
 class ConversationList extends Component
@@ -47,14 +45,6 @@ class ConversationList extends Component
     protected string | Htmlable | Closure | null $heading = null;
 
     protected string | Htmlable | Closure | null $description = null;
-
-    protected bool | Closure $hasHeadingBadge = true;
-
-    protected int | string | Closure | null $headingBadgeState = null;
-
-    protected string | array | Closure | null $headingBadgeColor = null;
-
-    protected string | BackedEnum | Htmlable | Closure | false | null $headingBadgeIcon = null;
 
     protected int | Closure | null $defaultLoadedConversationsCount = 10;
 
@@ -109,17 +99,6 @@ class ConversationList extends Component
             }
         });
 
-        $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string {
-            $authenticatedUserKey = auth()->id();
-
-            return $livewire->conversations->sum(static function (Conversation $conversation) use ($authenticatedUserKey) {
-                return $conversation
-                    ->participations
-                    ->firstWhere('participant_id', $authenticatedUserKey)
-                    ->unread_messages_count;
-            });
-        });
-
         $this->getLatestMessageDateTimeUsing(static function (Message $latestMessage): string {
             return $latestMessage->created_at->shortAbsoluteDiffForHumans();
         });
@@ -133,7 +112,7 @@ class ConversationList extends Component
                 ->first();
         });
 
-        $this->getLatestMessageContentUsing(static function (Conversation $conversation, Message $latestMessage, HasConversationSchema $livewire): string {
+        $this->getLatestMessageContentUsing(static function (Conversation $conversation, Message $latestMessage): string {
             $participantWithLatestMessage = $conversation
                 ->participations
                 ->firstWhere((new ConversationParticipation)->getKeyName(), $latestMessage->author_id)
@@ -172,37 +151,6 @@ class ConversationList extends Component
     public function description(string | Htmlable | Closure | null $description): static
     {
         $this->description = $description;
-
-        return $this;
-    }
-
-    public function headingBadge(bool | Closure $condition = true): static
-    {
-        $this->hasHeadingBadge = $hasBadge;
-
-        return $this;
-    }
-
-    public function headingBadgeState(int | string | Closure | null $state): static
-    {
-        $this->headingBadgeState = $state;
-
-        return $this;
-    }
-
-    /**
-     * @param  string | array<string> | Closure | null  $color
-     */
-    public function headingBadgeColor(string | array | Closure | null $color): static
-    {
-        $this->headingBadgeColor = $color;
-
-        return $this;
-    }
-
-    public function headingBadgeIcon(string | BackedEnum | Htmlable | Closure | null $icon): static
-    {
-        $this->headingBadgeIcon = filled($icon) ? $icon : false;
 
         return $this;
     }
@@ -295,40 +243,6 @@ class ConversationList extends Component
     public function getDescription(): string | Htmlable | null
     {
         return $this->evaluate($this->description);
-    }
-
-    public function hasHeadingBadge(): bool
-    {
-        return (bool) $this->evaluate($this->hasHeadingBadge);
-    }
-
-    public function getHeadingBadgeState(): int | string | null
-    {
-        return $this->evaluate($this->headingBadgeState);
-    }
-
-    /**
-     * @return string | array<string> | null
-     */
-    public function getHeadingBadgeColor(): string | array | null
-    {
-        return $this->evaluate($this->headingBadgeColor);
-    }
-
-    public function getHeadingBadgeIcon(): string | BackedEnum | Htmlable | null
-    {
-        $icon = $this->evaluate($this->headingBadgeIcon);
-
-        // https://github.com/filamentphp/filament/pull/13512
-        if ($icon instanceof Renderable) {
-            return new HtmlString($icon->render());
-        }
-
-        if ($icon === false) {
-            return null;
-        }
-
-        return $icon;
     }
 
     public function getDefaultLoadedConversationsCount(): int

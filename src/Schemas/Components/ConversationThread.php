@@ -61,6 +61,8 @@ class ConversationThread extends Textarea
 
     protected string | Htmlable | Closure | null $messageDividerContent = null;
 
+    protected bool | Closure | null $shouldShowUnreadMessagesDivider = null;
+
     protected ?Closure $getUnreadMessagesDividerContentUsing = null;
 
     /**
@@ -134,6 +136,25 @@ class ConversationThread extends Textarea
         });
 
         $this->messenger();
+
+        $this->showUnreadMessagesDivider(static function (Message $message, Collection $messages, Collection $unreadMessages): bool {
+            $isCurrentMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
+
+            if (! $isCurrentMessageUnread) {
+                return false;
+            }
+
+            $currentMessageIndex = $messages->search(static fn (Message $msg) => $msg->getKey() === $message->getKey());
+
+            if ($currentMessageIndex === false) {
+                return false;
+            }
+
+            /* @var ?Message $nextMessage */
+            $nextMessage = $messages->get($currentMessageIndex + 1);
+
+            return ! ($nextMessage && $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $nextMessage->getKey()));
+        });
 
         $this->getUnreadMessagesDividerContentUsing(static function (Collection $unreadMessages): string {
             $unreadMessagesCount = $unreadMessages->count();
@@ -495,6 +516,13 @@ class ConversationThread extends Textarea
         return $this;
     }
 
+    public function showUnreadMessagesDivider(bool | Closure | null $condition): static
+    {
+        $this->shouldShowUnreadMessagesDivider = $condition;
+
+        return $this;
+    }
+
     public function getUnreadMessagesDividerContentUsing(?Closure $callback = null): static
     {
         $this->getUnreadMessagesDividerContentUsing = $callback;
@@ -656,6 +684,23 @@ class ConversationThread extends Textarea
             Message::class => $message,
             Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, Message>  $messages
+     * @param  Collection<int, Message>  $unreadMessages
+     */
+    public function shouldShowUnreadMessagesDivider(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): bool
+    {
+        return (bool) $this->evaluate($this->shouldShowUnreadMessagesDivider, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+            'unreadMessages' => $unreadMessages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
         ]);
     }
 
