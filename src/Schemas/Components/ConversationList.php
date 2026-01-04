@@ -7,6 +7,7 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 use BackedEnum;
 use Closure;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
@@ -375,5 +376,27 @@ class ConversationList extends Component
     public function getLivewire(): LivewireComponent & HasSchemas & HasActions & HasConversationSchema
     {
         return parent::getLivewire();
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    protected function resolveDefaultClosureDependencyForEvaluationByName(string $parameterName): array
+    {
+        return match ($parameterName) {
+            'livewire' => [$this->getLivewire()],
+            default => []
+        };
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    protected function resolveDefaultClosureDependencyForEvaluationByType(string $parameterType): array
+    {
+        return match ($parameterType) {
+            ConversationManager::class => [$this->getLivewire()],
+            default => []
+        };
     }
 }

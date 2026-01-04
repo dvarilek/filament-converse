@@ -137,7 +137,7 @@ class ConversationThread extends Textarea
 
         $this->messenger();
 
-        $this->showUnreadMessagesDivider(static function (Message $message, Collection $messages, Collection $unreadMessages): bool {
+        $this->showUnreadMessagesDivider(static function (Message $message, Collection $messages, Collection $unreadMessages, ConversationManager $livewire): bool {
             $isCurrentMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
 
             if (! $isCurrentMessageUnread) {
@@ -154,6 +154,31 @@ class ConversationThread extends Textarea
             $nextMessage = $messages->get($currentMessageIndex + 1);
 
             return ! ($nextMessage && $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $nextMessage->getKey()));
+        });
+
+        $this->showUnreadMessagesDivider(static function (Message $message, Collection $messages, Collection $unreadMessages, ConversationManager $livewire): bool {
+            $messageKey = $message->getKey();
+
+            // TODO: Change the logic for unread messages divider - rename to new messages, simplify conversation list unread messages, maybe revert the previous commits in some way or form
+
+            $isCurrentMessageUnread = array_key_exists($messageKey, $livewire->messagesCreatedDuringConversationSession);
+
+            if (! $isCurrentMessageUnread) {
+                return false;
+            }
+
+            $currentMessageIndex = $messages->search(static fn (Message $msg) => $msg->getKey() === $messageKey);
+
+            dump($currentMessageIndex);
+
+            if ($currentMessageIndex === false) {
+                return false;
+            }
+
+            /* @var ?Message $nextMessage */
+            $nextMessage = $messages->get($currentMessageIndex + 1);
+
+            return ! ($nextMessage && array_key_exists($nextMessage->getKey(), $livewire->messagesCreatedDuringConversationSession));
         });
 
         $this->getUnreadMessagesDividerContentUsing(static function (Collection $unreadMessages): string {
@@ -781,6 +806,8 @@ class ConversationThread extends Textarea
             $limit = $this->getDefaultLoadedMessagesCount()
                 + (($livewire->getActiveConversationMessagesPage() - 1) * $this->getMessagesLoadedPerPage());
 
+            dump($livewire->messagesCreatedDuringConversationSession, 'query');
+
             $extra = count(array_filter($livewire->messagesCreatedDuringConversationSession, static fn (array $data) => $data['exists'] === true));
 
             $query->limit($limit + $extra);
@@ -908,6 +935,7 @@ class ConversationThread extends Textarea
             'conversation',
             'activeConversation' => [$this->getActiveConversation()],
             'messages' => [$this->getMessagesQuery(false)?->get()],
+            'livewire' => [$this->getLivewire()],
             default => []
         };
     }
@@ -920,6 +948,7 @@ class ConversationThread extends Textarea
         return match ($parameterType) {
             Conversation::class => [$this->getActiveConversation()],
             Collection::class => [$this->getMessagesQuery(false)?->get()],
+            ConversationManager::class => [$this->getLivewire()],
             default => []
         };
     }
