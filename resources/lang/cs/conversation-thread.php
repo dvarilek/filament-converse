@@ -38,7 +38,7 @@ return [
 
     ],
 
-    'unread-messages-divider-content' => [
+    'new-messages-divider-content' => [
 
         'label' => '{1} :count nová zpráva|[2,4] :count nové zprávy|[5,*] :count nových zpráv',
 

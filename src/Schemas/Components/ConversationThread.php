@@ -61,14 +61,14 @@ class ConversationThread extends Textarea
 
     protected string | Htmlable | Closure | null $messageDividerContent = null;
 
-    protected bool | Closure | null $shouldShowUnreadMessagesDivider = null;
+    protected bool | Closure | null $shouldShowNewMessagesDivider = null;
 
-    protected ?Closure $getUnreadMessagesDividerContentUsing = null;
+    protected ?Closure $getNewMessagesDividerContentUsing = null;
 
     /**
      * @var string | array<string> | Closure | null
      */
-    protected string | array | Closure | null $unreadMessagesDividerColor = 'primary';
+    protected string | array | Closure | null $NewMessagesDividerColor = 'primary';
 
     /**
      * @var string | array<string> | Closure | null
@@ -137,55 +137,44 @@ class ConversationThread extends Textarea
 
         $this->messenger();
 
-        $this->showUnreadMessagesDivider(static function (Message $message, Collection $messages, Collection $unreadMessages, ConversationManager $livewire): bool {
-            $isCurrentMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
-
-            if (! $isCurrentMessageUnread) {
+        $this->showNewMessagesDivider(static function (Message $message, Collection $unreadMessages, Collection $messages, ConversationManager $livewire): bool {
+            if (collect($livewire->messagesCreatedDuringConversationSession)->contains('createdByAuthenticatedUser', true)) {
                 return false;
             }
 
-            $currentMessageIndex = $messages->search(static fn (Message $msg) => $msg->getKey() === $message->getKey());
+            if (! $livewire->oldestNewMessageKey) {
+                $authenticatedUserKey = $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey();
 
-            if ($currentMessageIndex === false) {
-                return false;
+                $livewire->oldestNewMessageKey = $unreadMessages->first(static fn (Message $message) => $authenticatedUserKey !== $message->author_id);
             }
 
-            /* @var ?Message $nextMessage */
-            $nextMessage = $messages->get($currentMessageIndex + 1);
-
-            return ! ($nextMessage && $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $nextMessage->getKey()));
+            return $livewire->oldestNewMessageKey === $message->getKey();
         });
 
-        $this->showUnreadMessagesDivider(static function (Message $message, Collection $messages, Collection $unreadMessages, ConversationManager $livewire): bool {
-            $messageKey = $message->getKey();
-
-            // TODO: Change the logic for unread messages divider - rename to new messages, simplify conversation list unread messages, maybe revert the previous commits in some way or form
-
-            $isCurrentMessageUnread = array_key_exists($messageKey, $livewire->messagesCreatedDuringConversationSession);
-
-            if (! $isCurrentMessageUnread) {
+        $this->getNewMessagesDividerContentUsing(static function (Message $message, Collection $unreadMessages, Collection $messages, ConversationManager $livewire): string {
+            // TODO" COnsider removing `showNewMessagesDivider` and just use this
+            
+            if (collect($livewire->messagesCreatedDuringConversationSession)->contains('createdByAuthenticatedUser', true)) {
                 return false;
             }
 
-            $currentMessageIndex = $messages->search(static fn (Message $msg) => $msg->getKey() === $messageKey);
-
-            dump($currentMessageIndex);
-
-            if ($currentMessageIndex === false) {
+            if ($livewire->oldestNewMessageKey) {
                 return false;
             }
 
-            /* @var ?Message $nextMessage */
-            $nextMessage = $messages->get($currentMessageIndex + 1);
+            $authenticatedUserKey = $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey();
+            $livewire->oldestNewMessageKey = $unreadMessages->first(static fn (Message $message) => $authenticatedUserKey !== $message->author_id);
 
-            return ! ($nextMessage && array_key_exists($nextMessage->getKey(), $livewire->messagesCreatedDuringConversationSession));
-        });
+            if ($livewire->oldestNewMessageKey !== $message->getKey()) {
+                return false;
+            }
 
-        $this->getUnreadMessagesDividerContentUsing(static function (Collection $unreadMessages): string {
-            $unreadMessagesCount = $unreadMessages->count();
+            $newMessagesCount = $messages
+                ->filter(static fn (Message $msg) => $authenticatedUserKey !== $msg->author_id && $message->lte($msg->created_at))
+                ->count();
 
-            return trans_choice('filament-converse::conversation-thread.unread-messages-divider-content.label', $unreadMessagesCount, [
-                'count' => $unreadMessagesCount,
+            return trans_choice('filament-converse::conversation-thread.new-messages-divider-content.label', $newMessagesCount, [
+                'count' => $newMessagesCount,
             ]);
         });
 
@@ -541,16 +530,16 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function showUnreadMessagesDivider(bool | Closure | null $condition): static
+    public function showNewMessagesDivider(bool | Closure | null $condition): static
     {
-        $this->shouldShowUnreadMessagesDivider = $condition;
+        $this->shouldShowNewMessagesDivider = $condition;
 
         return $this;
     }
 
-    public function getUnreadMessagesDividerContentUsing(?Closure $callback = null): static
+    public function getNewMessagesDividerContentUsing(?Closure $callback = null): static
     {
-        $this->getUnreadMessagesDividerContentUsing = $callback;
+        $this->getNewMessagesDividerContentUsing = $callback;
 
         return $this;
     }
@@ -558,9 +547,9 @@ class ConversationThread extends Textarea
     /**
      * @param  string | array<string> | Closure | null  $color
      */
-    public function unreadMessagesDividerColor(string | array | Closure | null $color): static
+    public function newMessagesDividerColor(string | array | Closure | null $color): static
     {
-        $this->unreadMessagesDividerColor = $color;
+        $this->NewMessagesDividerColor = $color;
 
         return $this;
     }
@@ -716,9 +705,9 @@ class ConversationThread extends Textarea
      * @param  Collection<int, Message>  $messages
      * @param  Collection<int, Message>  $unreadMessages
      */
-    public function shouldShowUnreadMessagesDivider(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): bool
+    public function shouldShowNewMessagesDivider(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): bool
     {
-        return (bool) $this->evaluate($this->shouldShowUnreadMessagesDivider, [
+        return (bool) $this->evaluate($this->shouldShowNewMessagesDivider, [
             'message' => $message,
             'messageAuthor' => $messageAuthor,
             'messages' => $messages,
@@ -733,9 +722,9 @@ class ConversationThread extends Textarea
      * @param  Collection<int, Message>  $messages
      * @param  Collection<int, Message>  $unreadMessages
      */
-    public function getUnreadMessagesDividerContent(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): string | Htmlable | null
+    public function getNewMessagesDividerContent(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): string | Htmlable | null
     {
-        return $this->evaluate($this->getUnreadMessagesDividerContentUsing, [
+        return $this->evaluate($this->getNewMessagesDividerContentUsing, [
             'message' => $message,
             'messageAuthor' => $messageAuthor,
             'messages' => $messages,
@@ -750,9 +739,9 @@ class ConversationThread extends Textarea
      * @param  Collection<int, Message>  $messages
      * @param  Collection<int, Message>  $unreadMessages
      */
-    public function getUnreadMessagesDividerColor(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): string | array
+    public function getNewMessagesDividerColor(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): string | array
     {
-        return $this->evaluate($this->unreadMessagesDividerColor, [
+        return $this->evaluate($this->NewMessagesDividerColor, [
             'message' => $message,
             'messageAuthor' => $messageAuthor,
             'messages' => $messages,
@@ -805,8 +794,6 @@ class ConversationThread extends Textarea
         if ($shouldPaginate) {
             $limit = $this->getDefaultLoadedMessagesCount()
                 + (($livewire->getActiveConversationMessagesPage() - 1) * $this->getMessagesLoadedPerPage());
-
-            dump($livewire->messagesCreatedDuringConversationSession, 'query');
 
             $extra = count(array_filter($livewire->messagesCreatedDuringConversationSession, static fn (array $data) => $data['exists'] === true));
 

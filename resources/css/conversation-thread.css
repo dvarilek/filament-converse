@@ -132,7 +132,7 @@
         & .fi-converse-conversation-thread-message-container {
             @apply mt-3 flex flex-col gap-1 px-4;
 
-            & .fi-converse-conversation-thread-unread-messages-divider-content {
+            & .fi-converse-conversation-thread-new-messages-divider-content {
                 @apply text-primary-600 dark:text-primary-400 flex w-full items-center gap-3 py-1 text-xs;
 
                 &

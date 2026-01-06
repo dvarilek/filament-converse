@@ -38,7 +38,7 @@ return [
 
     ],
 
-    'unread-messages-divider-content' => [
+    'new-messages-divider-content' => [
 
         'label' => '{1} :count new message|[2,*] :count new messages',
 

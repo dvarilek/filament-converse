@@ -2,10 +2,12 @@
 
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
+use Carbon\Carbon;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Dvarilek\FilamentConverse\Models\Message;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -23,11 +25,13 @@ trait HasConversations
     public int $activeConversationMessagesPage = 1;
 
     /**
-     * This property and its exact structure is required for scrollToBottom functionality to work as expected.
+     * This property and its exact structure is required for scrollToBottom and pagination to work as expected.
      *
      * @var array<string, array{exists: bool, createdByAuthenticatedUser: bool}>
      */
     public array $messagesCreatedDuringConversationSession = [];
+
+    public ?string $oldestNewMessageKey = null; 
 
     /**
      * @var array<string, mixed>
@@ -56,6 +60,7 @@ trait HasConversations
         $this->activeConversationKey = $conversationKey;
 
         $this->activeConversationMessagesPage = 1;
+        $this->oldestNewMessageKey = null;
         $this->messagesCreatedDuringConversationSession = [];
 
         $conversationSchema = $this->getConversationSchema();

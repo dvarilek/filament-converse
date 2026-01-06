@@ -6,7 +6,7 @@ namespace Dvarilek\FilamentConverse\View\Components;
 
 use Filament\Support\View\Components\Contracts\HasColor;
 
-class UnreadMessagesDividerComponent implements HasColor
+class NewMessagesDividerComponent implements HasColor
 {
     /**
      * @param  array<int, string>  $color

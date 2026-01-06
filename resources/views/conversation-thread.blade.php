@@ -4,7 +4,7 @@
     use Dvarilek\FilamentConverse\Models\Message;
     use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
     use Dvarilek\FilamentConverse\View\Components\ConversationMessageComponent;
-    use Dvarilek\FilamentConverse\View\Components\UnreadMessagesDividerComponent;
+    use Dvarilek\FilamentConverse\View\Components\NewMessagesDividerComponent;
     use Filament\Actions\Action;
     use Filament\Actions\ActionGroup;
     use Filament\Schemas\Components\Icon;
@@ -250,7 +250,7 @@
 
                     $isMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
                     $markConversationAsRead = $message->getKey() === $latestMessage->getKey() && $isMessageUnread && $shouldMarkConversationAsRead;
-                    $unreadMessagesDividerContent = $getUnreadMessagesDividerContent($message, $messageAuthor, $messages, $unreadMessages);
+                    $newMessagesDividerContent = $getNewMessagesDividerContent($message, $messageAuthor, $messages, $unreadMessages);
 
                     $filteredMessageActions = array_filter(
                         $messageActions,
@@ -274,20 +274,20 @@
                             ])
                     }}
                 >
-                    @if (filled($unreadMessagesDividerContent) && $shouldShowUnreadMessagesDivider($message, $messageAuthor, $messages, $unreadMessages))
-                        @if ($unreadMessagesDividerContent instanceof Htmlable)
-                            {{ $unreadMessagesDividerContent }}
+                    @if (filled($newMessagesDividerContent) && $shouldShowNewMessagesDivider($message, $messageAuthor, $messages, $unreadMessages))
+                        @if ($newMessagesDividerContent instanceof Htmlable)
+                            {{ $newMessagesDividerContent }}
                         @else
                             @php
-                                $unreadMessagesDividerColor = $getUnreadMessagesDividerColor($message, $messageAuthor, $messages, $unreadMessages);
+                                $newMessagesDividerColor = $getNewMessagesDividerColor($message, $messageAuthor, $messages, $unreadMessages);
                             @endphp
 
                             <div
                                 {{
                                     (new ComponentAttributeBag)
-                                        ->color(UnreadMessagesDividerComponent::class, $unreadMessagesDividerColor)
+                                        ->color(NewMessagesDividerComponent::class, $newMessagesDividerColor)
                                         ->class([
-                                            'fi-converse-conversation-thread-unread-messages-divider-content',
+                                            'fi-converse-conversation-thread-new-messages-divider-content',
                                         ])
                                 }}
                             >
@@ -297,7 +297,7 @@
                                 <div
                                     class="fi-converse-conversation-thread-unread-messages-divider-text"
                                 >
-                                    {{ $unreadMessagesDividerContent }}
+                                    {{ $newMessagesDividerContent }}
                                 </div>
                                 <div
                                     class="fi-converse-conversation-thread-unread-messages-divider-separator"
