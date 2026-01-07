@@ -138,11 +138,6 @@ trait HasReadReceipts
         $livewire->getActiveConversationAuthenticatedUserParticipation()->readConversation(
             $livewire->getActiveConversation()
         );
-
-        $livewire->dispatch(
-            'filament-converse-conversation-read',
-            conversationKey: $livewire->getActiveConversation()->getKey()
-        );
     }
 
     /**

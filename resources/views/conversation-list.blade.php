@@ -1,6 +1,5 @@
 @php
     use Dvarilek\FilamentConverse\Models\Conversation;
-    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
     use Dvarilek\FilamentConverse\Models\Message;
     use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
     use Filament\Actions\Action;
@@ -11,6 +10,7 @@
 
     /* @var Collection<int, Conversation> $conversations */
     $conversations = $getConversations();
+    $query = $this->getBaseFilteredConversationsQuery();
     $totalConversationsCount = $this->getBaseFilteredConversationsQuery()->count();
     $activeConversation = $getActiveConversation();
 
@@ -49,9 +49,20 @@
     <div class="fi-converse-conversation-list-header">
         <div class="fi-converse-conversation-list-header-top">
             <div class="fi-converse-conversation-list-header-content">
-                <h2 class="fi-converse-conversation-list-header-heading">
-                    {{ $getHeading() }}
-                </h2>
+                <div class="fi-converse-conversation-list-header-title">
+                    <h2 class="fi-converse-conversation-list-header-heading">
+                        {{ $getHeading() }}
+                    </h2>
+
+                    @if ($hasHeadingBadge() && filled($headingBadgeState = $getHeadingBadgeState()))
+                        <x-filament::badge
+                            :icon="$getHeadingBadgeIcon()"
+                            :color="$getHeadingBadgeColor()"
+                        >
+                            {{ $headingBadgeState }}
+                        </x-filament::badge>
+                    @endif
+                </div>
 
                 @if (filled($description = $getDescription()))
                     <p class="fi-converse-conversation-list-header-description">
@@ -148,24 +159,16 @@
                 <li
                     wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}-{{ $unreadMessagesCount }}"
                     wire:loading.attr="disabled"
-                    x-data="{ unreadMessagesCount: {{ $unreadMessagesCount }} }"
                     x-on:click="
                         await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
                         showConversationListSidebar = false
-                    "
-                    x-on:filament-converse-conversation-read.window="
-                        if ($event.detail.conversationKey === '{{ $conversationKey }}') {
-                            unreadMessagesCount = 0
-                        }
                     "
                     {{
                         $extraConversationAttributeBag
                             ->class([
                                 'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
+                                'fi-converse-conversation-list-item-unread' => $unreadMessagesCount > 0,
                                 'fi-converse-conversation-list-item',
-                            ])
-                            ->merge([
-                                'x-bind:class' => "{ 'fi-converse-conversation-list-item-unread': unreadMessagesCount > 0 }",
                             ])
                     }}
                 >
@@ -208,7 +211,6 @@
 
                             @if ($unreadMessagesCount)
                                 <x-filament::badge
-                                    x-show="unreadMessagesCount > 0"
                                     :icon="$getUnreadMessagesBadgeIcon($latestMessage, $conversation)"
                                     :color="$getUnreadMessagesBadgeColor($latestMessage, $conversation)"
                                     size="sm"

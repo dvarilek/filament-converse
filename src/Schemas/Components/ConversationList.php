@@ -47,6 +47,14 @@ class ConversationList extends Component
 
     protected string | Htmlable | Closure | null $description = null;
 
+    protected bool | Closure $hasHeadingBadge = true;
+
+    protected int | string | Closure | null $headingBadgeState = null;
+
+    protected string | array | Closure | null $headingBadgeColor = null;
+
+    protected string | BackedEnum | Htmlable | Closure | false | null $headingBadgeIcon = null;
+
     protected int | Closure | null $defaultLoadedConversationsCount = 10;
 
     protected int | Closure | null $conversationsLoadedPerPage = 10;
@@ -94,10 +102,19 @@ class ConversationList extends Component
 
         $this->latestMessageEmptyContent(__('filament-converse::conversation-list.latest-message.empty-state'));
 
-        $this->emptyStateDescription(static function () {
-            if (! auth()->user()->participatesInAnyConversation()) {
-                return __('filament-converse::conversation-list.empty-state.description');
-            }
+        $this->emptyStateDescription(static function (): ?string {
+            return ! auth()->user()->participatesInAnyConversation() ? __('filament-converse::conversation-list.empty-state.description') : null;
+        });
+
+        $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string {
+            $authenticatedUserKey = auth()->id();
+
+            return $livewire->conversations->sum(static function (Conversation $conversation) use ($authenticatedUserKey) {
+                return $conversation
+                    ->participations
+                    ->firstWhere('participant_id', $authenticatedUserKey)
+                    ->unread_messages_count;
+            });
         });
 
         $this->getLatestMessageDateTimeUsing(static function (Message $latestMessage): string {
@@ -152,6 +169,37 @@ class ConversationList extends Component
     public function description(string | Htmlable | Closure | null $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function headingBadge(bool | Closure $condition = true): static
+    {
+        $this->hasHeadingBadge = $hasBadge;
+
+        return $this;
+    }
+
+    public function headingBadgeState(int | string | Closure | null $state): static
+    {
+        $this->headingBadgeState = $state;
+
+        return $this;
+    }
+
+    /**
+     * @param  string | array<string> | Closure | null  $color
+     */
+    public function headingBadgeColor(string | array | Closure | null $color): static
+    {
+        $this->headingBadgeColor = $color;
+
+        return $this;
+    }
+
+    public function headingBadgeIcon(string | BackedEnum | Htmlable | Closure | null $icon): static
+    {
+        $this->headingBadgeIcon = filled($icon) ? $icon : false;
 
         return $this;
     }
@@ -244,6 +292,40 @@ class ConversationList extends Component
     public function getDescription(): string | Htmlable | null
     {
         return $this->evaluate($this->description);
+    }
+
+    public function hasHeadingBadge(): bool
+    {
+        return (bool) $this->evaluate($this->hasHeadingBadge);
+    }
+
+    public function getHeadingBadgeState(): int | string | null
+    {
+        return $this->evaluate($this->headingBadgeState);
+    }
+
+    /**
+     * @return string | array<string> | null
+     */
+    public function getHeadingBadgeColor(): string | array | null
+    {
+        return $this->evaluate($this->headingBadgeColor);
+    }
+
+    public function getHeadingBadgeIcon(): string | BackedEnum | Htmlable | null
+    {
+        $icon = $this->evaluate($this->headingBadgeIcon);
+
+        // https://github.com/filamentphp/filament/pull/13512
+        if ($icon instanceof Renderable) {
+            return new HtmlString($icon->render());
+        }
+
+        if ($icon === false) {
+            return null;
+        }
+
+        return $icon;
     }
 
     public function getDefaultLoadedConversationsCount(): int

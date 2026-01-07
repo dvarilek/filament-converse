@@ -2,12 +2,10 @@
 
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
-use Carbon\Carbon;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Dvarilek\FilamentConverse\Models\Message;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -31,7 +29,7 @@ trait HasConversations
      */
     public array $messagesCreatedDuringConversationSession = [];
 
-    public ?string $oldestNewMessageKey = null; 
+    public ?string $oldestNewMessageKey = null;
 
     /**
      * @var array<string, mixed>

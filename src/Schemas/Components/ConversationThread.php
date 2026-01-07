@@ -144,33 +144,19 @@ class ConversationThread extends Textarea
 
             if (! $livewire->oldestNewMessageKey) {
                 $authenticatedUserKey = $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey();
-
-                $livewire->oldestNewMessageKey = $unreadMessages->first(static fn (Message $message) => $authenticatedUserKey !== $message->author_id);
+                $livewire->oldestNewMessageKey = $unreadMessages->first(static fn (Message $message) => $authenticatedUserKey !== $message->author_id)?->getKey();
             }
 
             return $livewire->oldestNewMessageKey === $message->getKey();
         });
 
-        $this->getNewMessagesDividerContentUsing(static function (Message $message, Collection $unreadMessages, Collection $messages, ConversationManager $livewire): string {
-            // TODO" COnsider removing `showNewMessagesDivider` and just use this
-            
-            if (collect($livewire->messagesCreatedDuringConversationSession)->contains('createdByAuthenticatedUser', true)) {
-                return false;
-            }
-
-            if ($livewire->oldestNewMessageKey) {
-                return false;
-            }
-
-            $authenticatedUserKey = $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey();
-            $livewire->oldestNewMessageKey = $unreadMessages->first(static fn (Message $message) => $authenticatedUserKey !== $message->author_id);
-
+        $this->getNewMessagesDividerContentUsing(static function (Message $message, Collection $messages, ConversationManager $livewire): ?string {
             if ($livewire->oldestNewMessageKey !== $message->getKey()) {
-                return false;
+                return null;
             }
 
             $newMessagesCount = $messages
-                ->filter(static fn (Message $msg) => $authenticatedUserKey !== $msg->author_id && $message->lte($msg->created_at))
+                ->filter(static fn (Message $msg) => $message->created_at->lte($msg->created_at))
                 ->count();
 
             return trans_choice('filament-converse::conversation-thread.new-messages-divider-content.label', $newMessagesCount, [

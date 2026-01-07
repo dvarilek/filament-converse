@@ -250,7 +250,7 @@
 
                     $isMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
                     $markConversationAsRead = $message->getKey() === $latestMessage->getKey() && $isMessageUnread && $shouldMarkConversationAsRead;
-                    $newMessagesDividerContent = $getNewMessagesDividerContent($message, $messageAuthor, $messages, $unreadMessages);
+                    $showNewMessagesDivider = $shouldShowNewMessagesDivider($message, $messageAuthor, $messages, $unreadMessages);
 
                     $filteredMessageActions = array_filter(
                         $messageActions,
@@ -264,7 +264,11 @@
 
                 <div
                     @if ($markConversationAsRead)
-                        x-intersect.threshold.50.once="await $wire.callSchemaComponentMethod(@js($key), 'markCurrentConversationAsRead')"
+                        x-intersect.threshold.50.once="
+                            await $wire.callSchemaComponentMethod(@js($key), 'markCurrentConversationAsRead')
+
+                            $wire.$refresh()
+                        "
                     @endif
                     {{
                         $extraMessageAttributeBag
@@ -274,7 +278,7 @@
                             ])
                     }}
                 >
-                    @if (filled($newMessagesDividerContent) && $shouldShowNewMessagesDivider($message, $messageAuthor, $messages, $unreadMessages))
+                    @if ($showNewMessagesDivider && filled($newMessagesDividerContent = $getNewMessagesDividerContent($message, $messageAuthor, $messages, $unreadMessages)))
                         @if ($newMessagesDividerContent instanceof Htmlable)
                             {{ $newMessagesDividerContent }}
                         @else
