@@ -884,7 +884,15 @@ trait HasFileAttachments
     {
         $livewire = $this->getLivewire();
         $activeConversationKey = $livewire->getActiveConversation()?->getKey();
-
+        
+        if (! $this->hasFileAttachments()) {
+            return [];
+        }
+        
+        if ($this->isDisabled()) {
+            return [];
+        }
+        
         if (! $activeConversationKey) {
             return [];
         }

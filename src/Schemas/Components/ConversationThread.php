@@ -15,6 +15,9 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\Dele
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\FusedGroup;
+use Filament\Schemas\Components\View;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
@@ -109,6 +112,37 @@ class ConversationThread extends Textarea
         $this->attachmentModalDescription(__('filament-converse::conversation-thread.attachment-modal.description'));
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
+
+        //
+
+        $this->schema(static fn (ConversationThread $component) => [
+            FusedGroup::make([
+                View::make('filament-converse::input-attachments-area')
+                    //->hidden(! $livewire->getActiveConversation()?->getKey())
+                    ->viewData(static fn (ConversationManager $livewire) => [ // todo
+                        'conversationKey' => $livewire->getActiveConversation()?->getKey(),
+                        'uploadedFileAttachments' => $component->getUploadedFileAttachments(),
+                        'isImageMimeType' => fn ($a) => true,
+                        'getUploadedFileAttachmentName' => $component->uploadedFileAttachmentName,
+                        'getUploadedFileAttachmentToolbar' => $component->uploadedFileAttachmentToolbar,
+                        'shouldShowOnlyUploadedImageAttachment' => $component->shouldShowOnlyUploadedImageAttachment,
+                        'shouldPreviewUploadedImageAttachment' => $component->shouldPreviewUploadedImageAttachment,
+                        'getUploadedFileAttachmentIcon' => $component->uploadedFileAttachmentIcon,
+                        'getUploadedFileAttachmentMimeTypeBadgeLabel' => $component->uploadedFileAttachmentMimeTypeBadgeLabel,
+                        'getUploadedFileAttachmentMimeTypeBadgeIcon' => $component->uploadedFileAttachmentMimeTypeBadgeIcon,
+                        'getUploadedFileAttachmentMimeTypeBadgeColor' => $component->uploadedFileAttachmentMimeTypeBadgeColor,
+                    ]),
+                Textarea::make('test')
+                    ->extraAttributes([
+                        'style' => 'max-height: 8rem; overflow: auto'
+                    ])
+                    ->autosize(),
+                Actions::make([
+                    Action::make('first'),
+                    Action::make('second'),
+                ])
+            ])
+        ]);
 
         $this->getMessageContentUsing(static function (Message $message): ?string {
             return $message->content;
