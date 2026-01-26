@@ -17,6 +17,9 @@ use Livewire\Component;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
+/**
+ * @property Schema $content
+ */
 class ConversationManager extends Component implements HasActions, HasConversationSchema, HasSchemas
 {
     use InteractsWithActions;

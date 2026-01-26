@@ -16,8 +16,9 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\Edit
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\FusedGroup;
-use Filament\Schemas\Components\View;
+use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
@@ -27,16 +28,19 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Dvarilek\FilamentConverse\Schemas\Components\AttachmentArea;
+use Filament\Forms\Components\Concerns\HasFileAttachments as BaseHasFileAttachments;
 
-class ConversationThread extends Textarea
+class ConversationThread extends Component
 {
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
     use Concerns\HasExtraMessageAttributes;
-    use Concerns\HasFileAttachments;
     use Concerns\HasReadReceipts;
     use Concerns\HasTypingIndicator;
+    use Concerns\HasFileAttachments;
+    use BaseHasFileAttachments;
+    use HasKey;
     use HasExtraAttributes;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
@@ -47,8 +51,6 @@ class ConversationThread extends Textarea
      * @var view-string
      */
     protected string $view = 'filament-converse::conversation-thread';
-
-    protected int | Closure | null $maxHeight = 8;
 
     protected int | Closure | null $defaultLoadedMessagesCount = 15;
 
@@ -82,6 +84,10 @@ class ConversationThread extends Textarea
 
     protected ?Closure $modifyMessagesQueryUsing = null;
 
+    protected ?Closure $getMessageAttachmentDataUsing = null;
+
+    protected ?Closure $modifyUploadAttachmentActionUsing = null;
+
     protected ?Closure $modifyEditConversationActionUsing = null;
 
     protected ?Closure $modifyEditMessageActionUsing = null;
@@ -90,58 +96,56 @@ class ConversationThread extends Textarea
 
     protected ?Closure $modifySendMessageActionUsing = null;
 
-    public static function getDefaultName(): ?string
+    public static function make(): static
     {
-        return 'conversation_thread';
+        $static = app(static::class);
+        $static->configure();
+
+        return $static;
     }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->hiddenLabel();
-
-        $this->autosize();
-
-        $this->autofocus();
-
-        $this->maxLength(65535);
-
-        $this->placeholder(__('filament-converse::conversation-thread.placeholder'));
-
-        $this->attachmentModalDescription(__('filament-converse::conversation-thread.attachment-modal.description'));
+        $this->key('conversation_thread');
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
-        //
+        // TODO: The header is deflated when there is no conversation
 
         $this->schema(static fn (ConversationThread $component) => [
             FusedGroup::make([
-                View::make('filament-converse::input-attachments-area')
-                    //->hidden(! $livewire->getActiveConversation()?->getKey())
-                    ->viewData(static fn (ConversationManager $livewire) => [ // todo
-                        'conversationKey' => $livewire->getActiveConversation()?->getKey(),
-                        'uploadedFileAttachments' => $component->getUploadedFileAttachments(),
-                        'isImageMimeType' => fn ($a) => true,
-                        'getUploadedFileAttachmentName' => $component->uploadedFileAttachmentName,
-                        'getUploadedFileAttachmentToolbar' => $component->uploadedFileAttachmentToolbar,
-                        'shouldShowOnlyUploadedImageAttachment' => $component->shouldShowOnlyUploadedImageAttachment,
-                        'shouldPreviewUploadedImageAttachment' => $component->shouldPreviewUploadedImageAttachment,
-                        'getUploadedFileAttachmentIcon' => $component->uploadedFileAttachmentIcon,
-                        'getUploadedFileAttachmentMimeTypeBadgeLabel' => $component->uploadedFileAttachmentMimeTypeBadgeLabel,
-                        'getUploadedFileAttachmentMimeTypeBadgeIcon' => $component->uploadedFileAttachmentMimeTypeBadgeIcon,
-                        'getUploadedFileAttachmentMimeTypeBadgeColor' => $component->uploadedFileAttachmentMimeTypeBadgeColor,
-                    ]),
-                Textarea::make('test')
+                AttachmentArea::make()
+                    ->getFileAttachmentNameUsing($component->getFileAttachmentName(...))
+                    ->getFileAttachmentToolbarUsing($component->getFileAttachmentToolbar(...))
+                    ->showOnlyImageAttachment($component->shouldShowOnlyImageAttachment(...))
+                    ->previewImageAttachment($component->shouldPreviewImageAttachment(...))
+                    ->fileAttachmentIcon($component->getFileAttachmentIcon(...))
+                    ->fileAttachmentMimeTypeBadgeLabel($component->getFileAttachmentMimeTypeBadgeLabel(...))
+                    ->fileAttachmentMimeTypeBadgeIcon($component->getFileAttachmentMimeTypeBadgeIcon(...))
+                    ->fileAttachmentMimeTypeBadgeColor($component->getFileAttachmentMimeTypeBadgeColor(...)),
+                Textarea::make('textarea')
+                    ->hiddenLabel()
+                    ->autosize()
+                    ->autofocus()
+                    ->maxLength(65535)
+                    ->placeholder(__('filament-converse::conversation-thread.placeholder'))
                     ->extraAttributes([
                         'style' => 'max-height: 8rem; overflow: auto'
                     ])
-                    ->autosize(),
+                    ->extraAlpineAttributes([
+                        'x-on:keydown' => '$nextTick(() => fireUserTypingEvent($event))'
+                    ]),
                 Actions::make([
-                    Action::make('first'),
-                    Action::make('second'),
+                    $component->getUploadAttachmentAction(),
+                    $component->getSendMessageAction(),
                 ])
+                    ->alignBetween()
             ])
+                ->extraAttributes([
+                    'class' => 'fi-converse-conversation-thread-footer'
+                ])
         ]);
 
         $this->getMessageContentUsing(static function (Message $message): ?string {
@@ -162,7 +166,11 @@ class ConversationThread extends Textarea
                             'attachmentOriginalName' => $attachmentOriginalName,
                             'attachmentMimeType' => $attachmentMimeType,
                             'hasImageMimeType' => $hasImageMimeType,
-                            'shouldShowOnlyMessageImageAttachment' => $component->shouldShowOnlyMessageImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $message, $messageAuthor, $messages),
+                            'shouldShowOnlyMessageImageAttachment' => $component->shouldShowOnlyImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, [
+                                'message' => $message,
+                                'messageAuthor' => $messageAuthor,
+                                'messages' => $messages
+                            ]),
                         ],
                     ];
                 })
@@ -314,11 +322,7 @@ class ConversationThread extends Textarea
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
 
-        $this->uploadedFileAttachmentName(static function (TemporaryUploadedFile $attachment): ?string {
-            return $attachment->getClientOriginalName();
-        });
-
-        $this->defaultFileAttachmentIcon(function (string $attachmentMimeType): Heroicon {
+        $this->fileAttachmentIcon(function (string $attachmentMimeType): Heroicon {
             return match ($attachmentMimeType) {
                 'image/png',
                 'image/jpeg' => Heroicon::OutlinedPhoto,
@@ -335,7 +339,7 @@ class ConversationThread extends Textarea
             };
         });
 
-        $this->defaultFileAttachmentIconColor(static function (string $attachmentMimeType): string {
+        $this->fileAttachmentIconColor(static function (string $attachmentMimeType): string {
             return match ($attachmentMimeType) {
                 'application/pdf', => 'danger',
                 'text/csv',
@@ -345,7 +349,7 @@ class ConversationThread extends Textarea
             };
         });
 
-        $this->defaultFileAttachmentMimeTypeBadgeLabel(static function (string $attachmentMimeType): ?string {
+        $this->fileAttachmentMimeTypeBadgeLabel(static function (string $attachmentMimeType): ?string {
             return match ($attachmentMimeType) {
                 'image/png',
                 'image/jpeg' => __('filament-converse::conversation-thread.attachments.mime-type.image'),
@@ -370,11 +374,6 @@ class ConversationThread extends Textarea
             $component->getEditMessageAction(),
             $component->getDeleteMessageAction(),
         ], static::MESSAGE_ACTIONS_KEY);
-
-        $this->registerActions([
-            static fn (ConversationThread $component) => $component->getSendMessageAction(),
-            static fn (ConversationThread $component) => $component->getUploadAttachmentAction(),
-        ]);
     }
 
     public function classic(): static
@@ -494,13 +493,6 @@ class ConversationThread extends Textarea
         return $this;
     }
 
-    public function maxHeight(int | Closure | null $maxHeight): static
-    {
-        $this->maxHeight = $maxHeight;
-
-        return $this;
-    }
-
     public function defaultLoadedMessagesCount(int | Closure | null $count): static
     {
         $this->defaultLoadedMessagesCount = $count;
@@ -598,9 +590,23 @@ class ConversationThread extends Textarea
         return $this;
     }
 
+    public function getMessageAttachmentDataUsing(?Closure $callback): static
+    {
+        $this->getMessageAttachmentDataUsing = $callback;
+
+        return $this;
+    }
+
     public function editConversationAction(?Closure $callback): static
     {
         $this->modifyEditConversationActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function uploadAttachmentAction(?Closure $callback): static
+    {
+        $this->modifyUploadAttachmentActionUsing = $callback;
 
         return $this;
     }
@@ -624,11 +630,6 @@ class ConversationThread extends Textarea
         $this->modifySendMessageActionUsing = $callback;
 
         return $this;
-    }
-
-    public function getMaxHeight(): ?int
-    {
-        return $this->evaluate($this->maxHeight);
     }
 
     public function getDefaultLoadedMessagesCount(): int
@@ -831,6 +832,43 @@ class ConversationThread extends Textarea
         return $query;
     }
 
+    /**
+     * @param  Collection<int, Message>  $messages
+     * @return array{attachmentOriginalName: string, attachmentMimeType: string, hasImageMimeType: bool, shouldShowOnlyMessageImageAttachment: bool}
+     */
+    public function getMessageAttachmentData(Message $message, Authenticatable $messageAuthor, Collection $messages): array
+    {
+        return $this->evaluate($this->getMessageAttachmentDataUsing, [
+            'message' => $message,
+            'messageAuthor' => $messageAuthor,
+            'messages' => $messages,
+        ], [
+            Message::class => $message,
+            Authenticatable::class => $messageAuthor,
+            Collection::class => $messages,
+        ]);
+    }
+
+    protected function getUploadAttachmentAction(): Action
+    {
+        $action = Action::make('uploadAttachment')
+            ->label(__('filament-converse::conversation-thread.footer-actions.upload-attachment-label'))
+            ->iconButton()
+            ->iconSize(IconSize::Large)
+            ->icon(Heroicon::PaperClip)
+            ->alpineClickHandler("\$dispatch('filament-converse-trigger-file-input')");
+
+        if ($this->modifyUploadAttachmentActionUsing) {
+            $action = $this->evaluate($this->modifyUploadAttachmentActionUsing, [
+                'action' => $action,
+            ], [
+                Action::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+
     protected function getEditConversationAction(): Action
     {
         $action = Action::make('editConversation')
@@ -891,27 +929,35 @@ class ConversationThread extends Textarea
             ->iconSize(IconSize::Large)
             ->icon(Heroicon::PaperAirplane)
             ->keyBindings(['enter'])
-            ->action(static function (ConversationThread $component, ConversationManager $livewire) {
+            ->action(static function (array $data, ConversationManager $livewire) {
+                $conversationThread = $livewire->getConversationSchema()->getConversationThread();
+
+                $statePath = $conversationThread->getStatePath();
                 $state = $livewire->content->getState();
-                $statePath = $component->getStatePath();
 
-                $message = data_get([$livewire->content->getStatePath() => $state], $statePath);
-                $uploadedFileAttachments = $component->getValidUploadedFileAttachments();
+                $messageContent = data_get($state, str_replace('data.', '', $statePath) . ".textarea");
+                $attachments = data_get($state, str_replace('data.', '', $statePath) . ".attachment_area");
 
-                if (blank($message) && blank($uploadedFileAttachments)) {
+                dd($state, $messageContent, $attachments);
+
+                $uploadedFileAttachments = $conversationThread->getValidUploadedFileAttachments();
+
+                if (blank($messageContent) && blank($uploadedFileAttachments)) {
                     return;
                 }
 
                 $attachments = $attachmentFileNames = [];
 
+                dd($uploadedFileAttachments, $uploadedFileAttachments);
+
                 foreach ($uploadedFileAttachments as $attachment) {
-                    $attachments[] = $component->saveUploadedFileAttachment($attachment);
+                    $attachments[] = $conversationThread->saveUploadedFileAttachment($attachment);
                     $attachmentFileNames[] = $attachment->getClientOriginalName();
                 }
 
                 $activeConversation = $livewire->getActiveConversation();
                 $message = $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($activeConversation, [
-                    'content' => $message,
+                    'content' => $messageContent,
                     'attachments' => $attachments,
                     'attachment_file_names' => $attachmentFileNames,
                 ]);
