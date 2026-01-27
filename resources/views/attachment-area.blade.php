@@ -8,50 +8,29 @@
     $key = $getKey();
     $statePath = $getStatePath();
 
-
     /* @var list<TemporaryUploadedFile> $uploadedFileAttachments */
-    $uploadedFileAttachments = $getUploadedFileAttachments();
     $activeConversationKey = $getActiveConversation()?->getKey();
-
-    $fileAttachmentAcceptedFileTypes = $getFileAttachmentsAcceptedFileTypes();
-    $fileAttachmentMaxSize = $getFileAttachmentsMaxSize();
-    $maxFileAttachments = $getMaxFileAttachments();
-    $acceptedFileTypesValidationMessage = $getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentAcceptedFileTypes);
-    $maxFileSizeValidationMessage = $getAttachmentsMaxFileSizeValidationMessage($fileAttachmentMaxSize);
-    $maxFileAttachmentsValidationMessage = $getMaxFileAttachmentsValidationMessage();
-
-        /*
-         *   fileAttachmentAcceptedFileTypes: @js($fileAttachmentsAcceptedFileTypes),
-                    fileAttachmentMaxSize: @js($fileAttachmentsMaxSize),
-
-
-                    maxFileAttachments: @js($maxFileAttachments),
-                    acceptedFileTypesValidationMessage: @js($getAttachmentsAcceptedFileTypesValidationMessage($fileAttachmentsAcceptedFileTypes)),
-                    maxFileSizeValidationMessage: @js($getAttachmentsMaxFileSizeValidationMessage($fileAttachmentsMaxSize)),
-                    maxFileAttachmentsValidationMessage: @js($getMaxFileAttachmentsValidationMessage($maxFileAttachments)),
-         */
+    $uploadedFileAttachments = array_reverse($getRawState()[$activeConversationKey] ?? []);
 @endphp
 <div
     wire:key="fi-converse-conversation-thread-attachment-area-{{ $id }}-{{ $key }}-{{ count($uploadedFileAttachments) }}"
     class="fi-converse-attachment-area"
     x-data="{
-        attachmentDropZoneRef: @js($getAttachmentDropZoneRef()),
+        uploadDropZoneRef: @js($getUploadDropZoneRef()),
 
         isDraggingFileAttachment: false,
 
         uploadingFileAttachments: [],
-
-        fileAttachmentUploadValidationMessage: null,
 
         init() {
             this.registerFileAttachmentUploadEventListeners()
         },
 
         registerFileAttachmentUploadEventListeners() {
-            const element = this.$refs[this.attachmentDropZoneRef]
+            const element = this.$refs[this.uploadDropZoneRef]
 
             if (! element) {
-                console.warn('Dropzone ref ' + this.attachmentDropZoneRef + ' not found.')
+                console.warn('Dropzone ref ' + this.uploadDropZoneRef + ' not found.')
                 return
             }
 
@@ -101,65 +80,11 @@
                 return
             }
 
-            this.fileAttachmentUploadValidationMessage = null
-            let fileAttachmentUploadValidationMessage = null
-
-            if (maxFileAttachments) {
-                const uploadedFileAttachmentsCount = Array.from(
-                    (await $wire.get(
-                        'componentFileAttachments.' + statePath,
-                    )) || [],
-                ).length
-
-                if (
-                    uploadedFileAttachmentsCount + files.length >
-                    maxFileAttachments
-                ) {
-                    this.fileAttachmentUploadValidationMessage =
-                        maxFileAttachmentsValidationMessage
-
-                    return
-                }
-            }
-
-            const validFiles = Array.from(files).filter((file) => {
-                if (
-                    fileAttachmentAcceptedFileTypes &&
-                    !fileAttachmentAcceptedFileTypes.includes(file.type)
-                ) {
-                    fileAttachmentUploadValidationMessage =
-                        acceptedFileTypesValidationMessage
-
-                    return false
-                }
-
-                if (
-                    fileAttachmentMaxSize &&
-                    file.size > +fileAttachmentMaxSize * 1024
-                ) {
-                    fileAttachmentUploadValidationMessage =
-                        maxFileSizeValidationMessage
-
-                    return false
-                }
-
-                return true
-            })
-
-            if (fileAttachmentUploadValidationMessage) {
-                this.fileAttachmentUploadValidationMessage =
-                    fileAttachmentUploadValidationMessage
-            }
-
-            if (validFiles.length === 0) {
-                return
-            }
-
-            this.uploadingFileAttachments.push(...validFiles)
+            this.uploadingFileAttachments.push(...files)
 
             await $wire.uploadMultiple(
-                'componentFileAttachments.' + statePath + '.' + conversationKey,
-                validFiles,
+                @js($statePath . "." . $activeConversationKey),
+                files,
                 () => (this.uploadingFileAttachments = []),
                 () => (this.uploadingFileAttachments = []),
             )
@@ -184,27 +109,27 @@
     <div
         x-cloak
         x-show="isDraggingFileAttachment"
-        class="fi-converse-attachment-modal-overlay"
+        class="fi-converse-upload-modal-overlay"
     >
-        <div class="fi-converse-attachment-modal-backdrop"></div>
+        <div class="fi-converse-upload-modal-backdrop"></div>
 
         <div
-            class="fi-converse-attachment-modal"
+            class="fi-converse-upload-modal"
         >
-            <div class="fi-converse-attachment-modal-header">
+            <div class="fi-converse-upload-modal-header">
                 <div
-                    {{ (new ComponentAttributeBag)->color(IconComponent::class, $getAttachmentModalIconColor(), 'primary')->class(['fi-converse-attachment-modal-icon-bg']) }}
+                    {{ (new ComponentAttributeBag)->color(IconComponent::class, $getUploadModalIconColor(), 'primary')->class(['fi-converse-upload-modal-icon-bg']) }}
                 >
-                    {{ \Filament\Support\generate_icon_html($getAttachmentModalIcon(), size: \Filament\Support\Enums\IconSize::Large) }}
+                    {{ \Filament\Support\generate_icon_html($getUploadModalIcon(), size: \Filament\Support\Enums\IconSize::Large) }}
                 </div>
             </div>
-            <div class="fi-converse-attachment-modal-content">
-                <h2 class="fi-converse-attachment-modal-heading">
-                    {{ $getAttachmentModalHeading() }}
+            <div class="fi-converse-upload-modal-content">
+                <h2 class="fi-converse-upload-modal-heading">
+                    {{ $getUploadModalHeading() }}
                 </h2>
-                @if (filled($attachmentModalDescription = $getAttachmentModalDescription()))
-                    <p class="fi-converse-attachment-modal-description">
-                        {{ $attachmentModalDescription }}
+                @if (filled($uploadModalDescription = $getUploadModalDescription()))
+                    <p class="fi-converse-upload-modal-description">
+                        {{ $uploadModalDescription }}
                     </p>
                 @endif
             </div>
@@ -258,7 +183,6 @@
             $attachmentOriginalName = $fileAttachment->getClientOriginalName();
             $attachmentMimeType = $fileAttachment->getMimeType();
             $data = ['fileAttachment' => $fileAttachment];
-
         @endphp
 
         <x-filament-converse::conversation-attachment
@@ -273,7 +197,14 @@
             :mime-type-badge-icon="$getFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
             :mime-type-badge-color="$getFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
             :is-removable="true"
-            file-attachment-remove-handler="$wire.removeUpload('componentFileAttachments.{{ $statePath }}.{{ $activeConversationKey }}', '{{ $fileAttachment->getFilename() }}')"
+            file-attachment-remove-handler="
+                await $wire.callSchemaComponentMethod(
+                   '{{ $key }}',
+                   'removeUploadedFile',
+                   ['{{ $fileAttachment->getFilename() }}']
+                )
+                $wire.$refresh()
+            "
             :generic-attachment-container-extra-attributes-bag="
                 (new ComponentAttributeBag)
                     ->class(['fi-converse-attachment-adaptable-width'])

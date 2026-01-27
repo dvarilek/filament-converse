@@ -62,7 +62,7 @@
                     'fi-converse-conversation-thread',
                 ])
         }}
-        x-ref="attachmentDropZoneRef"
+        x-ref="uploadDropZoneRef"
     @endif
 >
     <div class="fi-converse-conversation-thread-header">

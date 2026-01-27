@@ -5,20 +5,20 @@
         @apply relative ring-primary-700 dark:ring-primary-600 relative ring-2;
     }
 
-    & .fi-converse-attachment-modal-overlay {
+    & .fi-converse-upload-modal-overlay {
         @apply absolute inset-0 flex items-start justify-center pt-40;
 
-        & .fi-converse-attachment-modal-backdrop {
+        & .fi-converse-upload-modal-backdrop {
             @apply absolute inset-0 z-10 rounded-xl bg-gray-950/20 dark:bg-gray-950/50;
         }
 
-        & .fi-converse-attachment-modal {
+        & .fi-converse-upload-modal {
             @apply max-w-2/3 sm:max-w-1/3 md:max-w-1/3 lg:max-w-1/3 xl:max-w-1/3 relative z-10 flex w-full flex-col items-center justify-center rounded-xl bg-white p-6 shadow-xl ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
 
-            & .fi-converse-attachment-modal-header {
+            & .fi-converse-upload-modal-header {
                 @apply mb-5 flex items-center justify-center;
 
-                & .fi-converse-attachment-modal-icon-bg {
+                & .fi-converse-upload-modal-icon-bg {
                     @apply rounded-full bg-gray-100 p-3 dark:bg-gray-500/20;
 
                     & > .fi-icon {
@@ -35,14 +35,14 @@
                 }
             }
 
-            & .fi-converse-attachment-modal-content {
+            & .fi-converse-upload-modal-content {
                 @apply flex w-full flex-col items-center gap-y-2 text-center;
 
-                & .fi-converse-attachment-modal-heading {
+                & .fi-converse-upload-modal-heading {
                     @apply w-full break-words font-semibold leading-6 text-gray-950 dark:text-white;
                 }
 
-                & .fi-converse-attachment-modal-description {
+                & .fi-converse-upload-modal-description {
                     @apply w-full break-words text-sm text-gray-500 dark:text-gray-400;
                 }
             }
@@ -250,6 +250,10 @@
 
         & .fi-sc {
             @apply divide-y-0 p-0.5;
+
+            & .fi-sc-actions {
+                @apply dark:bg-gray-100/5;
+            }
         }
 
         & .fi-converse-attachment-area {

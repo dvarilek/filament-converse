@@ -70,6 +70,7 @@ trait HasConversations
             );
         }
 
+        // TODO: Fix
         $conversationThread = $conversationSchema->getConversationThread();
         $statePath = $conversationThread->getStatePath();
 

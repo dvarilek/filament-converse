@@ -113,6 +113,8 @@ class ConversationThread extends Component
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
         // TODO: The header is deflated when there is no conversation
+        //       getting state for fields from session should happen here instead of directly in the livewire component
+        //       fi-sc-actions  doesn't have the correct gray color on dark mode
 
         $this->schema(static fn (ConversationThread $component) => [
             FusedGroup::make([
@@ -122,6 +124,7 @@ class ConversationThread extends Component
                     ->showOnlyImageAttachment($component->shouldShowOnlyImageAttachment(...))
                     ->previewImageAttachment($component->shouldPreviewImageAttachment(...))
                     ->fileAttachmentIcon($component->getFileAttachmentIcon(...))
+                    ->fileAttachmentIconColor($component->getFileAttachmentIconColor(...))
                     ->fileAttachmentMimeTypeBadgeLabel($component->getFileAttachmentMimeTypeBadgeLabel(...))
                     ->fileAttachmentMimeTypeBadgeIcon($component->getFileAttachmentMimeTypeBadgeIcon(...))
                     ->fileAttachmentMimeTypeBadgeColor($component->getFileAttachmentMimeTypeBadgeColor(...)),
@@ -306,20 +309,6 @@ class ConversationThread extends Component
             'multiple' => __('filament-converse::conversation-thread.typing-indicator.multiple'),
             'other' => __('filament-converse::conversation-thread.typing-indicator.other'),
             'others' => __('filament-converse::conversation-thread.typing-indicator.others'),
-        ]);
-
-        $this->fileAttachmentsAcceptedFileTypes([
-            'image/png',
-            'image/jpeg',
-            'audio/mpeg',
-            'video/mp4',
-            'video/mpeg',
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/csv',
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
 
         $this->fileAttachmentIcon(function (string $attachmentMimeType): Heroicon {
@@ -930,28 +919,26 @@ class ConversationThread extends Component
             ->icon(Heroicon::PaperAirplane)
             ->keyBindings(['enter'])
             ->action(static function (array $data, ConversationManager $livewire) {
+
                 $conversationThread = $livewire->getConversationSchema()->getConversationThread();
 
                 $statePath = $conversationThread->getStatePath();
                 $state = $livewire->content->getState();
 
                 $messageContent = data_get($state, str_replace('data.', '', $statePath) . ".textarea");
-                $attachments = data_get($state, str_replace('data.', '', $statePath) . ".attachment_area");
+                $uploadedAttachments = data_get($state, str_replace('data.', '', $statePath) . ".attachment_area." . $livewire->getActiveConversation()->getKey());
 
-                dd($state, $messageContent, $attachments);
+                // TODO: Add validation message for AttachmentArea somewhere, fix ->maxFiles() not working
+                // dd($state, $messageContent, $uploadedAttachments);
 
-                $uploadedFileAttachments = $conversationThread->getValidUploadedFileAttachments();
-
-                if (blank($messageContent) && blank($uploadedFileAttachments)) {
+                if (blank($messageContent) && blank($uploadedAttachments)) {
                     return;
                 }
 
                 $attachments = $attachmentFileNames = [];
 
-                dd($uploadedFileAttachments, $uploadedFileAttachments);
-
-                foreach ($uploadedFileAttachments as $attachment) {
-                    $attachments[] = $conversationThread->saveUploadedFileAttachment($attachment);
+                foreach ($uploadedAttachments as $storedFileName => $attachment) {
+                    $attachments[] = $storedFileName;
                     $attachmentFileNames[] = $attachment->getClientOriginalName();
                 }
 

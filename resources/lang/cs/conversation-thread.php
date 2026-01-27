@@ -12,7 +12,7 @@ return [
 
     'placeholder' => 'Zpráva...',
 
-    'attachment-modal' => [
+    'upload-modal' => [
 
         'heading' => 'Přetáhněte přílohy sem',
 

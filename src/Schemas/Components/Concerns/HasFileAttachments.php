@@ -43,7 +43,7 @@ trait HasFileAttachments
      * @var string | array<string> | Closure | null
      */
     protected string | array | Closure | null $fileAttachmentMimeTypeBadgeColor = 'gray';
-    
+
     public function showOnlyImageAttachment(bool | Closure $condition = true): static
     {
         $this->shouldShowOnlyImageAttachment = $condition;
@@ -117,7 +117,7 @@ trait HasFileAttachments
     {
         return str_starts_with($mimeType, 'image/');
     }
-    
+
     public function shouldShowOnlyImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): bool
     {
         return (bool) $this->evaluate($this->shouldShowOnlyImageAttachment, [

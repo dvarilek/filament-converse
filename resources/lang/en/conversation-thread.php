@@ -12,7 +12,7 @@ return [
 
     'placeholder' => 'Message...',
 
-    'attachment-modal' => [
+    'upload-modal' => [
 
         'heading' => 'Add Attachments',
 
