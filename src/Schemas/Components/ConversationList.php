@@ -11,8 +11,7 @@ use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateDirectConversationAction;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateGroupConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateConversationAction;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Components\Component;
@@ -35,8 +34,6 @@ class ConversationList extends Component
     use HasKey;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
-
-    const CREATE_CONVERSATION_NESTED_ACTIONS_KEY = 'create_conversation_nested_actions';
 
     /**
      * @var view-string
@@ -72,10 +69,6 @@ class ConversationList extends Component
     protected string | BackedEnum | Htmlable | Closure | false | null $unreadMessagesBadgeIcon = null;
 
     protected ?Closure $modifyCreateConversationActionUsing = null;
-
-    protected ?Closure $modifyCreateDirectConversationActionUsing = null;
-
-    protected ?Closure $modifyCreateGroupConversationActionUsing = null;
 
     final public function __construct(string | Htmlable | Closure | null $heading)
     {
@@ -152,11 +145,6 @@ class ConversationList extends Component
         $this->childComponents(fn () => [
             $this->getCreateConversationAction(),
         ], static::HEADER_ACTIONS_KEY);
-
-        $this->childComponents(fn () => [
-            $this->getCreateDirectConversationAction(),
-            $this->getCreateGroupConversationAction(),
-        ], static::CREATE_CONVERSATION_NESTED_ACTIONS_KEY);
     }
 
     public function heading(string | Htmlable | Closure | null $heading): static
@@ -266,20 +254,6 @@ class ConversationList extends Component
     public function createConversationAction(?Closure $callback): static
     {
         $this->modifyCreateConversationActionUsing = $callback;
-
-        return $this;
-    }
-
-    public function createDirectConversationAction(?Closure $callback): static
-    {
-        $this->modifyCreateDirectConversationActionUsing = $callback;
-
-        return $this;
-    }
-
-    public function createGroupConversationAction(?Closure $callback): static
-    {
-        $this->modifyCreateGroupConversationActionUsing = $callback;
 
         return $this;
     }
@@ -401,53 +375,12 @@ class ConversationList extends Component
 
     protected function getCreateConversationAction(): Action
     {
-        $action = Action::make('createConversation')
-            ->modalIcon(Heroicon::Plus)
-            ->label(__('filament-converse::conversation-list.actions.create.label'))
-            ->icon(Heroicon::Plus)
-            ->modalAlignment(Alignment::Center)
-            ->modalWidth(Width::Medium)
-            ->modalHeading(__('filament-converse::conversation-list.actions.create.modal-heading'))
-            ->modalDescription(__('filament-converse::conversation-list.actions.create.modal-description'))
-            ->modalFooterActionsAlignment(Alignment::Center)
-            ->modalFooterActions($this->getChildCOmponents(static::CREATE_CONVERSATION_NESTED_ACTIONS_KEY));
+        $action = CreateConversationAction::make();
 
         if ($this->modifyCreateConversationActionUsing) {
             $action = $this->evaluate($this->modifyCreateConversationActionUsing, [
                 'action' => $action,
             ], [
-                Action::class => $action,
-            ]) ?? $action;
-        }
-
-        return $action;
-    }
-
-    protected function getCreateDirectConversationAction(): Action
-    {
-        $action = CreateDirectConversationAction::make();
-
-        if ($this->modifyCreateDirectConversationActionUsing) {
-            $action = $this->evaluate($this->modifyCreateDirectConversationActionUsing, [
-                'action' => $action,
-            ], [
-                CreateDirectConversationAction::class => $action,
-                Action::class => $action,
-            ]) ?? $action;
-        }
-
-        return $action;
-    }
-
-    protected function getCreateGroupConversationAction(): Action
-    {
-        $action = CreateGroupConversationAction::make();
-
-        if ($this->modifyCreateGroupConversationActionUsing) {
-            $action = $this->evaluate($this->modifyCreateGroupConversationActionUsing, [
-                'action' => $action,
-            ], [
-                CreateGroupConversationAction::class => $action,
                 Action::class => $action,
             ]) ?? $action;
         }

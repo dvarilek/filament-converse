@@ -19,8 +19,6 @@ use Illuminate\Support\Collection;
  *
  * @property-read Collection<int, Conversation> $conversations
  * @property-read Collection<int, ConversationParticipation> $conversationParticipations
- *
- * @method Builder excludeSharedDirectConversationsWith(Authenticatable $participant)
  */
 trait Conversable
 {
@@ -46,25 +44,7 @@ trait Conversable
             'conversation_id'
         );
     }
-
-    /**
-     * @param  Builder<static>  $query
-     */
-    public function scopeExcludeSharedDirectConversationsWith(Builder $query, Authenticatable & Model $participant): void
-    {
-        $query
-            ->whereDoesntHave(
-                'conversations',
-                static fn (Builder $query) => $query
-                    ->where('type', ConversationTypeEnum::DIRECT)
-                    ->whereHas(
-                        'participations',
-                        static fn (Builder $subQuery) => $subQuery
-                            ->where('participant_id', $participant->getKey())
-                    )
-            );
-    }
-
+    
     public function participatesInAnyConversation(): bool
     {
         return $this->conversations()->exists();

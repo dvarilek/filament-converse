@@ -9,12 +9,11 @@ use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateDirectConversationAction;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateGroupConversationAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateConversationAction;
 
 describe('render', function () {
     it('can render conversations', function () {
@@ -182,8 +181,10 @@ describe('actions', function () {
         $this->actingAs($creator);
 
         $livewire = livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateDirectConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
-                'participant' => $otherUser->getKey(),
+            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+                'participants' => [
+                    $otherUser->getKey()
+                ],
             ])
             ->assertHasNoErrors();
 
@@ -208,8 +209,8 @@ describe('actions', function () {
         $this->actingAs(User::factory()->create());
 
         livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateDirectConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'))
-            ->assertHasFormErrors(['participant' => 'required']);
+            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'))
+            ->assertHasFormErrors(['participants' => 'required']);
     });
 
     it('can create a new group conversation through action', function () {
@@ -220,7 +221,7 @@ describe('actions', function () {
         $this->actingAs($creator);
 
         $livewire = livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
             ])
             ->assertHasNoErrors();
@@ -250,7 +251,7 @@ describe('actions', function () {
         $this->actingAs($creator);
 
         $livewire = livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
                 'name' => 'Test conversation',
                 'description' => 'Test description',
@@ -274,12 +275,57 @@ describe('actions', function () {
             ->getActiveConversation()->getKey()->toBe($conversation->getKey());
     });
 
-    it('requires selected participants to create a new group conversation', function () {
-        $this->actingAs(User::factory()->create());
+    it('cannot create a duplicate direct conversation with the same participant', function () {
+        $creator = User::factory()->create();
+        $otherUser = User::factory()->create();
 
-        livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateGroupConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'))
-            ->assertHasFormErrors(['participants' => 'required']);
+        $this->actingAs($creator);
+
+        $livewire = livewire(ConversationManager::class)
+            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+                'participants' => [
+                    $otherUser->getKey()
+                ],
+            ])
+            ->assertHasNoErrors();
+
+        expect(Conversation::query()->count())->toBe(1);
+
+        $livewire
+            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+                'participants' => [
+                    $otherUser->getKey()
+                ],
+            ])
+            ->assertHasFormErrors(['participants' => __('filament-converse::conversation-list.actions.create-conversation.schema.participant.validation.direct-conversation-exists')]);
+
+        expect(Conversation::query()->count())->toBe(1);
+    });
+
+    it('can create multiple group conversations with the same participants', function () {
+        $creator = User::factory()->create();
+        $firstUser = User::factory()->create();
+        $secondUser = User::factory()->create();
+
+        $this->actingAs($creator);
+
+        $livewire = livewire(ConversationManager::class)
+            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+                'participants' => [$firstUser->getKey(), $secondUser->getKey()],
+                'name' => 'First group',
+            ])
+            ->assertHasNoErrors();
+
+        expect(Conversation::query()->count())->toBe(1);
+
+        $livewire
+            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+                'participants' => [$firstUser->getKey(), $secondUser->getKey()],
+                'name' => 'Second group',
+            ])
+            ->assertHasNoErrors();
+
+        expect(Conversation::query()->count())->toBe(2);
     });
 });
 

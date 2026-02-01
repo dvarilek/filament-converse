@@ -28,43 +28,11 @@ return [
 
     'actions' => [
 
-        'create' => [
+        'create-conversation' => [
 
             'label' => 'Create',
 
             'modal-heading' => 'Create a new conversation',
-
-            'modal-description' => 'Which conversation type would you like to create?',
-
-        ],
-
-        'create-direct' => [
-
-            'label' => 'Direct',
-
-            'modal-heading' => 'Create a new direct conversation',
-
-            'modal-submit-action-label' => 'Create',
-
-            'schema' => [
-
-                'participant' => [
-
-                    'label' => 'Participant',
-
-                    'placeholder' => 'Select a participant',
-
-                ],
-
-            ],
-
-        ],
-
-        'create-group' => [
-
-            'label' => 'Group',
-
-            'modal-heading' => 'Create a new group conversation',
 
             'modal-submit-action-label' => 'Create',
 
@@ -75,6 +43,12 @@ return [
                     'label' => 'Participants',
 
                     'placeholder' => 'Select a participants',
+
+                    'validation' => [
+
+                        'direct-conversation-exists' => 'You already have a conversation with this participant.'
+
+                    ]
 
                 ],
 

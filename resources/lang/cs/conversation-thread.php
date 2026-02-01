@@ -28,7 +28,7 @@ return [
 
     'validation' => [
         
-        'message_required' => 'Prosím zadejte zprávu nebo přiložte soubor.'
+        'message-required' => 'Prosím zadejte zprávu nebo přiložte soubor.'
     
     ],
 

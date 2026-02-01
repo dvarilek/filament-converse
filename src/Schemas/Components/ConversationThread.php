@@ -141,14 +141,12 @@ class ConversationThread extends Component
             ])
         ]);
 
-        $this->sendMessageUsing(static function (Conversationmanager $livewire, array $data) {
-            $statePath = $livewire->getConversationSchema()->getConversationThread()->getStatePath();
-
+        $this->sendMessageUsing(static function (Conversationmanager $livewire, array $data): ?Message {
             $messageContent = $data['messageContent'] ?? null;
             $uploadedAttachments = $data['attachments'] ?? [];
 
             if (blank($messageContent) && blank($uploadedAttachments)) {
-                return;
+                return null;
             }
 
             $attachments = $attachmentFileNames = [];
@@ -158,17 +156,11 @@ class ConversationThread extends Component
                 $attachmentFileNames[] = $attachment->getClientOriginalName();
             }
 
-            $activeConversation = $livewire->getActiveConversation();
-            $message = $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($activeConversation, [
+            return $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($livewire->getActiveConversation(), [
                 'content' => $messageContent,
                 'attachments' => $attachments,
                 'attachment_file_names' => $attachmentFileNames,
             ]);
-
-            $livewire->content->fill();
-
-            data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
-            $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
         });
 
         $this->getMessageContentUsing(static function (Message $message): ?string {
@@ -1050,7 +1042,7 @@ class ConversationThread extends Component
             ->fileAttachmentMimeTypeBadgeColor($this->getFileAttachmentMimeTypeBadgeColor(...))
             ->requiredWithout('messageContent')
             ->validationMessages([
-                'required_without' => __('filament-converse::conversation-thread.validation.message_required'),
+                'required_without' => __('filament-converse::conversation-thread.validation.message-required') . 'a',
             ]);
 
         if ($this->modifyAttachmentAreaUsing) {
@@ -1074,7 +1066,7 @@ class ConversationThread extends Component
             ->placeholder(__('filament-converse::conversation-thread.placeholder'))
             ->requiredWithout('attachments')
             ->validationMessages([
-                'required_without' => __('filament-converse::conversation-thread.validation.message_required'),
+                'required_without' => __('filament-converse::conversation-thread.validation.message-required'). 'b',
             ])
             ->extraAttributes([
                 'style' => 'max-height: 8rem; overflow: auto'
@@ -1105,11 +1097,26 @@ class ConversationThread extends Component
             ->action(function (ConversationManager $livewire) {
                 $data = $livewire->content->getState();
 
-                if ($this->sendMessageUsing) {
-                    $this->evaluate($this->sendMessageUsing, [
-                        'data' => $data['conversation_schema'] ?? []
-                    ]);
+                if (! $this->sendMessageUsing) {
+                    return;
                 }
+
+                /* @var ?Message $message */
+                $message = $this->evaluate($this->sendMessageUsing, [
+                    'data' => $data['conversation_schema'] ?? []
+                ]);
+
+                if (! $message) {
+                    return;
+                }
+
+                $statePath = $livewire->getConversationSchema()->getConversationThread()->getStatePath();
+                $activeConversation = $livewire->getActiveConversation();
+
+                data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
+                $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
+
+                $livewire->content->fill();
             });
 
         if ($this->modifySendMessageActionUsing) {

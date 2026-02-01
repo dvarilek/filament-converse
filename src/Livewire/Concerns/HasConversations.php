@@ -74,6 +74,8 @@ trait HasConversations
 
         $this->cachedUnsendMessages[$previousActiveConversationKey] = data_get($this, $statePath);
         data_set($this, $statePath, $this->cachedUnsendMessages[$conversationKey] ?? null);
+
+        $this->content->fill();
     }
 
     /**
