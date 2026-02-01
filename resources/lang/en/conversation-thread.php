@@ -26,6 +26,12 @@ return [
 
     ],
 
+    'validation' => [
+
+        'message_required' => 'Please enter a message or attach a file.'
+        
+    ],
+    
     'message-actions' => [
 
         'delete-label' => 'Delete',
@@ -95,8 +101,6 @@ return [
     'attachments' => [
 
         'remove-button-label' => 'Remove',
-
-        'validation-message-close-button-label' => 'Close',
 
         'mime-type' => [
 

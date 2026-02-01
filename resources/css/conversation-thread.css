@@ -245,19 +245,19 @@
         }
     }
 
-    & .fi-converse-conversation-thread-footer {
-        @apply min-h-1/8 flex flex-shrink-0 flex-col border-t border-gray-200 p-6 dark:border-white/10;
+    & .fi-converse-conversation-thread-footer-wrapper {
+        @apply min-h-1/8 flex flex-shrink-0 flex-col border-t border-gray-200 dark:border-white/10 p-6;
 
         & .fi-sc {
             @apply divide-y-0 p-0.5;
 
             & .fi-sc-actions {
-                @apply dark:bg-gray-100/5;
+                @apply dark:bg-white/5;
             }
         }
 
         & .fi-converse-attachment-area {
-            @apply flex max-h-20 flex-wrap gap-3 overflow-y-auto;
+            @apply flex max-h-22 flex-wrap gap-3 overflow-y-auto dark:bg-white/5;
 
             &.fi-converse-attachment-area-has-content {
                 @apply p-3;

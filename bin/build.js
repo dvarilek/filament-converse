@@ -57,3 +57,9 @@ compile({
     entryPoints: ['./resources/js/conversation-thread.js'],
     outfile: './resources/js/dist/conversation-thread.js',
 })
+
+compile({
+    ...defaultOptions,
+    entryPoints: ['./resources/js/attachment-area.js'],
+    outfile: './resources/js/dist/attachment-area.js',
+})

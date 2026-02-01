@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Filament\Forms\Components\Field;
 use Filament\Schemas\Components\Component;
@@ -99,11 +100,6 @@ class AttachmentArea extends Field
         'required_without',
         'required_without_all',
     ];
-
-    public static function getDefaultName(): ?string
-    {
-        return 'attachment_area';
-    }
 
     protected function setUp(): void
     {
@@ -409,12 +405,6 @@ class AttachmentArea extends Field
         ];
 
         $rules[] = function (string $attribute, array $value, Closure $fail) use ($fileRules): void {
-            $value = $value[$this->getActiveConversation()->getKey()] ?? [];
-
-            if (blank($value)) {
-                return;
-            }
-
             $files = array_filter($value, fn (TemporaryUploadedFile | string $file): bool => $file instanceof TemporaryUploadedFile);
 
             $name = $this->getName();
@@ -456,24 +446,17 @@ class AttachmentArea extends Field
 
     public function saveUploadedFiles(): void
     {
-        $activeConversationKey = $this->getActiveConversation()->getKey();
+        $state = $this->getRawState() ?? [];
 
-        $rawState = $this->getRawState();
-        $files = $rawState[$activeConversationKey] ?? [];
+        if (blank($state)) {
+            $this->rawState([]);
 
-        if (blank($files)) {
-            $this->rawState($rawState);
-
-            return;
-        }
-
-        if ($this->isDisabled()) {
             return;
         }
 
         $uploadedFiles = [];
 
-        foreach ($files as $file) {
+        foreach (Arr::wrap($state) as $file) {
             $callback = $this->saveUploadedFileUsing;
 
             if (! $callback) {
@@ -495,9 +478,7 @@ class AttachmentArea extends Field
             $uploadedFiles[$storedFileName] = $file;
         }
 
-        $rawState[$activeConversationKey] = $uploadedFiles;
-
-        $this->rawState($rawState);
+        $this->rawState($uploadedFiles);
         $this->callAfterStateUpdated();
     }
 
@@ -509,19 +490,18 @@ class AttachmentArea extends Field
             return null;
         }
 
-        $activeConversationKey = $this->getActiveConversation()->getKey();
-        $rawState = $this->getRawState();
-
-        $file = Arr::first($rawState[$activeConversationKey] ?? [], static fn (TemporaryUploadedFile $file) => $file->getFilename() === $fileName);
+        $rawState = Arr::wrap($this->getRawState() ?? []);
+        $file = Arr::first($rawState, static fn (TemporaryUploadedFile $file) => $file->getFilename() === $fileName);
 
         if (! $file) {
             return null;
         }
 
         $file->delete();
-        $rawState[$activeConversationKey] = Arr::reject($rawState[$activeConversationKey], static fn (TemporaryUploadedFile $file) => $file->getFilename() === $fileName);;
 
-        $this->rawState($rawState);
+        $this->rawState(
+            Arr::reject($rawState, static fn (TemporaryUploadedFile $file) => $file->getFilename() === $fileName)
+        );
         $this->callAfterStateUpdated();
 
         return $file;

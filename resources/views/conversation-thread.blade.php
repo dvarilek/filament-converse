@@ -17,14 +17,12 @@
     $extraAttributeBag = $getExtraAttributeBag();
     $key = $getKey();
     $statePath = $getStatePath();
+    $isDisabled = $isDisabled();
 
     /* @var Conversation | null $conversation */
     $conversation = $getActiveConversation();
     $conversationKey = $conversation?->getKey();
     $hasConversation = filled($conversation);
-
-    $isDisabled = $isDisabled();
-    $canUploadFileAttachments = $hasConversation && $hasFileAttachments && ! $isDisabled;
 
     /* @var Collection<int, Message> $messages */
     $messages = $getMessagesQuery()?->get()?->reverse() ?? [];
@@ -56,14 +54,14 @@
                     userTypingTranslations: @js($getUserTypingTranslations()),
                     $wire,
                 })"
-        {{
-            $getExtraAttributeBag()
-                ->class([
-                    'fi-converse-conversation-thread',
-                ])
-        }}
         x-ref="uploadDropZoneRef"
     @endif
+    {{
+        $getExtraAttributeBag()
+            ->class([
+                'fi-converse-conversation-thread',
+            ])
+    }}
 >
     <div class="fi-converse-conversation-thread-header">
         <div class="fi-converse-conversation-thread-header-content">
@@ -114,26 +112,6 @@
             x-init="scrollToBottom()"
         @endif
     >
-        @if ($canUploadFileAttachments && false)
-            <div
-                x-cloak
-                x-show="fileAttachmentUploadValidationMessage"
-                class="fi-converse-conversation-thread-upload-validation-message-container"
-            >
-                <p x-text="fileAttachmentUploadValidationMessage"></p>
-
-                <x-filament::icon-button
-                    color="gray"
-                    :icon="\Filament\Support\Icons\Heroicon::OutlinedXMark"
-                    icon-size="md"
-                    :label="__('filament-converse::conversation-thread.attachments.validation-message-close-button-label')"
-                    tabindex="-1"
-                    x-on:click="fileAttachmentUploadValidationMessage = null"
-                    class="fi-converse-conversation-thread-upload-validation-message-close-button"
-                />
-            </div>
-        @endif
-
         @if ($renderedMessagesCount = count($messages))
             @php
                 /* @var ConversationParticipation $currentAuthenticatedUserParticipation */
@@ -458,6 +436,8 @@
     </div>
 
     @if ($hasConversation)
-        {{ $getChildSchema() }}
+        <div class="fi-converse-conversation-thread-footer-wrapper">
+            {{ $getChildSchema() }}
+        </div>
     @endif
 </div>

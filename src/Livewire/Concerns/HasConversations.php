@@ -70,9 +70,7 @@ trait HasConversations
             );
         }
 
-        // TODO: Fix
-        $conversationThread = $conversationSchema->getConversationThread();
-        $statePath = $conversationThread->getStatePath();
+        $statePath = $conversationSchema->getConversationThread()->getStatePath();
 
         $this->cachedUnsendMessages[$previousActiveConversationKey] = data_get($this, $statePath);
         data_set($this, $statePath, $this->cachedUnsendMessages[$conversationKey] ?? null);

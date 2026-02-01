@@ -13,23 +13,29 @@ use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\AttachmentArea;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Concerns\HasFileAttachments;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\FusedGroup;
 use Filament\Schemas\Components\Concerns\HasKey;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\View\Components\TextComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
-use Dvarilek\FilamentConverse\Schemas\Components\AttachmentArea;
-use Filament\Forms\Components\Concerns\HasFileAttachments as BaseHasFileAttachments;
+use League\Flysystem\UnableToCheckFileExistence;
 
 class ConversationThread extends Component
 {
@@ -39,7 +45,6 @@ class ConversationThread extends Component
     use Concerns\HasReadReceipts;
     use Concerns\HasTypingIndicator;
     use Concerns\HasFileAttachments;
-    use BaseHasFileAttachments;
     use HasKey;
     use HasExtraAttributes;
 
@@ -82,6 +87,12 @@ class ConversationThread extends Component
 
     protected int | Closure | null $autoScrollOnForeignMessagesThreshold = 300;
 
+    protected string | Closure | null $fileAttachmentsDiskName = null;
+
+    protected string | Closure | null $fileAttachmentsVisibility = null;
+
+    protected ?Closure $getFileAttachmentUrlUsing = null;
+
     protected ?Closure $modifyMessagesQueryUsing = null;
 
     protected ?Closure $getMessageAttachmentDataUsing = null;
@@ -93,6 +104,12 @@ class ConversationThread extends Component
     protected ?Closure $modifyEditMessageActionUsing = null;
 
     protected ?Closure $modifyDeleteMessageActionUsing = null;
+
+    protected ?Closure $modifyAttachmentAreaUsing = null;
+
+    protected ?Closure $modifyTextareaUsing = null;
+
+    protected ?Closure $sendMessageUsing = null;
 
     protected ?Closure $modifySendMessageActionUsing = null;
 
@@ -112,44 +129,47 @@ class ConversationThread extends Component
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
-        // TODO: The header is deflated when there is no conversation
-        //       getting state for fields from session should happen here instead of directly in the livewire component
-        //       fi-sc-actions  doesn't have the correct gray color on dark mode
-
         $this->schema(static fn (ConversationThread $component) => [
             FusedGroup::make([
-                AttachmentArea::make()
-                    ->getFileAttachmentNameUsing($component->getFileAttachmentName(...))
-                    ->getFileAttachmentToolbarUsing($component->getFileAttachmentToolbar(...))
-                    ->showOnlyImageAttachment($component->shouldShowOnlyImageAttachment(...))
-                    ->previewImageAttachment($component->shouldPreviewImageAttachment(...))
-                    ->fileAttachmentIcon($component->getFileAttachmentIcon(...))
-                    ->fileAttachmentIconColor($component->getFileAttachmentIconColor(...))
-                    ->fileAttachmentMimeTypeBadgeLabel($component->getFileAttachmentMimeTypeBadgeLabel(...))
-                    ->fileAttachmentMimeTypeBadgeIcon($component->getFileAttachmentMimeTypeBadgeIcon(...))
-                    ->fileAttachmentMimeTypeBadgeColor($component->getFileAttachmentMimeTypeBadgeColor(...)),
-                Textarea::make('textarea')
-                    ->hiddenLabel()
-                    ->autosize()
-                    ->autofocus()
-                    ->maxLength(65535)
-                    ->placeholder(__('filament-converse::conversation-thread.placeholder'))
-                    ->extraAttributes([
-                        'style' => 'max-height: 8rem; overflow: auto'
-                    ])
-                    ->extraAlpineAttributes([
-                        'x-on:keydown' => '$nextTick(() => fireUserTypingEvent($event))'
-                    ]),
+                $component->getAttachmentAreaComponent(),
+                $component->getTextareaComponent(),
                 Actions::make([
                     $component->getUploadAttachmentAction(),
                     $component->getSendMessageAction(),
                 ])
                     ->alignBetween()
             ])
-                ->extraAttributes([
-                    'class' => 'fi-converse-conversation-thread-footer'
-                ])
         ]);
+
+        $this->sendMessageUsing(static function (Conversationmanager $livewire, array $data) {
+            $statePath = $livewire->getConversationSchema()->getConversationThread()->getStatePath();
+
+            $messageContent = $data['messageContent'] ?? null;
+            $uploadedAttachments = $data['attachments'] ?? [];
+
+            if (blank($messageContent) && blank($uploadedAttachments)) {
+                return;
+            }
+
+            $attachments = $attachmentFileNames = [];
+
+            foreach ($uploadedAttachments as $storedFileName => $attachment) {
+                $attachments[] = $storedFileName;
+                $attachmentFileNames[] = $attachment->getClientOriginalName();
+            }
+
+            $activeConversation = $livewire->getActiveConversation();
+            $message = $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($activeConversation, [
+                'content' => $messageContent,
+                'attachments' => $attachments,
+                'attachment_file_names' => $attachmentFileNames,
+            ]);
+
+            $livewire->content->fill();
+
+            data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
+            $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
+        });
 
         $this->getMessageContentUsing(static function (Message $message): ?string {
             return $message->content;
@@ -572,6 +592,27 @@ class ConversationThread extends Component
         return $this;
     }
 
+    public function fileAttachmentsDisk(string | Closure | null $name): static
+    {
+        $this->fileAttachmentsDiskName = $name;
+
+        return $this;
+    }
+
+    public function fileAttachmentsVisibility(string | Closure | null $visibility): static
+    {
+        $this->fileAttachmentsVisibility = $visibility;
+
+        return $this;
+    }
+
+    public function getFileAttachmentUrlUsing(?Closure $callback): static
+    {
+        $this->getFileAttachmentUrlUsing = $callback;
+
+        return $this;
+    }
+
     public function modifyMessagesQueryUsing(?Closure $callback): static
     {
         $this->modifyMessagesQueryUsing = $callback;
@@ -617,6 +658,27 @@ class ConversationThread extends Component
     public function sendMessageAction(?Closure $callback): static
     {
         $this->modifySendMessageActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function sendMessageUsing(?Closure $callback): static
+    {
+        $this->sendMessageUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyTextareaUsing(?Closure $callback): static
+    {
+        $this->modifyTextareaUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyAttachmentAreaUsing(?Closure $callback): static
+    {
+        $this->modifyAttachmentAreaUsing = $callback;
 
         return $this;
     }
@@ -783,6 +845,70 @@ class ConversationThread extends Component
         return $this->evaluate($this->autoScrollOnForeignMessagesThreshold) ?? 300;
     }
 
+    public function getFileAttachmentsDisk(): Filesystem
+    {
+        return Storage::disk($this->getFileAttachmentsDiskName());
+    }
+
+    public function getFileAttachmentsDiskName(): string
+    {
+        $name = $this->evaluate($this->fileAttachmentsDiskName);
+
+        if (filled($name)) {
+            return $name;
+        }
+
+        $name = config('filament.default_filesystem_disk');
+
+        if ($name !== 'local') {
+            return $name;
+        }
+
+        if ($this->getFileAttachmentsVisibility() !== 'public') {
+            return $name;
+        }
+
+        return 'public';
+    }
+
+    public function getFileAttachmentsVisibility(): string
+    {
+        return $this->evaluate($this->fileAttachmentsVisibility) ?? 'public';
+    }
+
+    public function getFileAttachmentUrl(mixed $file): ?string
+    {
+        if ($this->getFileAttachmentUrlUsing) {
+            return $this->evaluate($this->getFileAttachmentUrlUsing, [
+                'file' => $file,
+            ]);
+        }
+
+        /** @var FilesystemAdapter $storage */
+        $storage = $this->getFileAttachmentsDisk();
+
+        try {
+            if (! $storage->exists($file)) {
+                return null;
+            }
+        } catch (UnableToCheckFileExistence $exception) {
+            return null;
+        }
+
+        if ($this->getFileAttachmentsVisibility() === 'private') {
+            try {
+                return $storage->temporaryUrl(
+                    $file,
+                    now()->addMinutes(30)->endOfHour(),
+                );
+            } catch (Throwable $exception) {
+                // This driver does not support creating temporary URLs.
+            }
+        }
+
+        return $storage->url($file);
+    }
+
     /**
      * @return Builder<Message>|null
      */
@@ -910,6 +1036,64 @@ class ConversationThread extends Component
         return $action;
     }
 
+    protected function getAttachmentAreaComponent(): AttachmentArea
+    {
+        $component = AttachmentArea::make('attachments')
+            ->getFileAttachmentNameUsing($this->getFileAttachmentName(...))
+            ->getFileAttachmentToolbarUsing($this->getFileAttachmentToolbar(...))
+            ->showOnlyImageAttachment($this->shouldShowOnlyImageAttachment(...))
+            ->previewImageAttachment($this->shouldPreviewImageAttachment(...))
+            ->fileAttachmentIcon($this->getFileAttachmentIcon(...))
+            ->fileAttachmentIconColor($this->getFileAttachmentIconColor(...))
+            ->fileAttachmentMimeTypeBadgeLabel($this->getFileAttachmentMimeTypeBadgeLabel(...))
+            ->fileAttachmentMimeTypeBadgeIcon($this->getFileAttachmentMimeTypeBadgeIcon(...))
+            ->fileAttachmentMimeTypeBadgeColor($this->getFileAttachmentMimeTypeBadgeColor(...))
+            ->requiredWithout('messageContent')
+            ->validationMessages([
+                'required_without' => __('filament-converse::conversation-thread.validation.message_required'),
+            ]);
+
+        if ($this->modifyAttachmentAreaUsing) {
+            $component = $this->evaluate($this->modifyAttachmentAreaUsing, [
+                'component' => $component,
+            ], [
+                AttachmentArea::class => $component,
+            ]) ?? $component;
+        }
+
+        return $component;
+    }
+
+    protected function getTextareaComponent(): Textarea
+    {
+        $component = Textarea::make('messageContent')
+            ->hiddenLabel()
+            ->autosize()
+            ->autofocus()
+            ->maxLength(65535)
+            ->placeholder(__('filament-converse::conversation-thread.placeholder'))
+            ->requiredWithout('attachments')
+            ->validationMessages([
+                'required_without' => __('filament-converse::conversation-thread.validation.message_required'),
+            ])
+            ->extraAttributes([
+                'style' => 'max-height: 8rem; overflow: auto'
+            ])
+            ->extraAlpineAttributes([
+                'x-on:keydown' => '$nextTick(() => fireUserTypingEvent($event))'
+            ]);
+
+        if ($this->modifyTextareaUsing) {
+            $component = $this->evaluate($this->modifyTextareaUsing, [
+                'component' => $component,
+            ], [
+                Textarea::class => $component,
+            ]) ?? $component;
+        }
+
+        return $component;
+    }
+
     protected function getSendMessageAction(): Action
     {
         $action = Action::make('sendMessage')
@@ -918,41 +1102,14 @@ class ConversationThread extends Component
             ->iconSize(IconSize::Large)
             ->icon(Heroicon::PaperAirplane)
             ->keyBindings(['enter'])
-            ->action(static function (array $data, ConversationManager $livewire) {
+            ->action(function (ConversationManager $livewire) {
+                $data = $livewire->content->getState();
 
-                $conversationThread = $livewire->getConversationSchema()->getConversationThread();
-
-                $statePath = $conversationThread->getStatePath();
-                $state = $livewire->content->getState();
-
-                $messageContent = data_get($state, str_replace('data.', '', $statePath) . ".textarea");
-                $uploadedAttachments = data_get($state, str_replace('data.', '', $statePath) . ".attachment_area." . $livewire->getActiveConversation()->getKey());
-
-                // TODO: Add validation message for AttachmentArea somewhere, fix ->maxFiles() not working
-                // dd($state, $messageContent, $uploadedAttachments);
-
-                if (blank($messageContent) && blank($uploadedAttachments)) {
-                    return;
+                if ($this->sendMessageUsing) {
+                    $this->evaluate($this->sendMessageUsing, [
+                        'data' => $data['conversation_schema'] ?? []
+                    ]);
                 }
-
-                $attachments = $attachmentFileNames = [];
-
-                foreach ($uploadedAttachments as $storedFileName => $attachment) {
-                    $attachments[] = $storedFileName;
-                    $attachmentFileNames[] = $attachment->getClientOriginalName();
-                }
-
-                $activeConversation = $livewire->getActiveConversation();
-                $message = $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($activeConversation, [
-                    'content' => $messageContent,
-                    'attachments' => $attachments,
-                    'attachment_file_names' => $attachmentFileNames,
-                ]);
-
-                $livewire->content->fill();
-                data_set($livewire->componentFileAttachments, $statePath . ".{$activeConversation->getKey()}", []);
-                data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
-                $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
             });
 
         if ($this->modifySendMessageActionUsing) {

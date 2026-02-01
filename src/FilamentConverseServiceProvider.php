@@ -48,6 +48,10 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
         FilamentAsset::register([
             AlpineComponent::make('conversation-thread', __DIR__ . '/../resources/js/dist/conversation-thread.js'),
         ], 'dvarilek/filament-converse');
+
+        FilamentAsset::register([
+            AlpineComponent::make('attachment-area', __DIR__ . '/../resources/js/dist/attachment-area.js'),
+        ], 'dvarilek/filament-converse');
     }
 
     /**

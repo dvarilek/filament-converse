@@ -26,6 +26,12 @@ return [
 
     ],
 
+    'validation' => [
+        
+        'message_required' => 'Prosím zadejte zprávu nebo přiložte soubor.'
+    
+    ],
+
     'message-actions' => [
 
         'delete-label' => 'Odstranit',
@@ -95,8 +101,6 @@ return [
     'attachments' => [
 
         'remove-button-label' => 'Odstranit',
-
-        'validation-message-close-button-label' => 'Zavřít',
 
         'mime-type' => [
 
