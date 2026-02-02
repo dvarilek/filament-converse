@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 
@@ -17,10 +16,7 @@ it('can construct group conversation name from less than four participants', fun
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $creator,
-        collect([$firstUser, $secondUser]),
-        [
-            'type' => ConversationTypeEnum::GROUP,
-        ]
+        collect([$firstUser, $secondUser])
     );
 
     expect($conversation->getName())
@@ -38,10 +34,7 @@ it('can construct group conversation from more than four participants', function
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $creator,
-        collect([$firstUser, $secondUser, $thirdUser]),
-        [
-            'type' => ConversationTypeEnum::GROUP,
-        ]
+        collect([$firstUser, $secondUser, $thirdUser])
     );
 
     expect($conversation->getName())
@@ -57,10 +50,7 @@ it('can construct direct conversation name from its participants', function () {
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $creator,
-        $otherUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        $otherUser
     );
 
     expect($conversation->getName())
@@ -76,10 +66,7 @@ it('can retrieve other participations', function () {
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $creator,
-        $otherUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        $otherUser
     );
 
     expect($conversation)->toBeInstanceOf(Conversation::class)

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Filament\Actions\Testing\TestAction;
@@ -19,9 +18,7 @@ describe('message input', function () {
 
         $this->actingAs($creator);
 
-        app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]);
+        app(CreateConversation::class)->handle($creator, $otherUser);
 
         $livewire = livewire(ConversationManager::class)
             ->fillForm([
@@ -42,8 +39,6 @@ describe('message input', function () {
 
         $this->actingAs($creator);
 
-        app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]);
+        app(CreateConversation::class)->handle($creator, $otherUser);
     });
 })->skip();

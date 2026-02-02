@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Tests\Models\User;
@@ -17,9 +16,6 @@ it('can send a message', function () {
     $conversation = app(CreateConversation::class)->handle(
         $creator,
         $otherUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
     );
 
     $author = $conversation->creator;
@@ -48,9 +44,6 @@ it('can send a message through message model', function () {
     $conversation = app(CreateConversation::class)->handle(
         $creator,
         $otherUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
     );
 
     $author = $conversation->creator;
@@ -73,10 +66,7 @@ it('can send a reply to a message', function () {
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $creator,
-        $otherUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        $otherUser
     );
 
     $author = $conversation->creator;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models;
 
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Illuminate\Database\Eloquent\Collection;
@@ -16,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
 
 /**
- * @property-read ConversationTypeEnum $type
  * @property-read string|null $image
  * @property-read string|null $name
  * @property-read string|null $description
@@ -38,7 +36,6 @@ class Conversation extends Model
      * @var array<string>
      */
     protected $fillable = [
-        'type',
         'image',
         'name',
         'description',
@@ -50,7 +47,6 @@ class Conversation extends Model
      */
     protected $casts = [
         'id' => 'string',
-        'type' => ConversationTypeEnum::class,
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -89,16 +85,6 @@ class Conversation extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(ConversationParticipation::class, 'creator_id');
-    }
-
-    public function isDirect(): bool
-    {
-        return $this->type === ConversationTypeEnum::DIRECT;
-    }
-
-    public function isGroup(): bool
-    {
-        return $this->type === ConversationTypeEnum::GROUP;
     }
 
     public function getName(): string

@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models\Concerns;
 
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -44,7 +41,7 @@ trait Conversable
             'conversation_id'
         );
     }
-    
+
     public function participatesInAnyConversation(): bool
     {
         return $this->conversations()->exists();

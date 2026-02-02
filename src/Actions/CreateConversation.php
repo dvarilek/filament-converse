@@ -20,7 +20,7 @@ class CreateConversation
      * @param  Collection<int, Model&Authenticatable>|(Model&Authenticatable)  $participants
      * @param  array<string, mixed>  $attributes
      */
-    public function handle(Authenticatable & Model $creator, (Authenticatable & Model) | Collection $participants, array $attributes): Conversation
+    public function handle(Authenticatable & Model $creator, (Authenticatable & Model) | Collection $participants, array $attributes = []): Conversation
     {
         if (! $participants instanceof Collection) {
             $participants = collect([$participants]);
@@ -32,11 +32,8 @@ class CreateConversation
                 FilamentConverseException::throwInvalidConversableUserException($creator);
             }
 
-            $timestamp = now()->format('Y-m-d H:i:s');
-
             /* @var Conversation $conversation */
             $conversation = Conversation::query()->create([
-                'type' => $attributes['type'],
                 'name' => $attributes['name'] ?? null,
                 'description' => $attributes['description'] ?? null,
                 'image' => $attributes['image'] ?? null,
@@ -44,10 +41,6 @@ class CreateConversation
 
             if ($participants->isEmpty()) {
                 throw new Exception('A conversation cannot be created without participants.');
-            }
-
-            if ($participants->count() > 1 && $conversation->isDirect()) {
-                throw new Exception('A direct conversation cannot be created with more than one participant');
             }
 
             $conversationKey = $conversation->getKey();

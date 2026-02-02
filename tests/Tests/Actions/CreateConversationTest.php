@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Illuminate\Foundation\Auth\User as DefaultUser;
@@ -17,7 +16,6 @@ it('can create a conversation with a single participant', function () {
         $creator,
         $otherUser,
         [
-            'type' => ConversationTypeEnum::DIRECT,
             'name' => 'Test',
             'description' => 'Test description',
             'color' => 'primary',
@@ -26,7 +24,6 @@ it('can create a conversation with a single participant', function () {
 
     expect($conversation)
         ->toBeInstanceOf(Conversation::class)
-        ->type->toBe(ConversationTypeEnum::DIRECT)
         ->name->toBe('Test')
         ->description->toBe('Test description')
         ->and($conversation->participations)->toHaveCount(2)
@@ -45,7 +42,6 @@ it('can create a conversation with multiple participants', function () {
         $creator,
         collect([$firstUser, $secondUser]),
         [
-            'type' => ConversationTypeEnum::GROUP,
             'name' => 'Test',
             'description' => 'Test description',
         ]
@@ -53,7 +49,6 @@ it('can create a conversation with multiple participants', function () {
 
     expect($conversation)
         ->toBeInstanceOf(Conversation::class)
-        ->type->toBe(ConversationTypeEnum::GROUP)
         ->name->toBe('Test')
         ->description->toBe('Test description')
         ->and($conversation->participations)->toHaveCount(3)
@@ -75,10 +70,7 @@ it('throws an exception when the creator user is not a model that uses the Conve
 
     expect(fn () => app(CreateConversation::class)->handle(
         $creator,
-        $otherUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        $otherUser
     ))->toThrow(Exception::class);
 });
 
@@ -94,10 +86,7 @@ it('throws an exception when a participating user is not a model that uses the C
 
     expect(fn () => app(CreateConversation::class)->handle(
         $creator,
-        $otherUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        $otherUser
     ))->toThrow(Exception::class);
 });
 
@@ -106,23 +95,7 @@ it('cannot create a conversation without participants', function () {
 
     expect(fn () => app(CreateConversation::class)->handle(
         $creator,
-        collect(),
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        collect()
     ))->toThrow(Exception::class);
 });
 
-it('cannot create a direct conversation with multiple participants', function () {
-    $creator = User::factory()->create();
-    $firstUser = User::factory()->create();
-    $secondUser = User::factory()->create();
-
-    expect(fn () => app(CreateConversation::class)->handle(
-        $creator,
-        collect([$firstUser, $secondUser]),
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
-    ))->toThrow(Exception::class);
-});

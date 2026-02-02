@@ -6,7 +6,6 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList;
 
 use Closure;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Filament\Actions\Action;
@@ -16,9 +15,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
-use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -81,7 +78,6 @@ class CreateConversationAction extends Action
                 $user,
                 $participants,
                 [
-                    'type' => $participants->count() > 1 ? ConversationTypeEnum::GROUP : ConversationTypeEnum::DIRECT,
                     'name' => $data['name'] ?? null,
                     'description' => $data['description'] ?? null,
                     'image' => $data['image'] ?? null,

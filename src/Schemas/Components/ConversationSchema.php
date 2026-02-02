@@ -131,7 +131,7 @@ class ConversationSchema extends Component
         $this->getDefaultConversationImageDataUsing(static function (ConversationSchema $component, Conversation $conversation) {
             $otherConversationParticipations = $conversation->participations->where('participant_id', '!=', auth()->id());
 
-            if (! $conversation->isGroup() || $conversation->participations->count() <= 2) {
+            if ($conversation->participations->count() <= 2) {
                 $participant = $otherConversationParticipations->first()->participant;
 
                 return [

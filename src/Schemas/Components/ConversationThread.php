@@ -244,7 +244,7 @@ class ConversationThread extends Component
 
             return match (true) {
                 $readByOtherParticipationsCount === 0 => null,
-                $readByOtherParticipationsCount === 1 => $conversation->isDirect() || ($conversation->participations->count() === 2)
+                $readByOtherParticipationsCount === 1 => $conversation->participations->count() === 2
                     ? __('filament-converse::conversation-thread.read-receipt.seen')
                     : __('filament-converse::conversation-thread.read-receipt.seen-by-one', [
                         'name' => $otherParticipantNames->first(),
@@ -302,7 +302,7 @@ class ConversationThread extends Component
 
             return match (true) {
                 $readByOtherParticipationsCount === 0 => null,
-                $readByOtherParticipationsCount === 1 => $conversation->isDirect() || ($conversation->participations->count() === 2)
+                $readByOtherParticipationsCount === 1 => $conversation->participations->count() === 2
                     ? __('filament-converse::conversation-thread.read-receipt.seen')
                     : __('filament-converse::conversation-thread.read-receipt.seen-by-one', [
                         'name' => $otherParticipantNames->first(),

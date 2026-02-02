@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Carbon\Carbon;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
@@ -24,11 +23,11 @@ describe('render', function () {
         $this->actingAs($creator);
 
         /* @var Conversation $firstUserConversation */
-        $firstUserConversation = app(CreateConversation::class)->handle($creator, $firstUser, ['type' => ConversationTypeEnum::DIRECT]);
+        $firstUserConversation = app(CreateConversation::class)->handle($creator, $firstUser);
         /* @var Conversation $secondUserConversation */
-        $secondUserConversation = app(CreateConversation::class)->handle($creator, $secondUser, ['type' => ConversationTypeEnum::DIRECT]);
+        $secondUserConversation = app(CreateConversation::class)->handle($creator, $secondUser);
         /* @var Conversation $groupConversation */
-        $groupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser]), ['type' => ConversationTypeEnum::GROUP]);
+        $groupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser]));
 
         $livewire = livewire(ConversationManager::class);
 
@@ -49,7 +48,7 @@ describe('render', function () {
         $this->actingAs($creator);
 
         /* @var Conversation $conversation */
-        $conversation = app(CreateConversation::class)->handle($creator, $otherUser, ['type' => ConversationTypeEnum::DIRECT]);
+        $conversation = app(CreateConversation::class)->handle($creator, $otherUser);
 
         livewire(ConversationManager::class)
             ->assertSeeText($conversation->getName());
@@ -64,7 +63,7 @@ describe('render', function () {
         $this->actingAs($creator);
 
         /* @var Conversation $conversation */
-        $conversation = app(CreateConversation::class)->handle($creator, $otherUser, ['type' => ConversationTypeEnum::DIRECT]);
+        $conversation = app(CreateConversation::class)->handle($creator, $otherUser);
 
         livewire(ConversationManager::class)
             ->assertSeeText(__('filament-converse::conversation-list.latest-message.empty-state'));
@@ -99,11 +98,11 @@ describe('search', function () {
         $this->actingAs($creator);
 
         /* @var Conversation $firstUserConversation */
-        $firstUserConversation = app(CreateConversation::class)->handle($creator, $firstUser, ['type' => ConversationTypeEnum::DIRECT]);
+        $firstUserConversation = app(CreateConversation::class)->handle($creator, $firstUser);
         /* @var Conversation $secondUserConversation */
-        $secondUserConversation = app(CreateConversation::class)->handle($creator, $secondUser, ['type' => ConversationTypeEnum::DIRECT]);
+        $secondUserConversation = app(CreateConversation::class)->handle($creator, $secondUser);
         /* @var Conversation $groupConversation */
-        $groupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser]), ['type' => ConversationTypeEnum::GROUP]);
+        $groupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser]));
 
         $primaryKey = (new Conversation)->getKeyName();
         $livewire = livewire(ConversationManager::class);
@@ -140,14 +139,12 @@ describe('search', function () {
 
         /* @var Conversation $firstUserConversation */
         $firstUserConversation = app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::GROUP,
             'name' => 'Group A',
             'description' => 'First group',
         ]);
 
         /* @var Conversation $secondUserConversation */
         $secondUserConversation = app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::GROUP,
             'name' => 'Group B',
             'description' => 'Second group',
         ]);
@@ -192,7 +189,6 @@ describe('actions', function () {
         $conversation = Conversation::query()->first();
 
         expect($conversation)->toBeInstanceOf(Conversation::class)
-            ->type->toBe(ConversationTypeEnum::DIRECT)
             ->name->toBeNull()
             ->description->toBeNull()
             ->image->toBeNull()
@@ -230,7 +226,6 @@ describe('actions', function () {
         $conversation = Conversation::query()->first();
 
         expect($conversation)->toBeInstanceOf(Conversation::class)
-            ->type->toBe(ConversationTypeEnum::GROUP)
             ->name->toBeNull()
             ->description->toBeNull()
             ->image->toBeNull()
@@ -262,7 +257,6 @@ describe('actions', function () {
         $conversation = Conversation::query()->first();
 
         expect($conversation)->toBeInstanceOf(Conversation::class)
-            ->type->toBe(ConversationTypeEnum::GROUP)
             ->name->toBe('Test conversation')
             ->description->toBe('Test description')
             ->image->toBeNull()

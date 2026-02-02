@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Illuminate\Support\Collection;
@@ -16,37 +15,25 @@ it('can retrieve conversations for a specific user', function () {
     /* @var Conversation $firstConversation */
     $firstConversation = app(CreateConversation::class)->handle(
         $creator,
-        collect([$firstUser, $secondUser]),
-        [
-            'type' => ConversationTypeEnum::GROUP,
-        ]
+        collect([$firstUser, $secondUser])
     );
 
     /* @var Conversation $secondConversation */
     $secondConversation = app(CreateConversation::class)->handle(
         $creator,
-        $firstUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        $firstUser
     );
 
     /* @var Conversation $thirdConversation */
     $thirdConversation = app(CreateConversation::class)->handle(
         $firstUser,
-        $creator,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        $creator
     );
 
     /* @var Conversation $fourthConversation */
     $fourthConversation = app(CreateConversation::class)->handle(
         $secondUser,
-        $firstUser,
-        [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]
+        $firstUser
     );
 
     $conversationPrimaryKeyName = (new Conversation)->getKeyName();

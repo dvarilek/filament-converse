@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Carbon\Carbon;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Enums\ConversationTypeEnum;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationList;
@@ -21,9 +20,7 @@ describe('active conversation', function () {
 
         $this->actingAs($creator);
 
-        $conversation = app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]);
+        $conversation = app(CreateConversation::class)->handle($creator, $otherUser);
 
         $livewire = livewire(ConversationManager::class)
             ->set('conversationListSearch', 'This should not affect the active conversation');
@@ -39,9 +36,7 @@ describe('active conversation', function () {
 
         $this->actingAs($creator);
 
-        app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]);
+        app(CreateConversation::class)->handle($creator, $otherUser);
 
         livewire(ConversationManager::class, [
             'conversationSchemaConfiguration' => TestConfiguration::class,
@@ -58,15 +53,11 @@ describe('active conversation', function () {
 
         $this->actingAs($creator);
 
-        $penultimateConversation = app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]);
+        $penultimateConversation = app(CreateConversation::class)->handle($creator, $otherUser);
 
         Carbon::setTestNow(now()->addMinutes(5));
 
-        $latestConversation = app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::GROUP,
-        ]);
+        $latestConversation = app(CreateConversation::class)->handle($creator, $otherUser);
 
         livewire(ConversationManager::class)
             ->assertSet('activeConversationKey', $latestConversation->getKey())
@@ -96,9 +87,7 @@ describe('active conversation', function () {
 
         $this->actingAs($creator);
 
-        $conversation = app(CreateConversation::class)->handle($creator, $otherUser, [
-            'type' => ConversationTypeEnum::DIRECT,
-        ]);
+        $conversation = app(CreateConversation::class)->handle($creator, $otherUser);
 
         /* @var ConversationManager $livewire */
         $livewire = livewire(ConversationManager::class)->instance();
