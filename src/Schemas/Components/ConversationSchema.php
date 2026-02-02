@@ -3,7 +3,9 @@
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
+use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
+use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Schemas\Components\Concerns\BelongsToLivewire;
@@ -91,7 +93,35 @@ class ConversationSchema extends Component
         });
 
         $this->getConversationNameUsing(static function (Conversation $conversation) {
-            return $conversation->getName();
+            if ($conversation->name) {
+                return $conversation->name;
+            }
+
+            $user = auth()->user();
+
+            if (! in_array(Conversable::class, class_uses_recursive($user))) {
+                FilamentConverseException::throwInvalidConversableUserException($user);
+            }
+
+            $userNameAttribute = $user::getFilamentNameAttribute();
+
+            if ($conversation->relationLoaded('participations')) {
+                $userNames = $conversation->participations
+                    ->where('participant_id', '!=', $user->getKey())
+                    ->pluck('participant.' . $userNameAttribute);
+            } else {
+                $userNames = $conversation->otherParticipations()
+                    ->with('participant')
+                    ->get()
+                    ->pluck('participant.' . $userNameAttribute);
+            }
+
+            return match ($userNames->count()) {
+                0 => '',
+                1 => $userNames->first(),
+                2 => $userNames->join(' & '),
+                default => $userNames->slice(0, -1)->join(', ') . ' & ' . $userNames->last()
+            };
         });
 
         $this->getConversationImageUrlUsing(static function (ConversationSchema $component, Conversation $conversation) {

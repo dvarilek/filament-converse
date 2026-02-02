@@ -19,6 +19,7 @@ describe('render', function () {
         $creator = User::factory()->create();
         $firstUser = User::factory()->create();
         $secondUser = User::factory()->create();
+        $thirdUser = User::factory()->create();
 
         $this->actingAs($creator);
 
@@ -26,19 +27,23 @@ describe('render', function () {
         $firstUserConversation = app(CreateConversation::class)->handle($creator, $firstUser);
         /* @var Conversation $secondUserConversation */
         $secondUserConversation = app(CreateConversation::class)->handle($creator, $secondUser);
-        /* @var Conversation $groupConversation */
-        $groupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser]));
+
+        /* @var Conversation $firstGroupConversation */
+        $firstGroupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser]));
+        /* @var Conversation $thirdUserConversation */
+        $secondGroupConversation = app(CreateConversation::class)->handle($creator, collect([$firstUser, $secondUser, $thirdUser]));
 
         $livewire = livewire(ConversationManager::class);
 
         expect($livewire->instance()->conversations)
-            ->toHaveCount(3)
+            ->toHaveCount(4)
             ->pluck((new Conversation)->getKeyName())
-            ->toContain($firstUserConversation->getKey(), $secondUserConversation->getKey(), $groupConversation->getKey())
+            ->toContain($firstUserConversation->getKey(), $secondUserConversation->getKey(), $firstGroupConversation->getKey(), $secondGroupConversation->getKey())
             ->and($livewire)
-            ->assertSeeText($firstUserConversation->getName())
-            ->assertSeeText($secondUserConversation->getName())
-            ->assertSeeText($groupConversation->getName());
+            ->assertSeeText($firstUser->name)
+            ->assertSeeText($secondUser->name)
+            ->assertSeeText($firstUser->name . " & " . $secondUser->name)
+            ->assertSeeText($firstUser->name . ', ' . $secondUser->name . ' & ' . $thirdUser->name);
     });
 
     it('can render conversation name', function () {
@@ -51,7 +56,7 @@ describe('render', function () {
         $conversation = app(CreateConversation::class)->handle($creator, $otherUser);
 
         livewire(ConversationManager::class)
-            ->assertSeeText($conversation->getName());
+            ->assertSeeText($otherUser->name);
     });
 
     it('can render conversation latest messages', function () {

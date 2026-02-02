@@ -86,37 +86,4 @@ class Conversation extends Model
     {
         return $this->belongsTo(ConversationParticipation::class, 'creator_id');
     }
-
-    public function getName(): string
-    {
-        if ($this->name) {
-            return $this->name;
-        }
-
-        $user = auth()->user();
-
-        if (! in_array(Conversable::class, class_uses_recursive($user))) {
-            FilamentConverseException::throwInvalidConversableUserException($user);
-        }
-
-        $userNameAttribute = $user::getFilamentNameAttribute();
-
-        if ($this->relationLoaded('participations')) {
-            $userNames = $this->participations
-                ->where('participant_id', '!=', $user->getKey())
-                ->pluck('participant.' . $userNameAttribute);
-        } else {
-            $userNames = $this->otherParticipations()
-                ->with('participant')
-                ->get()
-                ->pluck('participant.' . $userNameAttribute);
-        }
-
-        return match ($userNames->count()) {
-            0 => '',
-            1 => $userNames->first(),
-            2 => $userNames->join(' & '),
-            default => $userNames->slice(0, -1)->join(', ') . ' & ' . $userNames->last()
-        };
-    }
 }
