@@ -13,16 +13,13 @@ use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
-use Dvarilek\FilamentConverse\Schemas\Components\AttachmentArea;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Concerns\HasFileAttachments;
+use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\FusedGroup;
 use Filament\Schemas\Components\Concerns\HasKey;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\View\Components\TextComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
@@ -956,7 +953,7 @@ class ConversationThread extends Component
         ]);
     }
 
-    protected function getUploadAttachmentAction(): Action
+    public function getUploadAttachmentAction(): Action
     {
         $action = Action::make('uploadAttachment')
             ->label(__('filament-converse::conversation-thread.footer-actions.upload-attachment-label'))
@@ -976,7 +973,7 @@ class ConversationThread extends Component
         return $action;
     }
 
-    protected function getEditConversationAction(): Action
+    public function getEditConversationAction(): Action
     {
         $action = Action::make('editConversation')
             ->iconButton()
@@ -996,7 +993,7 @@ class ConversationThread extends Component
         return $action;
     }
 
-    protected function getEditMessageAction(): Action
+    public function getEditMessageAction(): Action
     {
         $action = EditMessageAction::make();
 
@@ -1012,7 +1009,7 @@ class ConversationThread extends Component
         return $action;
     }
 
-    protected function getDeleteMessageAction(): Action
+    public function getDeleteMessageAction(): Action
     {
         $action = DeleteMessageAction::make();
 
@@ -1028,7 +1025,7 @@ class ConversationThread extends Component
         return $action;
     }
 
-    protected function getAttachmentAreaComponent(): AttachmentArea
+    public function getAttachmentAreaComponent(): Field
     {
         $component = AttachmentArea::make('attachments')
             ->getFileAttachmentNameUsing($this->getFileAttachmentName(...))
@@ -1056,7 +1053,7 @@ class ConversationThread extends Component
         return $component;
     }
 
-    protected function getTextareaComponent(): Textarea
+    public function getTextareaComponent(): Field
     {
         $component = Textarea::make('messageContent')
             ->hiddenLabel()
@@ -1086,7 +1083,7 @@ class ConversationThread extends Component
         return $component;
     }
 
-    protected function getSendMessageAction(): Action
+    public function getSendMessageAction(): Action
     {
         $action = Action::make('sendMessage')
             ->label(__('filament-converse::conversation-thread.footer-actions.send-message-label'))

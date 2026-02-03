@@ -279,9 +279,10 @@ describe('actions', function () {
         $otherUser = User::factory()->create();
 
         $this->actingAs($creator);
+        $action = TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list');
 
         $livewire = livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+            ->callAction($action, [
                 'participants' => [
                     $otherUser->getKey()
                 ],
@@ -291,7 +292,7 @@ describe('actions', function () {
         expect(Conversation::query()->count())->toBe(1);
 
         $livewire
-            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+            ->callAction($action, [
                 'participants' => [
                     $otherUser->getKey()
                 ],
@@ -307,9 +308,10 @@ describe('actions', function () {
         $secondUser = User::factory()->create();
 
         $this->actingAs($creator);
+        $action = TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list');
 
         $livewire = livewire(ConversationManager::class)
-            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+            ->callAction($action, [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
                 'name' => 'First group',
             ])
@@ -318,13 +320,22 @@ describe('actions', function () {
         expect(Conversation::query()->count())->toBe(1);
 
         $livewire
-            ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation-list'), [
+            ->callAction($action, [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
                 'name' => 'Second group',
             ])
             ->assertHasNoErrors();
 
         expect(Conversation::query()->count())->toBe(2);
+
+        $livewire
+            ->callAction($action, [
+                'participants' => [$secondUser->getKey()],
+                'name' => 'Third group',
+            ])
+            ->assertHasNoErrors();
+
+        expect(Conversation::query()->count())->toBe(3);
     });
 });
 

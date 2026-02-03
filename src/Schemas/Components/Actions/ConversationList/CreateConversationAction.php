@@ -126,7 +126,7 @@ class CreateConversationAction extends Action
         return $this;
     }
 
-    protected function getParticipantSelectComponent(): Select
+    public function getParticipantSelectComponent(): Field
     {
         $component = Select::make('participants')
             ->label(__('filament-converse::conversation-list.actions.create-conversation.schema.participant.label'))
@@ -171,6 +171,7 @@ class CreateConversationAction extends Action
                         ->whereHas('participations', static fn (Builder $query) => $query
                             ->where('participant_id', head($value))
                         )
+                        ->has('participations', 2)
                         ->exists();
 
                     if ($directConversationExists) {
@@ -190,7 +191,7 @@ class CreateConversationAction extends Action
         return $component;
     }
 
-    protected function getConversationNameComponent(): Field
+    public function getConversationNameComponent(): Field
     {
         $component = TextInput::make('name')
             ->label(__('filament-converse::conversation-list.actions.create-conversation.schema.name.label'))
@@ -207,7 +208,7 @@ class CreateConversationAction extends Action
         return $component;
     }
 
-    protected function getConversationDescriptionComponent(): Field
+    public function getConversationDescriptionComponent(): Field
     {
         $component = Textarea::make('description')
             ->label(__('filament-converse::conversation-list.actions.create-conversation.schema.description.label'))
@@ -224,7 +225,7 @@ class CreateConversationAction extends Action
         return $component;
     }
 
-    protected function getConversationImageComponent(): Field
+    public function getConversationImageComponent(): Field
     {
         $component = FileUpload::make('image')
             ->label(__('filament-converse::conversation-list.actions.create-conversation.schema.image.label'))
@@ -242,7 +243,7 @@ class CreateConversationAction extends Action
         return $component;
     }
 
-    protected function getConversationCreatedNotification(): ?Notification
+    public function getConversationCreatedNotification(): ?Notification
     {
         $notification = Notification::make('conversationCreated')
             ->success()
