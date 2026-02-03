@@ -22,6 +22,8 @@ use Filament\Support\Enums\Alignment;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\HtmlString;
 use Livewire\Component as LivewireComponent;
 
 class ConversationList extends Component
@@ -70,6 +72,12 @@ class ConversationList extends Component
 
     protected ?Closure $modifyCreateConversationActionUsing = null;
 
+    protected View | Closure | null $conversationItemContent = null;
+
+    protected View | Htmlable | Closure | null $aboveConversationItemContent = null;
+
+    protected View | Htmlable | Closure | null $belowConversationItemContent = null;
+
     final public function __construct(string | Htmlable | Closure | null $heading)
     {
         $this->heading($heading);
@@ -94,7 +102,7 @@ class ConversationList extends Component
         $this->emptyStateHeading(__('filament-converse::conversation-list.empty-state.heading'));
 
         $this->latestMessageEmptyContent(__('filament-converse::conversation-list.latest-message.empty-state'));
-
+        
         $this->emptyStateDescription(static function (): ?string {
             return ! auth()->user()->participatesInAnyConversation() ? __('filament-converse::conversation-list.empty-state.description') : null;
         });
@@ -258,6 +266,27 @@ class ConversationList extends Component
         return $this;
     }
 
+    public function conversationItemContent(View | Closure | null $content): static
+    {
+        $this->conversationItemContent = $content;
+
+        return $this;
+    }
+
+    public function aboveConversationItemContent(View | Htmlable | Closure | null $content): static
+    {
+        $this->aboveConversationItemContent = $content;
+
+        return $this;
+    }
+
+    public function belowConversationItemContent(View | Htmlable | Closure | null $content): static
+    {
+        $this->belowConversationItemContent = $content;
+
+        return $this;
+    }
+
     public function getHeading(): string | Htmlable
     {
         return $this->evaluate($this->heading) ?? __('filament-converse::conversation-list.heading');
@@ -386,6 +415,33 @@ class ConversationList extends Component
         }
 
         return $action;
+    }
+
+    public function getConversationItemContent(Conversation $conversation): ?View
+    {
+        return $this->evaluate($this->conversationItemContent, [
+            'conversation' => $conversation,
+        ], [
+            Conversation::class => $conversation,
+        ]);
+    }
+
+    public function getAboveConversationItemContent(Conversation $conversation): View | Htmlable | null
+    {
+        return $this->evaluate($this->aboveConversationItemContent, [
+            'conversation' => $conversation,
+        ], [
+            Conversation::class => $conversation,
+        ]);
+    }
+
+    public function getBelowConversationItemContent(Conversation $conversation): View | Htmlable | null
+    {
+        return $this->evaluate($this->belowConversationItemContent, [
+            'conversation' => $conversation,
+        ], [
+            Conversation::class => $conversation,
+        ]);
     }
 
     public function getLivewire(): LivewireComponent & HasSchemas & HasActions & HasConversationSchema

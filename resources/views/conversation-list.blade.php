@@ -147,80 +147,96 @@
     <ul class="fi-converse-conversation-area">
         @if (count($conversations))
             @foreach ($conversations as $conversation)
-                @php
-                    $conversationKey = $conversation->getKey();
-                    /* @var ?Message $latestMessage */
-                    $latestMessage = $getLatestMessage($conversation);
-                    $conversationName = $getConversationName($conversation);
-                    $showConversationImage = $shouldShowConversationImage($conversation);
-                    $unreadMessagesCount = $getUnreadMessagesCount($conversation);
-                @endphp
+                @if ($conversationItemContent = $getConversationItemContent($conversation))
+                    {{ $conversationItemContent }}
+                @else
+                    @php
+                        $conversationKey = $conversation->getKey();
+                        /* @var ?Message $latestMessage */
+                        $latestMessage = $getLatestMessage($conversation);
+                        $conversationName = $getConversationName($conversation);
+                        $showConversationImage = $shouldShowConversationImage($conversation);
+                        $unreadMessagesCount = $getUnreadMessagesCount($conversation);
+                    @endphp
 
-                <li
-                    wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}-{{ $unreadMessagesCount }}"
-                    wire:loading.attr="disabled"
-                    x-on:click="
+                    <li
+                        wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}-{{ $unreadMessagesCount }}"
+                        wire:loading.attr="disabled"
+                        x-on:click="
                         await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
                         showConversationListSidebar = false
                     "
-                    {{
-                        $extraConversationAttributeBag
-                            ->class([
-                                'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
-                                'fi-converse-conversation-list-item-unread' => $unreadMessagesCount > 0,
-                                'fi-converse-conversation-list-item',
-                            ])
-                    }}
-                >
-                    @if ($showConversationImage)
-                        <x-filament-converse::conversation-image
-                            :conversation="$conversation"
-                            :conversation-name="$conversationName"
-                            :conversation-image-url="$getConversationImageUrl($conversation)"
-                            :get-default-conversation-image-data="$getDefaultConversationImageData"
-                        />
-                    @endif
+                        {{
+                            $extraConversationAttributeBag
+                                ->class([
+                                    'fi-converse-conversation-list-item-active' => $conversationKey === $activeConversation?->getKey(),
+                                    'fi-converse-conversation-list-item-unread' => $unreadMessagesCount > 0,
+                                    'fi-converse-conversation-list-item',
+                                ])
+                        }}
+                    >
+                        @if ($aboveConversationItemContent = $getAboveConversationItemContent($conversation))
+                            {{ $aboveConversationItemContent }}
+                        @endif
 
-                    <div class="fi-converse-conversation-list-item-content">
-                        <div class="fi-converse-conversation-list-item-header">
-                            <h4
-                                class="fi-converse-conversation-list-item-heading"
-                            >
-                                {{ $conversationName }}
-                            </h4>
-
-                            @if ($latestMessage)
-                                <p
-                                    class="fi-converse-conversation-list-item-time-indicator"
-                                >
-                                    {{ $getLatestMessageDateTime($latestMessage, $conversation) }}
-                                </p>
+                        <div
+                            class="fi-converse-conversation-list-item-content-wrapper"
+                        >
+                            @if ($showConversationImage)
+                                <x-filament-converse::conversation-image
+                                    :conversation="$conversation"
+                                    :conversation-name="$conversationName"
+                                    :conversation-image-url="$getConversationImageUrl($conversation)"
+                                    :get-default-conversation-image-data="$getDefaultConversationImageData"
+                                />
                             @endif
+
+                            <div class="fi-converse-conversation-list-item-content">
+                                <div class="fi-converse-conversation-list-item-header">
+                                    <h4
+                                        class="fi-converse-conversation-list-item-heading"
+                                    >
+                                        {{ $conversationName }}
+                                    </h4>
+
+                                    @if ($latestMessage)
+                                        <p
+                                            class="fi-converse-conversation-list-item-time-indicator"
+                                        >
+                                            {{ $getLatestMessageDateTime($latestMessage, $conversation) }}
+                                        </p>
+                                    @endif
+                                </div>
+
+                                <div class="fi-converse-conversation-list-item-footer">
+                                    <p
+                                        class="fi-converse-conversation-list-item-last-message-description"
+                                    >
+                                        @if ($latestMessage)
+                                            {{ $getLatestMessageContent($latestMessage, $conversation) }}
+                                        @else
+                                            {{ $getLatestMessageEmptyContent($conversation) }}
+                                        @endif
+                                    </p>
+
+                                    @if ($unreadMessagesCount)
+                                        <x-filament::badge
+                                            :icon="$getUnreadMessagesBadgeIcon($latestMessage, $conversation)"
+                                            :color="$getUnreadMessagesBadgeColor($latestMessage, $conversation)"
+                                            size="sm"
+                                        >
+                                            {{ $unreadMessagesCount > 100 ? '99+' : $unreadMessagesCount }}
+                                        </x-filament::badge>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="fi-converse-conversation-list-item-footer">
-                            <p
-                                class="fi-converse-conversation-list-item-last-message-description"
-                            >
-                                @if ($latestMessage)
-                                    {{ $getLatestMessageContent($latestMessage, $conversation) }}
-                                @else
-                                    {{ $getLatestMessageEmptyContent($conversation) }}
-                                @endif
-                            </p>
-
-                            @if ($unreadMessagesCount)
-                                <x-filament::badge
-                                    :icon="$getUnreadMessagesBadgeIcon($latestMessage, $conversation)"
-                                    :color="$getUnreadMessagesBadgeColor($latestMessage, $conversation)"
-                                    size="sm"
-                                >
-                                    {{ $unreadMessagesCount > 100 ? '99+' : $unreadMessagesCount }}
-                                </x-filament::badge>
-                            @endif
-                        </div>
-                    </div>
-                </li>
+                        @if ($belowConversationItemContent = $getBelowConversationItemContent($conversation))
+                            {{ $belowConversationItemContent }}
+                        @endif
+                    </li>
+                @endif
             @endforeach
 
             @if ($totalConversationsCount && $totalConversationsCount > count($conversations))
