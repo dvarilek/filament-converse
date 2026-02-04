@@ -8,8 +8,6 @@ use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Dvarilek\FilamentConverse\Schemas\Components\ConversationSchema;
-use Filament\Schemas\Components\Component;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -42,7 +40,7 @@ trait InteractsWithConversationManager
      */
     public array $cachedUnsendMessages = [];
 
-    public function mountHasConversations(): void
+    public function mountInteractsWithConversationManager(): void
     {
         $conversationSchema = $this->getConversationSchema();
         $activeConversationSessionKey = $this->getActiveConversationSessionKey();
