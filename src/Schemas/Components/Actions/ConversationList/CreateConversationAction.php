@@ -7,6 +7,7 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList;
 use Closure;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
@@ -32,6 +33,8 @@ class CreateConversationAction extends Action
     protected ?Closure $modifyConversationDescriptionComponentUsing = null;
 
     protected ?Closure $modifyConversationImageComponentUsing = null;
+
+    protected ?Closure $createConversationUsing = null;
 
     protected ?Closure $modifyConversationCreatedNotificationUsing = null;
 
@@ -69,20 +72,32 @@ class CreateConversationAction extends Action
 
         ]);
 
-        $this->action(function (CreateConversationAction $action, HasConversationSchema $livewire, array $data) {
+        $this->action(function (CreateConversationAction $action, ConversationManager $livewire, array $data) {
             $user = auth()->user();
-            /* @var Collection<int, Model&Authenticatable>|(Model&Authenticatable) $participants */
-            $participants = $user::query()->whereIn($user->getKeyName(), $data['participants'])->get();
 
-            $conversation = app(CreateConversation::class)->handle(
-                $user,
-                $participants,
-                [
-                    'name' => $data['name'] ?? null,
-                    'description' => $data['description'] ?? null,
-                    'image' => $data['image'] ?? null,
-                ]
-            );
+            if ($this->createConversationUsing) {
+                $conversation = $action->evaluate($this->createConversationUsing, [
+                    'data' => $data,
+                    'livewire' => $livewire
+                ], [
+                    ConversationManager::class => $livewire
+                ]);
+            } else {
+                $user = auth()->user();
+
+                /* @var Collection<int, Model&Authenticatable>|(Model&Authenticatable) $participants */
+                $participants = $user::query()->whereIn($user->getKeyName(), $data['participants'])->get();
+
+                $conversation = app(CreateConversation::class)->handle(
+                    $user,
+                    $participants,
+                    [
+                        'name' => $data['name'] ?? null,
+                        'description' => $data['description'] ?? null,
+                        'image' => $data['image'] ?? null,
+                    ]
+                );
+            }
 
             $livewire->updateActiveConversation($conversation->getKey());
             unset($livewire->conversations);
@@ -115,6 +130,13 @@ class CreateConversationAction extends Action
     public function conversationImageComponent(?Closure $callback): static
     {
         $this->modifyConversationImageComponentUsing = $callback;
+
+        return $this;
+    }
+
+    public function createConversationUsing(?Closure $callback = null): static
+    {
+        $this->createConversationUsing = $callback;
 
         return $this;
     }
