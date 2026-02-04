@@ -6,6 +6,7 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use BackedEnum;
 use Closure;
+use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
@@ -23,6 +24,7 @@ use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Livewire\Component as LivewireComponent;
 
@@ -78,6 +80,8 @@ class ConversationList extends Component
 
     protected View | Htmlable | Closure | null $belowConversationItemContent = null;
 
+    protected ?Closure $searchConversationsUsing = null;
+
     final public function __construct(string | Htmlable | Closure | null $heading)
     {
         $this->heading($heading);
@@ -102,7 +106,7 @@ class ConversationList extends Component
         $this->emptyStateHeading(__('filament-converse::conversation-list.empty-state.heading'));
 
         $this->latestMessageEmptyContent(__('filament-converse::conversation-list.latest-message.empty-state'));
-        
+
         $this->emptyStateDescription(static function (): ?string {
             return ! auth()->user()->participatesInAnyConversation() ? __('filament-converse::conversation-list.empty-state.description') : null;
         });
@@ -148,6 +152,26 @@ class ConversationList extends Component
             };
 
             return $messagePrefix . ': ' . $message;
+        });
+
+        $this->searchConversationsUsing(static function (Builder $query, ConversationManager $livewire): Builder {
+            $nameAttribute = FilamentConverseServiceProvider::getFilamentConverseUserModel()::getFilamentNameAttribute();
+
+            return $query
+                ->where(
+                    fn (Builder $query) => $query
+                        ->where('name', 'like', "%{$livewire->conversationListSearch}%")
+                        ->orWhere('description', 'like', "%{$livewire->conversationListSearch}%")
+                        ->orWhereHas(
+                            'participations',
+                            fn (Builder $subQuery) => $subQuery
+                                ->whereHas(
+                                    'participant',
+                                    fn (Builder $q) => $q
+                                        ->where($nameAttribute, 'like', "%{$livewire->conversationListSearch}%")
+                                )
+                        )
+                );
         });
 
         $this->childComponents(fn () => [
@@ -283,6 +307,13 @@ class ConversationList extends Component
     public function belowConversationItemContent(View | Htmlable | Closure | null $content): static
     {
         $this->belowConversationItemContent = $content;
+
+        return $this;
+    }
+
+    public function searchConversationsUsing(?Closure $callback = null): static
+    {
+        $this->searchConversationsUsing = $callback;
 
         return $this;
     }
@@ -442,6 +473,15 @@ class ConversationList extends Component
         ], [
             Conversation::class => $conversation,
         ]);
+    }
+
+    public function applyConversationSearch(Builder $query): Builder
+    {
+        return $this->evaluate($this->searchConversationsUsing, [
+            'query' => $query,
+        ], [
+            Builder::class => $query,
+        ]) ?? $query;
     }
 
     public function getLivewire(): LivewireComponent & HasSchemas & HasActions & HasConversationSchema

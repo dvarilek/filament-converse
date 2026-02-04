@@ -6,6 +6,7 @@ namespace Dvarilek\FilamentConverse\Livewire;
 
 use Dvarilek\FilamentConverse\Livewire\Concerns\InteractsWithConversationManager;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
+use Dvarilek\FilamentConverse\Schemas\Components\ConversationSchema;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
@@ -47,6 +48,22 @@ class ConversationManager extends Component implements HasActions, HasConversati
             ->statePath('data');
     }
 
+    protected function makeConversationSchema(): ConversationSchema
+    {
+        $conversationSchema = ConversationSchema::make($this);
+
+        if ($this->conversationSchemaConfiguration && method_exists($this->conversationSchemaConfiguration, 'configure')) {
+            return $this->conversationSchemaConfiguration::configure($conversationSchema) ?? $conversationSchema;
+        }
+
+        return $conversationSchema;
+    }
+
+    public function getConversationSchema(): ConversationSchema
+    {
+        return $this->content->getComponent(fn (\Filament\Schemas\Components\Component $component) => $component instanceof ConversationSchema) ?? throw new \RuntimeException('The conversation schema component is missing.');
+    }
+    
     public function _finishUpload($name, $tmpPath, $isMultiple)
     {
         if (FileUploadConfiguration::shouldCleanupOldUploads()) {
