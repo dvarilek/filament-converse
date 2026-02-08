@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread;
+namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;

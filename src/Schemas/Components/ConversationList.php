@@ -12,7 +12,7 @@ use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\CreateConversationAction;
 use Filament\Actions\Action;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Components\Component;

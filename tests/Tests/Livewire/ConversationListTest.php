@@ -8,11 +8,11 @@ use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\CreateConversationAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList\CreateConversationAction;
 
 describe('render', function () {
     it('can render conversations', function () {
@@ -297,7 +297,7 @@ describe('actions', function () {
                     $otherUser->getKey()
                 ],
             ])
-            ->assertHasFormErrors(['participants' => __('filament-converse::conversation-list.actions.create-conversation.schema.participant.validation.direct-conversation-exists')]);
+            ->assertHasFormErrors(['participants' => __('filament-converse::conversation-schema.participant.validation.direct-conversation-exists')]);
 
         expect(Conversation::query()->count())->toBe(1);
     });

@@ -28,7 +28,7 @@ return [
 
     'actions' => [
 
-        'create-conversation' => [
+        'create' => [
 
             'label' => 'Vytvořit',
 
@@ -36,50 +36,12 @@ return [
 
             'modal-submit-action-label' => 'Vytvořit',
 
-            'schema' => [
+            'notifications' => [
 
-                'participant' => [
-
-                    'label' => 'Účastníci',
-
-                    'placeholder' => 'Vyberte účastníky',
-
-                    'validation' => [
-
-                        'direct-conversation-exists' => 'S tímto uživatelem již máte konverzaci.'
-
-                    ]
-
-                ],
-
-                'name' => [
-
-                    'label' => 'Název',
-
-                ],
-
-                'description' => [
-
-                    'label' => 'Popis',
-
-                ],
-
-                'image' => [
-
-                    'label' => 'Obrázek',
-
-                ],
+                'conversation-created-title' => 'Konverzace vytvořena',
 
             ],
-
         ],
-
-        'notifications' => [
-
-            'conversation-created-title' => 'Konverzace vytvořena',
-
-        ],
-
     ],
 
     'empty-state' => [

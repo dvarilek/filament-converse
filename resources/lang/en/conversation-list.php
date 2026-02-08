@@ -28,7 +28,7 @@ return [
 
     'actions' => [
 
-        'create-conversation' => [
+        'create' => [
 
             'label' => 'Create',
 
@@ -36,50 +36,12 @@ return [
 
             'modal-submit-action-label' => 'Create',
 
-            'schema' => [
+            'notifications' => [
 
-                'participant' => [
-
-                    'label' => 'Participants',
-
-                    'placeholder' => 'Select a participants',
-
-                    'validation' => [
-
-                        'direct-conversation-exists' => 'You already have a conversation with this participant.'
-
-                    ]
-
-                ],
-
-                'name' => [
-
-                    'label' => 'Name',
-
-                ],
-
-                'description' => [
-
-                    'label' => 'Description',
-
-                ],
-
-                'image' => [
-
-                    'label' => 'Image',
-
-                ],
+                'conversation-created-title' => 'Conversation created',
 
             ],
-
         ],
-
-        'notifications' => [
-
-            'conversation-created-title' => 'Conversation created',
-
-        ],
-
     ],
 
     'empty-state' => [

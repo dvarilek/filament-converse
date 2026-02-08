@@ -11,8 +11,9 @@ use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\DeleteMessageAction;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationThread\EditMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
@@ -96,7 +97,7 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyUploadAttachmentActionUsing = null;
 
-    protected ?Closure $modifyEditConversationActionUsing = null;
+    protected ?Closure $modifyManageConversationActionUsing = null;
 
     protected ?Closure $modifyEditMessageActionUsing = null;
 
@@ -126,6 +127,8 @@ class ConversationThread extends Component
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
+        $this->model(static fn ($livewire) => $livewire->getActiveConversation());
+
         $this->schema(static fn (ConversationThread $component) => [
             FusedGroup::make([
                 $component->getAttachmentAreaComponent(),
@@ -138,7 +141,16 @@ class ConversationThread extends Component
             ])
         ]);
 
-        $this->sendMessageUsing(static function (Conversationmanager $livewire, array $data): ?Message {
+        $this->childComponents(static fn (ConversationThread $component) => [
+            $component->getManageConversationAction(),
+        ], static::HEADER_ACTIONS_KEY);
+
+        $this->childComponents(static fn (ConversationThread $component) => [
+            $component->getEditMessageAction(),
+            $component->getDeleteMessageAction(),
+        ], static::MESSAGE_ACTIONS_KEY);
+
+        $this->sendMessageUsing(static function (ConversationManager $livewire, array $data): ?Message {
             $messageContent = $data['messageContent'] ?? null;
             $uploadedAttachments = $data['attachments'] ?? [];
 
@@ -363,15 +375,6 @@ class ConversationThread extends Component
                 default => null,
             };
         });
-
-        $this->childComponents(static fn (ConversationThread $component) => [
-            $component->getEditConversationAction(),
-        ], static::HEADER_ACTIONS_KEY);
-
-        $this->childComponents(static fn (ConversationThread $component) => [
-            $component->getEditMessageAction(),
-            $component->getDeleteMessageAction(),
-        ], static::MESSAGE_ACTIONS_KEY);
     }
 
     public function classic(): static
@@ -616,9 +619,9 @@ class ConversationThread extends Component
         return $this;
     }
 
-    public function editConversationAction(?Closure $callback): static
+    public function ManageConversationAction(?Closure $callback): static
     {
-        $this->modifyEditConversationActionUsing = $callback;
+        $this->modifyManageConversationActionUsing = $callback;
 
         return $this;
     }
@@ -973,17 +976,12 @@ class ConversationThread extends Component
         return $action;
     }
 
-    public function getEditConversationAction(): Action
+    public function getManageConversationAction(): Action
     {
-        $action = Action::make('editConversation')
-            ->iconButton()
-            ->color('gray')
-            ->icon(Heroicon::OutlinedCog6Tooth)
-            ->size(Size::ExtraLarge)
-            ->action(fn () => dd('editConversation'));
+        $action = ManageConversationAction::make();
 
-        if ($this->modifyEditConversationActionUsing) {
-            $action = $this->evaluate($this->modifyEditConversationActionUsing, [
+        if ($this->modifyManageConversationActionUsing) {
+            $action = $this->evaluate($this->modifyManageConversationActionUsing, [
                 'action' => $action,
             ], [
                 Action::class => $action,

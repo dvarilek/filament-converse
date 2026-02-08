@@ -27,9 +27,33 @@ return [
     ],
 
     'validation' => [
-        
+
         'message-required' => 'Prosím zadejte zprávu nebo přiložte soubor.'
-    
+
+    ],
+
+    'actions' => [
+
+        'manage' => [
+
+            'label' => 'Spravovat',
+
+            'modal-heading' => 'Spravovat :name',
+
+            'modal-submit-action-label' => 'Uložit',
+
+            'notifications' => [
+
+                'conversation-updated-title' => 'Konverzace aktualizována'
+
+            ]
+
+        ],
+
+        'delete' => [
+
+        ]
+
     ],
 
     'message-actions' => [

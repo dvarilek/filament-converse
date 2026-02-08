@@ -2,29 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\ConversationList;
+namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\Concerns;
 
-use Closure;
-use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
-use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Group;
-use Filament\Support\Enums\Width;
-use Filament\Support\Icons\Heroicon;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
+use Closure;
+use Filament\Forms\Components\TextInput;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
 
-class CreateConversationAction extends Action
+trait CanManageConversation
 {
     protected ?Closure $modifyParticipantSelectComponentUsing = null;
 
@@ -33,78 +24,6 @@ class CreateConversationAction extends Action
     protected ?Closure $modifyConversationDescriptionComponentUsing = null;
 
     protected ?Closure $modifyConversationImageComponentUsing = null;
-
-    protected ?Closure $createConversationUsing = null;
-
-    protected ?Closure $modifyConversationCreatedNotificationUsing = null;
-
-    public static function getDefaultName(): ?string
-    {
-        return 'createConversation';
-    }
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->label(__('filament-converse::conversation-list.actions.create-conversation.label'));
-
-        $this->modalHeading(__('filament-converse::conversation-list.actions.create-conversation.modal-heading'));
-
-        $this->modalSubmitActionLabel(__('filament-converse::conversation-list.actions.create-conversation.modal-submit-action-label'));
-
-        $this->icon(Heroicon::Plus);
-
-        $this->modalWidth(Width::Large);
-
-        $this->cancelParentActions();
-
-        $this->schema(static fn (CreateConversationAction $action) => [
-            $action->getParticipantSelectComponent(),
-            Group::make([
-                $action->getConversationNameComponent(),
-                $action->getConversationDescriptionComponent(),
-                $action->getConversationImageComponent(),
-            ])
-                ->visibleJs(<<<'JS'
-                    $get('participants').length > 1
-                 JS)
-
-        ]);
-
-        $this->action(function (CreateConversationAction $action, ConversationManager $livewire, array $data) {
-            $user = auth()->user();
-
-            if ($this->createConversationUsing) {
-                $conversation = $action->evaluate($this->createConversationUsing, [
-                    'data' => $data,
-                    'livewire' => $livewire
-                ], [
-                    ConversationManager::class => $livewire
-                ]);
-            } else {
-                $user = auth()->user();
-
-                /* @var Collection<int, Model&Authenticatable>|(Model&Authenticatable) $participants */
-                $participants = $user::query()->whereIn($user->getKeyName(), $data['participants'])->get();
-
-                $conversation = app(CreateConversation::class)->handle(
-                    $user,
-                    $participants,
-                    [
-                        'name' => $data['name'] ?? null,
-                        'description' => $data['description'] ?? null,
-                        'image' => $data['image'] ?? null,
-                    ]
-                );
-            }
-
-            $livewire->updateActiveConversation($conversation->getKey());
-            unset($livewire->conversations);
-
-            $action->getConversationCreatedNotification()?->send();
-        });
-    }
 
     public function participantSelectComponent(?Closure $callback): static
     {
@@ -134,25 +53,11 @@ class CreateConversationAction extends Action
         return $this;
     }
 
-    public function createConversationUsing(?Closure $callback = null): static
-    {
-        $this->createConversationUsing = $callback;
-
-        return $this;
-    }
-
-    public function conversationCreatedNotification(?Closure $callback): static
-    {
-        $this->modifyConversationCreatedNotificationUsing = $callback;
-
-        return $this;
-    }
-
     public function getParticipantSelectComponent(): Field
     {
         $component = Select::make('participants')
-            ->label(__('filament-converse::conversation-list.actions.create-conversation.schema.participant.label'))
-            ->placeholder(__('filament-converse::conversation-list.actions.create-conversation.schema.participant.placeholder'))
+            ->label(__('filament-converse::conversation-schema.participant.label'))
+            ->placeholder(__('filament-converse::conversation-schema.participant.placeholder'))
             ->required()
             ->searchable()
             ->allowHtml()
@@ -197,7 +102,7 @@ class CreateConversationAction extends Action
                         ->exists();
 
                     if ($directConversationExists) {
-                        $fail(__('filament-converse::conversation-list.actions.create-conversation.schema.participant.validation.direct-conversation-exists'));
+                        $fail(__('filament-converse::conversation-schema.participant.validation.direct-conversation-exists'));
                     }
                 }
             );
@@ -216,7 +121,7 @@ class CreateConversationAction extends Action
     public function getConversationNameComponent(): Field
     {
         $component = TextInput::make('name')
-            ->label(__('filament-converse::conversation-list.actions.create-conversation.schema.name.label'))
+            ->label(__('filament-converse::conversation-schema.name.label'))
             ->maxLength(255);
 
         if ($this->modifyConversationNameComponentUsing) {
@@ -233,7 +138,7 @@ class CreateConversationAction extends Action
     public function getConversationDescriptionComponent(): Field
     {
         $component = Textarea::make('description')
-            ->label(__('filament-converse::conversation-list.actions.create-conversation.schema.description.label'))
+            ->label(__('filament-converse::conversation-schema.description.label'))
             ->maxLength(255);
 
         if ($this->modifyConversationDescriptionComponentUsing) {
@@ -250,7 +155,7 @@ class CreateConversationAction extends Action
     public function getConversationImageComponent(): Field
     {
         $component = FileUpload::make('image')
-            ->label(__('filament-converse::conversation-list.actions.create-conversation.schema.image.label'))
+            ->label(__('filament-converse::conversation-schema.image.label'))
             ->acceptedFileTypes(['image/png', 'image/jpeg'])
             ->avatar();
 
@@ -263,22 +168,5 @@ class CreateConversationAction extends Action
         }
 
         return $component;
-    }
-
-    public function getConversationCreatedNotification(): ?Notification
-    {
-        $notification = Notification::make('conversationCreated')
-            ->success()
-            ->title(__('filament-converse::conversation-list.actions.notifications.conversation-created-title'));
-
-        if ($this->modifyConversationCreatedNotificationUsing) {
-            $notification = $this->evaluate($this->modifyConversationCreatedNotificationUsing, [
-                'notification' => $notification,
-            ], [
-                Notification::class => $notification,
-            ]);
-        }
-
-        return $notification;
     }
 }

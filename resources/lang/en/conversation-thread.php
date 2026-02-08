@@ -29,9 +29,33 @@ return [
     'validation' => [
 
         'message-required' => 'Please enter a message or attach a file.'
-        
+
     ],
-    
+
+    'actions' => [
+
+        'manage' => [
+
+            'label' => 'Manage',
+
+            'modal-heading' => 'Manage :name',
+
+            'modal-submit-action-label' => 'Save',
+
+            'notifications' => [
+
+                'conversation-updated-title' => 'Conversation updated'
+
+            ]
+
+        ],
+
+        'delete' => [
+
+        ]
+
+    ],
+
     'message-actions' => [
 
         'delete-label' => 'Delete',

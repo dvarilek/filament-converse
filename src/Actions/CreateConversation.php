@@ -26,22 +26,26 @@ class CreateConversation
             $participants = collect([$participants]);
         }
 
-        /* @var Conversation */
-        return DB::transaction(function () use ($creator, $participants, $attributes) {
-            if (! in_array(Conversable::class, class_uses_recursive($creator))) {
-                FilamentConverseException::throwInvalidConversableUserException($creator);
-            }
+        if (! in_array(Conversable::class, class_uses_recursive($creator))) {
+            FilamentConverseException::throwInvalidConversableUserException($creator);
+        }
 
+        if ($participants->isEmpty()) {
+            throw new Exception('A conversation cannot be created without participants.');
+        }
+
+        if ($participants->map->getKey()->contains($creator->getKey())) {
+            throw new Exception('A conversation creator cannot be one of its other participants');
+        }
+
+        /* @var Conversation */
+        return DB::transaction(static function () use ($creator, $participants, $attributes): Conversation {
             /* @var Conversation $conversation */
             $conversation = Conversation::query()->create([
                 'name' => $attributes['name'] ?? null,
                 'description' => $attributes['description'] ?? null,
                 'image' => $attributes['image'] ?? null,
             ]);
-
-            if ($participants->isEmpty()) {
-                throw new Exception('A conversation cannot be created without participants.');
-            }
 
             $conversationKey = $conversation->getKey();
 
@@ -52,7 +56,7 @@ class CreateConversation
 
             $conversation->creator()->associate($creatorParticipant)->save();
 
-            $participants->each(function (Authenticatable & Model $participant) use ($conversationKey) {
+            $participants->each(static function (Authenticatable & Model $participant) use ($conversationKey) {
                 if (! in_array(Conversable::class, class_uses_recursive($participant))) {
                     FilamentConverseException::throwInvalidConversableUserException($participant);
                 }
