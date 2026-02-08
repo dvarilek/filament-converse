@@ -4,53 +4,72 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
+use Closure;
 use Dvarilek\FilamentConverse\Actions\UpdateConversation;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Field;
-use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Fieldset;
+use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Text;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Schema;
 use Filament\Support\Enums\Size;
 use Filament\Support\Enums\Width;
+use Filament\Support\Facades\FilamentColor;
 use Filament\Support\Icons\Heroicon;
-use Filament\Support\View\Components\BadgeComponent;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Collection;
-use Closure;
+use \Filament\Schemas\Schema;
 
 class ManageConversationAction extends Action
 {
     use Concerns\CanManageConversation;
 
-    protected ?Closure $editConversationUsing = null;
+    protected ?Closure $updateConversationUsing = null;
 
-    protected ?Closure $modifyConversationUpdatedNotificationUsing = null;
+    protected string | Htmlable | Closure | null $advancedActionsFieldsetLabel = null;
+
+    protected ?Closure $modifyTransferConversationActionUsing = null;
+
+    protected ?Closure $modifyLeaveConversationActionUsing = null;
+
+    protected ?Closure $modifyDeleteConversationActionUsing = null;
+
+    protected ?Closure $modifyTransferConversationActionTextComponentUsing = null;
+
+    protected ?Closure $modifyLeaveConversationActionTextComponentUsing = null;
+
+    protected ?Closure $modifyDeleteConversationActionTextComponentUsing = null;
 
     public static function getDefaultName(): ?string
     {
-        return 'editConversation';
+        return 'manageConversation';
     }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->label(__('filament-converse::conversation-thread.actions.manage.label'));
+        $this->label(__('filament-converse::actions.manage.label'));
 
-        $this->modalHeading(static fn (ConversationManager $livewire, Conversation $conversation) => __('filament-converse::conversation-thread.actions.manage.modal-heading', [
-            'name' => $livewire->getConversationSchema()->getConversationName($conversation),
-        ]));
+        $this->modalHeading(static fn (ConversationManager $livewire, Conversation $conversation): string => __(
+            $livewire->isActiveConversationOwnedByAuthenticatedUser()
+                ? 'filament-converse::actions.manage.modal-heading-edit'
+                : 'filament-converse::actions.manage.modal-heading-view',
+            [
+                'name' => $livewire->getConversationSchema()->getConversationName($conversation),
+            ]
+        ));
 
-        $this->modalSubmitActionLabel(__('filament-converse::conversation-thread.actions.manage.modal-submit-action-label'));
+        $this->modalSubmitActionLabel(__('filament-converse::actions.manage.modal-submit-action-label'));
+
+        $this->successNotificationTitle(__('filament-converse::actions.manage.success-notification-title'));
 
         $this->iconButton();
 
@@ -62,11 +81,15 @@ class ManageConversationAction extends Action
 
         $this->size(Size::ExtraLarge);
 
-        $this->fillForm(static function (Conversation $conversation) {
+        $this->slideOver();
+
+        $this->advancedActionsFieldsetLabel(__('filament-converse::actions.manage.advanced-actions.label'));
+
+        $this->fillForm(static function (Conversation $conversation): array {
             /* @var list<string> $otherParticipantIds */
             $otherParticipantIds = $conversation
                 ->participations
-                ->reject(static fn (ConversationParticipation $participation) => $participation->participant_id === auth()->id())
+                ->reject(static fn (ConversationParticipation $participation): bool => $participation->participant_id === auth()->id())
                 ->pluck('participant_id')
                 ->toArray();
 
@@ -78,22 +101,61 @@ class ManageConversationAction extends Action
             ];
         });
 
-        $this->schema(static fn (ManageConversationAction $action) => [
-            $action->getParticipantSelectComponent(),
-            $action->getConversationNameComponent(),
-            $action->getConversationDescriptionComponent(),
-            $action->getConversationImageComponent(),
-        ]);
+        $this->modalSubmitAction(static fn (Action $action, ConversationManager $livewire, Conversation $conversation) => $action
+            ->visible($livewire->isActiveConversationOwnedByAuthenticatedUser())
+        );
 
-        $this->editConversationUsing(static function (array $data, Conversation $conversation) {
+        $this->schema(static function (Schema $schema, ManageConversationAction $action, ConversationManager $livewire): Schema {
+
+
+            $canManageConversation = $livewire->isActiveConversationOwnedByAuthenticatedUser();
+
+            return $schema
+                ->disabled(! $canManageConversation)
+                ->schema([
+                    $action->getParticipantSelectComponent(),
+                    Group::make([
+                        $action->getConversationNameComponent(),
+                        $action->getConversationDescriptionComponent(),
+                        $action->getConversationImageComponent(),
+                        Fieldset::make($action->getAdvancedActionsFieldsetLabel())
+                            ->columns(1)
+                            ->dense()
+                            ->extraAttributes([
+                                'style' => "border-color: " . FilamentColor::getColor('danger')['600'],
+                            ])
+                            ->schema([
+                                Flex::make([
+                                    $action->getTransferConversationActionTextComponent(),
+                                    $action->getTransferConversationAction(),
+                                ])
+                                    ->visible($canManageConversation),
+                                Flex::make([
+                                    $action->getLeaveConversationActionTextComponent(),
+                                    $action->getLeaveConversationAction(),
+                                ]),
+                                Flex::make([
+                                    $action->getDeleteConversationActionTextComponent(),
+                                    $action->getDeleteConversationAction(),
+                                ])
+                                    ->visible($canManageConversation),
+                            ])
+                    ]),
+                ]);
+        });
+
+        $this->updateConversationUsing(static function (array $data, Conversation $conversation): Conversation {
             $user = auth()->user();
 
             /* @var Collection<int, Model&Authenticatable>|(Model&Authenticatable) $otherParticipants */
             $otherParticipants = $user::query()->whereIn($user->getKeyName(), $data['participants'])->get();
 
-            app(UpdateConversation::class)->handle(
+            return app(UpdateConversation::class)->handle(
                 $conversation,
-                $otherParticipants,
+                [
+                    ...$otherParticipants,
+                    $user
+                ],
                 [
                     'name' => $data['name'] ?? null,
                     'description' => $data['description'] ?? null,
@@ -102,47 +164,180 @@ class ManageConversationAction extends Action
             );
         });
 
-        $this->action(static function (ManageConversationAction $action, Conversation $conversation) {
-            if (! $action->editConversationUsing) {
+        $this->action(static function (ManageConversationAction $action, ConversationManager $livewire): void {
+            if (! $action->updateConversationUsing) {
                 return;
             }
 
-            $action->evaluate($action->editConversationUsing);
+            $result = $action->evaluate($action->updateConversationUsing);
+
+            if ($result === false) {
+                $action->failure();
+
+                return;
+            }
 
             unset($livewire->conversations);
-            $action->getConversationUpdatedNotification()?->send();
+            $action->success();
         });
     }
 
-    public function editConversationUsing(?Closure $callback = null): static
+    public function updateConversationUsing(?Closure $callback = null): static
     {
-        $this->editConversationUsing = $callback;
+        $this->updateConversationUsing = $callback;
 
         return $this;
     }
 
-    public function conversationUpdatedNotification(?Closure $callback): static
+    public function advancedActionsFieldsetLabel(string | Htmlable | Closure | null $label): static
     {
-        $this->modifyConversationUpdatedNotificationUsing = $callback;
+        $this->advancedActionsFieldsetLabel = $label;
 
         return $this;
     }
 
-    public function getConversationUpdatedNotification(): ?Notification
+    public function modifyTransferConversationAction(?Closure $callback = null): static
     {
-        $notification = Notification::make('conversationUpdated')
-            ->success()
-            ->title(__('filament-converse::conversation-thread.actions.manage.notifications.conversation-updated-title'));
+        $this->modifyTransferConversationActionUsing = $callback;
 
-        if ($this->modifyConversationUpdatedNotificationUsing) {
-            $notification = $this->evaluate($this->modifyConversationUpdatedNotificationUsing, [
-                'notification' => $notification,
+        return $this;
+    }
+
+    public function modifyLeaveConversationAction(?Closure $callback = null): static
+    {
+        $this->modifyLeaveConversationActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyDeleteConversationAction(?Closure $callback = null): static
+    {
+        $this->modifyDeleteConversationActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyTransferConversationActionTextComponent(?Closure $callback = null): static
+    {
+        $this->modifyTransferConversationActionTextComponentUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyLeaveConversationActionTextComponent(?Closure $callback = null): static
+    {
+        $this->modifyLeaveConversationActionTextComponentUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyDeleteConversationActionTextComponent(?Closure $callback = null): static
+    {
+        $this->modifyDeleteConversationActionTextComponentUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyAdvancedActionsFieldset(?Closure $callback = null): static
+    {
+        $this->modifyAdvancedActionsFieldsetUsing = $callback;
+
+        return $this;
+    }
+
+    public function getAdvancedActionsFieldsetLabel(): string | Htmlable | null
+    {
+        return $this->evaluate($this->advancedActionsFieldsetLabel);
+    }
+
+    public function getTransferConversationAction(): Action
+    {
+        $action = TransferConversationAction::make();
+
+        if ($this->modifyTransferConversationActionUsing) {
+            $action = $this->evaluate($this->modifyTransferConversationActionUsing, [
+                'action' => $action,
             ], [
-                Notification::class => $notification,
-            ]);
+                Action::class => $action,
+            ]) ?? $action;
         }
 
-        return $notification;
+        return $action;
+    }
+
+    public function getLeaveConversationAction(): Action
+    {
+        $action = LeaveConversationAction::make();
+
+        if ($this->modifyLeaveConversationActionUsing) {
+            $action = $this->evaluate($this->modifyLeaveConversationActionUsing, [
+                'action' => $action,
+            ], [
+                Action::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+
+    public function getDeleteConversationAction(): Action
+    {
+        $action = DeleteConversationAction::make();
+
+        if ($this->modifyDeleteConversationActionUsing) {
+            $action = $this->evaluate($this->modifyDeleteConversationActionUsing, [
+                'action' => $action,
+            ], [
+                Action::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+
+    public function getTransferConversationActionTextComponent(): Component
+    {
+        $component = Text::make(__('filament-converse::actions.manage.advanced-actions.transfer-conversation-text'));
+
+        if ($this->modifyTransferConversationActionTextComponentUsing) {
+            $component = $this->evaluate($this->modifyTransferConversationActionTextComponentUsing, [
+                'component' => $component
+            ], [
+                Text::class => $component,
+            ]) ?? $component;
+        }
+
+        return $component;
+    }
+
+    public function getLeaveConversationActionTextComponent(): Component
+    {
+        $component = Text::make(__('filament-converse::actions.manage.advanced-actions.leave-conversation-text'));
+
+        if ($this->modifyLeaveConversationActionTextComponentUsing) {
+            $component = $this->evaluate($this->modifyLeaveConversationActionTextComponentUsing, [
+                'component' => $component
+            ], [
+                Text::class => $component,
+            ]) ?? $component;
+        }
+
+        return $component;
+    }
+
+    public function getDeleteConversationActionTextComponent(): Component
+    {
+        $component = Text::make(__('filament-converse::actions.manage.advanced-actions.delete-conversation-text'));
+
+        if ($this->modifyDeleteConversationActionTextComponentUsing) {
+            $component = $this->evaluate($this->modifyDeleteConversationActionTextComponentUsing, [
+                'component' => $component
+            ], [
+                Text::class => $component,
+            ]) ?? $component;
+        }
+
+        return $component;
     }
 
     /**

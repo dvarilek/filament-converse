@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\Concerns;
 
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\Configuration\ParticipantTableSelectConfiguration;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TableSelect;
 use Filament\Forms\Components\Textarea;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Closure;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User;
 
 trait CanManageConversation
 {
@@ -55,33 +62,17 @@ trait CanManageConversation
 
     public function getParticipantSelectComponent(): Field
     {
-        $component = Select::make('participants')
-            ->label(__('filament-converse::conversation-schema.participant.label'))
-            ->placeholder(__('filament-converse::conversation-schema.participant.placeholder'))
-            ->required()
-            ->searchable()
-            ->allowHtml()
+        $component = TableSelect::make('participants')
+            ->label(__('filament-converse::actions.schema.participants.label'))
+            ->tableConfiguration(ParticipantTableSelectConfiguration::class)
+            ->tableArguments(static fn (string $operation, ConversationManager $livewire) => [
+                'conversationKey' =>  $operation === ManageConversationAction::getDefaultName() ? $livewire->getActiveConversation()->getKey() : null
+            ])
             ->multiple()
-            ->options(function () {
-                /* @var Authenticatable & Model $user */
-                $user = auth()->user();
-
-                return $user::query()
-                    ->whereKeyNot($user->getKey())
-                    ->pluck($user::getFilamentNameAttribute(), $user->getKeyName())
-                    ->map(static function (string $name) use ($user): string {
-                        $avatarUrl = filament()->getUserAvatarUrl((new $user)->setAttribute($user::getFilamentNameAttribute(), $name));
-                        $name = e($name);
-
-                        return "
-                            <div style='display:flex;align-items:center;gap:0.5rem'>
-                                <img class='fi-avatar fi-circular sm' src='{$avatarUrl}' alt='{$name}' style='padding:2px'>
-                                <span>{$name}</span>
-                            </div>
-                        ";
-                    })
-                    ->toArray();
-            })
+            ->required()
+            ->extraAttributes([
+                'class' => 'fi-converse-table-select',
+            ])
             ->rule(
                 fn (): Closure => function (string $attribute, $value, Closure $fail): void {
                     if (count($value) !== 1) {
@@ -102,7 +93,7 @@ trait CanManageConversation
                         ->exists();
 
                     if ($directConversationExists) {
-                        $fail(__('filament-converse::conversation-schema.participant.validation.direct-conversation-exists'));
+                        $fail(__('filament-converse::actions.schema.participants.validation.direct-conversation-exists'));
                     }
                 }
             );
@@ -121,7 +112,7 @@ trait CanManageConversation
     public function getConversationNameComponent(): Field
     {
         $component = TextInput::make('name')
-            ->label(__('filament-converse::conversation-schema.name.label'))
+            ->label(__('filament-converse::actions.schema.name.label'))
             ->maxLength(255);
 
         if ($this->modifyConversationNameComponentUsing) {
@@ -138,7 +129,7 @@ trait CanManageConversation
     public function getConversationDescriptionComponent(): Field
     {
         $component = Textarea::make('description')
-            ->label(__('filament-converse::conversation-schema.description.label'))
+            ->label(__('filament-converse::actions.schema.description.label'))
             ->maxLength(255);
 
         if ($this->modifyConversationDescriptionComponentUsing) {
@@ -155,7 +146,7 @@ trait CanManageConversation
     public function getConversationImageComponent(): Field
     {
         $component = FileUpload::make('image')
-            ->label(__('filament-converse::conversation-schema.image.label'))
+            ->label(__('filament-converse::actions.schema.image.label'))
             ->acceptedFileTypes(['image/png', 'image/jpeg'])
             ->avatar();
 

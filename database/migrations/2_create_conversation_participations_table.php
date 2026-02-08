@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignIdFor(FilamentConverseServiceProvider::getFilamentConverseUserModel(), 'participant_id')
                 ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamp('last_read_at')->nullable()->default(null);
+            $table->timestamp('joined_at')->nullable()->default(null);
+            $table->timestamp('present_until')->nullable()->default(null);
             $table->timestamps();
 
             $table->unique(['conversation_id', 'participant_id']);

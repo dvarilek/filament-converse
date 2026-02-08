@@ -20,26 +20,26 @@ class CreateConversation
      * @param  Collection<int, Model&Authenticatable>|(Model&Authenticatable)  $participants
      * @param  array<string, mixed>  $attributes
      */
-    public function handle(Authenticatable & Model $creator, (Authenticatable & Model) | Collection $participants, array $attributes = []): Conversation
+    public function handle(Authenticatable & Model $owner, (Authenticatable & Model) | Collection $participants, array $attributes = []): Conversation
     {
         if (! $participants instanceof Collection) {
             $participants = collect([$participants]);
         }
 
-        if (! in_array(Conversable::class, class_uses_recursive($creator))) {
-            FilamentConverseException::throwInvalidConversableUserException($creator);
+        if (! in_array(Conversable::class, class_uses_recursive($owner))) {
+            FilamentConverseException::throwInvalidConversableUserException($owner);
         }
 
         if ($participants->isEmpty()) {
             throw new Exception('A conversation cannot be created without participants.');
         }
 
-        if ($participants->map->getKey()->contains($creator->getKey())) {
-            throw new Exception('A conversation creator cannot be one of its other participants');
+        if ($participants->map->getKey()->contains($owner->getKey())) {
+            throw new Exception('A conversation owner cannot be one of its other participants');
         }
 
         /* @var Conversation */
-        return DB::transaction(static function () use ($creator, $participants, $attributes): Conversation {
+        return DB::transaction(static function () use ($owner, $participants, $attributes): Conversation {
             /* @var Conversation $conversation */
             $conversation = Conversation::query()->create([
                 'name' => $attributes['name'] ?? null,
@@ -49,12 +49,13 @@ class CreateConversation
 
             $conversationKey = $conversation->getKey();
 
-            /* @var ConversationParticipation $creatorParticipant */
-            $creatorParticipant = $creator->conversationParticipations()->create([
+            /* @var ConversationParticipation $ownerParticipation */
+            $ownerParticipation = $owner->conversationParticipations()->create([
                 'conversation_id' => $conversationKey,
+                'joined_at' => now()
             ]);
 
-            $conversation->creator()->associate($creatorParticipant)->save();
+            $conversation->owner()->associate($ownerParticipation)->save();
 
             $participants->each(static function (Authenticatable & Model $participant) use ($conversationKey) {
                 if (! in_array(Conversable::class, class_uses_recursive($participant))) {
@@ -63,6 +64,7 @@ class CreateConversation
 
                 $participant->conversationParticipations()->create([
                     'conversation_id' => $conversationKey,
+                    'joined_at' => now()
                 ]);
             });
 

@@ -26,24 +26,6 @@ return [
 
     ],
 
-    'actions' => [
-
-        'create' => [
-
-            'label' => 'Vytvořit',
-
-            'modal-heading' => 'Vytvořit novou konverzaci',
-
-            'modal-submit-action-label' => 'Vytvořit',
-
-            'notifications' => [
-
-                'conversation-created-title' => 'Konverzace vytvořena',
-
-            ],
-        ],
-    ],
-
     'empty-state' => [
 
         'heading' => 'Žádné konverzace nenalezeny',

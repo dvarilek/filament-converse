@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Actions;
 
+use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
+use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
-use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 
 class UpdateConversation
 {
@@ -18,51 +20,53 @@ class UpdateConversation
      * @param  Collection<int, Model&Authenticatable>|(Model&Authenticatable)  $participants
      * @param  array<string, mixed>  $attributes
      */
-    public function handle(Conversation $conversation, (Authenticatable & Model) | Collection $participants, array $attributes = [], (Authenticatable & Model) | null $creator = null): Conversation
+    public function handle(Conversation $conversation, (Authenticatable & Model) | Collection $participants, array $attributes = []): Conversation
     {
         if (! $participants instanceof Collection) {
             $participants = collect([$participants]);
         }
 
-        return DB::transaction(function () use ($conversation, $participants, $attributes, $creator): Conversation {
+        return DB::transaction(function () use ($conversation, $participants, $attributes): Conversation {
             $conversation->update([
                 'name' => $attributes['name'] ?? null,
                 'description' => $attributes['description'] ?? null,
                 'image' => $attributes['image'] ?? null,
             ]);
 
-            $conversationKey = $conversation->getKey();
+            $conversationOwner = $conversation->owner;
 
-            if ($creator) {
-                if (! in_array(Conversable::class, class_uses_recursive($creator))) {
-                    FilamentConverseException::throwInvalidConversableUserException($creator);
-                }
-
-                $oldCreatorParticipation = $conversation->creator;
-
-                /* @var ConversationParticipation $newCreatorParticipation */
-                $newCreatorParticipation = $creator->conversationParticipations()->create([
-                    'conversation_id' => $conversationKey,
-                ]);
-
-                $conversation->creator()->associate($newCreatorParticipation)->save();
-
-                if ($oldCreatorParticipation !== null) {
-                    $oldCreatorParticipation->delete();
-                }
+            if ($participants->doesntContain(fn (Authenticatable & Model $participant) => $participant->getKey() === $conversationOwner->participant_id)) {
+                $participants = $participants->push($conversationOwner->participant);
             }
 
-            $creatorKey = $conversation->creator->participant_id;
+            $timestamp = now();
+            $participantIds = $participants->map->getKey();
 
             $conversation
                 ->participations()
-                ->whereNotIn('participant_id', [
-                    ...$participants->map->getKey(),
-                    $creatorKey
-                ])
-                ->delete();
+                ->whereNotIn('participant_id', $participantIds)
+                ->whereNull('present_until')
+                ->update([
+                    'present_until' => $timestamp
+                ]);
 
-            $existingParticipantIds = $conversation->participations()->pluck('participant_id');
+            $conversation
+                ->participations()
+                ->whereIn('participant_id', $participantIds)
+                ->whereNotNull('present_until')
+                ->where('present_until', '<=', $timestamp)
+                ->update([
+                    'present_until' => null,
+                    'joined_at' => $timestamp
+                ]);
+
+            $existingParticipantIds = $conversation
+                ->fresh()
+                ->participations()
+                ->whereNull('present_until')
+                ->pluck('participant_id');
+
+            $conversationKey = $conversation->getKey();
 
             foreach ($participants as $participant) {
                 if ($existingParticipantIds->contains($participant->getKey())) {
@@ -75,10 +79,11 @@ class UpdateConversation
 
                 $participant->conversationParticipations()->create([
                     'conversation_id' => $conversationKey,
+                    'joined_at' => now()
                 ]);
             }
 
-            return $conversation;
+            return $conversation->fresh();
         });
     }
 }

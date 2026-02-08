@@ -16,6 +16,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Flex;
 use Filament\Schemas\Components\Group;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
@@ -30,8 +31,6 @@ class CreateConversationAction extends Action
 
     protected ?Closure $createConversationUsing = null;
 
-    protected ?Closure $modifyConversationCreatedNotificationUsing = null;
-
     public static function getDefaultName(): ?string
     {
         return 'createConversation';
@@ -41,19 +40,21 @@ class CreateConversationAction extends Action
     {
         parent::setUp();
 
-        $this->label(__('filament-converse::conversation-list.actions.create.label'));
+        $this->label(__('filament-converse::actions.create.label'));
 
-        $this->modalHeading(__('filament-converse::conversation-list.actions.create.modal-heading'));
+        $this->modalHeading(__('filament-converse::actions.create.modal-heading'));
 
-        $this->modalSubmitActionLabel(__('filament-converse::conversation-list.actions.create.modal-submit-action-label'));
+        $this->modalSubmitActionLabel(__('filament-converse::actions.create.modal-submit-action-label'));
+
+        $this->successNotificationTitle(__('filament-converse::actions.create.success-notification-title'));
 
         $this->icon(Heroicon::Plus);
 
         $this->modalWidth(Width::Large);
 
-        $this->cancelParentActions();
-
-        $this->schema(static fn (CreateConversationAction $action) => [
+        $this->slideOver();
+        
+        $this->schema(static fn (CreateConversationAction $action): array => [
             $action->getParticipantSelectComponent(),
             Group::make([
                 $action->getConversationNameComponent(),
@@ -62,7 +63,7 @@ class CreateConversationAction extends Action
             ])
                 ->visibleJs(<<<'JS'
                     $get('participants')?.length > 1
-                 JS)
+                JS)
         ]);
 
         $this->createConversationUsing(static function (array $data): Conversation {
@@ -91,13 +92,15 @@ class CreateConversationAction extends Action
             $conversation = $action->evaluate($action->createConversationUsing);
 
             if (! $conversation) {
+                $action->failure();
+
                 return;
             }
 
             $livewire->updateActiveConversation($conversation->getKey());
             unset($livewire->conversations);
 
-            $action->getConversationCreatedNotification()?->send();
+            $action->success();
         });
     }
 
@@ -106,29 +109,5 @@ class CreateConversationAction extends Action
         $this->createConversationUsing = $callback;
 
         return $this;
-    }
-
-    public function conversationCreatedNotification(?Closure $callback): static
-    {
-        $this->modifyConversationCreatedNotificationUsing = $callback;
-
-        return $this;
-    }
-
-    public function getConversationCreatedNotification(): ?Notification
-    {
-        $notification = Notification::make('conversationCreated')
-            ->success()
-            ->title(__('filament-converse::conversation-list.actions.create.notifications.conversation-created-title'));
-
-        if ($this->modifyConversationCreatedNotificationUsing) {
-            $notification = $this->evaluate($this->modifyConversationCreatedNotificationUsing, [
-                'notification' => $notification,
-            ], [
-                Notification::class => $notification,
-            ]);
-        }
-
-        return $notification;
     }
 }

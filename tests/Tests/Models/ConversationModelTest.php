@@ -7,14 +7,14 @@ use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 
 it('can retrieve other participations', function () {
-    $creator = User::factory()->create();
+    $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
-    $this->actingAs($creator);
+    $this->actingAs($owner);
 
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
-        $creator,
+        $owner,
         $otherUser
     );
 

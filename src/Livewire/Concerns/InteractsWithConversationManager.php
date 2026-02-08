@@ -194,7 +194,8 @@ trait InteractsWithConversationManager
         }
 
         /* @var Builder<Conversation> */
-        return $user->conversations()
+        return $user
+            ->activeConversations()
             ->select('conversations.*')
             ->getQuery()
             ->with([
@@ -222,5 +223,10 @@ trait InteractsWithConversationManager
         }
 
         return $authenticatedUserParticipation;
+    }
+
+    public function isActiveConversationOwnedByAuthenticatedUser(): bool
+    {
+        return $this->getActiveConversation()->owner_id === $this->getActiveConversationAuthenticatedUserParticipation()->getKey();
     }
 }

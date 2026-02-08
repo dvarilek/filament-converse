@@ -8,7 +8,7 @@ composer require dvarilek/filament-converse
 
 
 ```bash
-php artisan install:filament-converse
+php artisan filament-converse:install
 ```
 
 

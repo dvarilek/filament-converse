@@ -9,16 +9,18 @@ use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
 
-describe('render', function () {});
+describe('render', function () {})->todo();
+
+// TODO: Finish
 
 describe('message input', function () {
     test('can send message', function () {
-        $creator = User::factory()->create();
+        $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        $this->actingAs($creator);
+        $this->actingAs($owner);
 
-        app(CreateConversation::class)->handle($creator, $otherUser);
+        app(CreateConversation::class)->handle($owner, $otherUser);
 
         $livewire = livewire(ConversationManager::class)
             ->fillForm([
@@ -34,11 +36,11 @@ describe('message input', function () {
     });
 
     test('can send message with attachment', function () {
-        $creator = User::factory()->create();
+        $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        $this->actingAs($creator);
+        $this->actingAs($owner);
 
-        app(CreateConversation::class)->handle($creator, $otherUser);
+        app(CreateConversation::class)->handle($owner, $otherUser);
     });
-})->skip();
+})->skip()->todo();

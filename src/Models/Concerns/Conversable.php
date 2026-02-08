@@ -6,6 +6,7 @@ namespace Dvarilek\FilamentConverse\Models\Concerns;
 
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -15,6 +16,7 @@ use Illuminate\Support\Collection;
  * @mixin Model
  *
  * @property-read Collection<int, Conversation> $conversations
+ * @property-read Collection<int, Conversation> $activeConversations
  * @property-read Collection<int, ConversationParticipation> $conversationParticipations
  */
 trait Conversable
@@ -42,9 +44,12 @@ trait Conversable
         );
     }
 
-    public function participatesInAnyConversation(): bool
+    /**
+     * @return HasManyThrough<Conversation, ConversationParticipation, static>
+     */
+    public function activeConversations(): HasManyThrough
     {
-        return $this->conversations()->exists();
+        return $this->conversations()->whereNull('conversation_participations.present_until');
     }
 
     public static function getFilamentNameAttribute(): string

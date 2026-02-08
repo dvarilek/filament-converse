@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('image')->nullable()->default(null);
             $table->string('name')->nullable()->default(null);
             $table->text('description')->nullable()->default(null);
-            $table->foreignIdFor(ConversationParticipation::class, 'creator_id')
+            $table->foreignIdFor(ConversationParticipation::class, 'owner_id')
                 ->nullable()->default(null)
                 ->constrained()->cascadeOnDelete()->cascadeOnUpdate();
             $table->nullableMorphs('subject');

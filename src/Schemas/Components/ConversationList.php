@@ -19,9 +19,6 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Support\Concerns\HasExtraAttributes;
-use Filament\Support\Enums\Alignment;
-use Filament\Support\Enums\Width;
-use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -99,7 +96,7 @@ class ConversationList extends Component
     {
         parent::setUp();
 
-        $this->key('conversation-list');
+        $this->key('conversation_list');
 
         $this->searchPlaceholder(__('filament-converse::conversation-list.search.placeholder'));
 
@@ -108,18 +105,21 @@ class ConversationList extends Component
         $this->latestMessageEmptyContent(__('filament-converse::conversation-list.latest-message.empty-state'));
 
         $this->emptyStateDescription(static function (): ?string {
-            return ! auth()->user()->participatesInAnyConversation() ? __('filament-converse::conversation-list.empty-state.description') : null;
+            return ! auth()->user()->activeConversations()->exists() ? __('filament-converse::conversation-list.empty-state.description') : null;
         });
 
-        $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string {
+        $this->model(static fn ($livewire) => $livewire->getActiveConversation());
+
+        $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string | null {
             $authenticatedUserKey = auth()->id();
 
-            return $livewire->conversations->sum(static function (Conversation $conversation) use ($authenticatedUserKey) {
-                return $conversation
-                    ->participations
-                    ->firstWhere('participant_id', $authenticatedUserKey)
-                    ->unread_messages_count;
-            });
+            $count = $livewire->conversations->sum(static fn (Conversation $conversation) => $conversation
+                ->participations
+                ->firstWhere('participant_id', $authenticatedUserKey)
+                ->unread_messages_count
+            );
+
+            return $count === 0 ? null : $count;
         });
 
         $this->getLatestMessageDateTimeUsing(static function (Message $latestMessage): string {

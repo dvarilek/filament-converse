@@ -18,13 +18,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * @property-read Carbon|null $last_read_at
- * @property-read int|string $participant_id
- * @property-read Carbon|null $created_at
- * @property-read Carbon|null $updated_at
+ * @property Carbon|null $last_read_at
+ * @property int|string $participant_id
+ * @property string $conversation_id
+ * @property Carbon|null $joined_at
+ * @property Carbon|null $present_until
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property-read Collection<int, Message> $messages
  * @property-read Message|null $latestMessage
- * @property-read Collection<int, Conversation> $createdConversations
+ * @property-read Collection<int, Conversation> $ownedConversations
  * @property-read Authenticatable&Model $participant
  *
  * @method void unreadMessagesCount()
@@ -40,6 +43,8 @@ class ConversationParticipation extends Model
         'last_read_at',
         'conversation_id',
         'participant_id',
+        'joined_at',
+        'present_until',
     ];
 
     /**
@@ -48,6 +53,8 @@ class ConversationParticipation extends Model
     protected $casts = [
         'id' => 'string',
         'last_read_at' => 'datetime',
+        'joined_at' => 'datetime',
+        'present_until' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -63,9 +70,9 @@ class ConversationParticipation extends Model
     /**
      * @return HasMany<Conversation, static>
      */
-    public function createdConversations(): HasMany
+    public function ownedConversations(): HasMany
     {
-        return $this->hasMany(Conversation::class, 'creator_id');
+        return $this->hasMany(Conversation::class, 'owner_id');
     }
 
     public function messages(): HasMany

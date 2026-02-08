@@ -15,12 +15,12 @@ use function Pest\Livewire\livewire;
 
 describe('active conversation', function () {
     test('search does not affect the active conversation', function () {
-        $creator = User::factory()->create();
+        $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        $this->actingAs($creator);
+        $this->actingAs($owner);
 
-        $conversation = app(CreateConversation::class)->handle($creator, $otherUser);
+        $conversation = app(CreateConversation::class)->handle($owner, $otherUser);
 
         $livewire = livewire(ConversationManager::class)
             ->set('conversationListSearch', 'This should not affect the active conversation');
@@ -31,12 +31,12 @@ describe('active conversation', function () {
     });
 
     it('can configure conversation schema contents', function () {
-        $creator = User::factory()->create();
+        $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        $this->actingAs($creator);
+        $this->actingAs($owner);
 
-        app(CreateConversation::class)->handle($creator, $otherUser);
+        app(CreateConversation::class)->handle($owner, $otherUser);
 
         livewire(ConversationManager::class, [
             'conversationSchemaConfiguration' => TestConfiguration::class,
@@ -48,16 +48,16 @@ describe('active conversation', function () {
     it('can persist active conversation in session', function () {
         Carbon::setTestNow();
 
-        $creator = User::factory()->create();
+        $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        $this->actingAs($creator);
+        $this->actingAs($owner);
 
-        $penultimateConversation = app(CreateConversation::class)->handle($creator, $otherUser);
+        $penultimateConversation = app(CreateConversation::class)->handle($owner, $otherUser);
 
         Carbon::setTestNow(now()->addMinutes(5));
 
-        $latestConversation = app(CreateConversation::class)->handle($creator, $otherUser);
+        $latestConversation = app(CreateConversation::class)->handle($owner, $otherUser);
 
         livewire(ConversationManager::class)
             ->assertSet('activeConversationKey', $latestConversation->getKey())
@@ -82,12 +82,12 @@ describe('active conversation', function () {
     });
 
     it('can retrieve authenticated user participation belonging to an active conversation', function () {
-        $creator = User::factory()->create();
+        $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
-        $this->actingAs($creator);
+        $this->actingAs($owner);
 
-        $conversation = app(CreateConversation::class)->handle($creator, $otherUser);
+        $conversation = app(CreateConversation::class)->handle($owner, $otherUser);
 
         /* @var ConversationManager $livewire */
         $livewire = livewire(ConversationManager::class)->instance();
@@ -95,7 +95,7 @@ describe('active conversation', function () {
         expect($livewire->getActiveConversationAuthenticatedUserParticipation())
             ->toBeInstanceOf(ConversationParticipation::class)
             ->getKey()->toBeIn($conversation->participations->pluck((new ConversationParticipation)->getKeyName()))
-            ->participant_id->toBe($creator->getKey());
+            ->participant_id->toBe($owner->getKey());
     });
 });
 
