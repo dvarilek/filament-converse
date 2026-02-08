@@ -14,7 +14,9 @@ use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Arr;
 use Illuminate\View\View;
+use Filament\Schemas\Components\Component as SchemaComponent;
 use Livewire\Attributes\Locked;
+use RuntimeException;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -62,7 +64,7 @@ class ConversationManager extends Component implements HasActions, HasConversati
 
     public function getConversationSchema(): ConversationSchema
     {
-        return $this->content->getComponent(fn (\Filament\Schemas\Components\Component $component) => $component instanceof ConversationSchema) ?? throw new \RuntimeException('The conversation schema component is missing.');
+        return $this->content->getComponent(fn (SchemaComponent $component) => $component instanceof ConversationSchema) ?? throw new RuntimeException('The conversation schema component is missing.');
     }
 
     public function _finishUpload($name, $tmpPath, $isMultiple)
@@ -79,8 +81,6 @@ class ConversationManager extends Component implements HasActions, HasConversati
             $file = array_merge($this->getPropertyValue($name) ?? [], $file);
 
             $this->dispatch('upload:finished', name: $name, tmpFilenames: collect($file)->map->getFilename()->toArray())->self();
-
-
         } else {
             $file = TemporaryUploadedFile::createFromLivewire($tmpPath[0]);
             $this->dispatch('upload:finished', name: $name, tmpFilenames: [$file->getFilename()])->self();

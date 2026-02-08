@@ -18,13 +18,13 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * @property-read Carbon|null $last_read_at
- * @property-read int|string $participant_id
- * @property-read Carbon|null $created_at
- * @property-read Carbon|null $updated_at
+ * @property Carbon|null $last_read_at
+ * @property int|string $participant_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property-read Collection<int, Message> $messages
  * @property-read Message|null $latestMessage
- * @property-read Collection<int, Conversation> $createdConversations
+ * @property-read Collection<int, Conversation> $ownedConversations
  * @property-read Authenticatable&Model $participant
  *
  * @method void unreadMessagesCount()
@@ -63,9 +63,9 @@ class ConversationParticipation extends Model
     /**
      * @return HasMany<Conversation, static>
      */
-    public function createdConversations(): HasMany
+    public function ownedConversations(): HasMany
     {
-        return $this->hasMany(Conversation::class, 'creator_id');
+        return $this->hasMany(Conversation::class, 'owner_id');
     }
 
     public function messages(): HasMany

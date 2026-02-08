@@ -223,4 +223,9 @@ trait InteractsWithConversationManager
 
         return $authenticatedUserParticipation;
     }
+    
+    public function isActiveConversationOwnedByAuthenticatedUser(): bool
+    {
+        return $this->getActiveConversation()->owner_id === $this->getActiveConversationAuthenticatedUserParticipation()->getKey();
+    }
 }

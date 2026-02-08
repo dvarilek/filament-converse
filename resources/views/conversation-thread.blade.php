@@ -46,7 +46,6 @@
         x-data="conversationThread({
                     key: @js($key),
                     conversationKey: @js($conversationKey),
-                    statePath: @js($statePath),
                     autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
                     shouldDispatchUserTypingEvent: @js($shouldDispatchUserTypingEvent()),
                     userTypingIndicatorTimeout: @js($getUserTypingIndicatorTimeout()),
@@ -95,7 +94,7 @@
             @endif
         </div>
 
-        @if (count($headerActions))
+        @if ($hasConversation && count($headerActions))
             <div class="fi-converse-conversation-thread-header-actions">
                 @foreach ($headerActions as $action)
                     {{ $action }}

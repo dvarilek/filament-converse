@@ -111,15 +111,18 @@ class ConversationList extends Component
             return ! auth()->user()->participatesInAnyConversation() ? __('filament-converse::conversation-list.empty-state.description') : null;
         });
 
-        $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string {
+        $this->model(static fn ($livewire) => $livewire->getActiveConversation());
+
+        $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string | null {
             $authenticatedUserKey = auth()->id();
 
-            return $livewire->conversations->sum(static function (Conversation $conversation) use ($authenticatedUserKey) {
-                return $conversation
-                    ->participations
-                    ->firstWhere('participant_id', $authenticatedUserKey)
-                    ->unread_messages_count;
-            });
+            $count = $livewire->conversations->sum(static fn (Conversation $conversation) => $conversation
+                ->participations
+                ->firstWhere('participant_id', $authenticatedUserKey)
+                ->unread_messages_count
+            );
+
+            return $count === 0 ? null : $count;
         });
 
         $this->getLatestMessageDateTimeUsing(static function (Message $latestMessage): string {

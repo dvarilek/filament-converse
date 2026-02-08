@@ -1,5 +1,11 @@
 .fi-converse-conversation-manager {
     @apply h-full;
+
+    & .fi-converse-table-select {
+       & .fi-ta-content {
+           @apply max-h-100 overflow-y-auto;
+       }
+    }
 }
 
 @media (max-width: 1023px) {

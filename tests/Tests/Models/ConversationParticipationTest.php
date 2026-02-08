@@ -11,12 +11,12 @@ it('can create conversation participation with participant name', function () {
     $secondUser = User::factory()->create();
 
     /* @var ConversationParticipation $firstUserParticipation */
-    $firstUserParticipation = app(CreateConversation::class)->handle(
+    $ownerParticipation = app(CreateConversation::class)->handle(
         $firstUser,
         $secondUser
     )
-        ->creator;
+        ->owner;
 
-    expect($firstUserParticipation)->toBeInstanceOf(ConversationParticipation::class)
+    expect($ownerParticipation)->toBeInstanceOf(ConversationParticipation::class)
         ->participant->name->toBe('user name');
 });

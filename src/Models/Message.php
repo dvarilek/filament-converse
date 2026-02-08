@@ -12,14 +12,14 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * @property-read string|null $content
- * @property-read list<string>|null $attachments
- * @property-read list<string>|null $attachment_file_names
- * @property-read string $conversation_id
- * @property-read int|string $author_id
- * @property-read string|null $reply_to_message_id
- * @property-read Carbon|null $created_at
- * @property-read Carbon|null $updated_at
+ * @property string|null $content
+ * @property list<string>|null $attachments
+ * @property list<string>|null $attachment_file_names
+ * @property string $conversation_id
+ * @property int|string $author_id
+ * @property string|null $reply_to_message_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * @property-read Conversation $conversation
  * @property-read ConversationParticipation $author
  * @property-read Message|null $reply

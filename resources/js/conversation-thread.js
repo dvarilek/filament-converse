@@ -1,7 +1,6 @@
 export function conversationThread({
     key,
     conversationKey,
-    statePath,
     autoScrollOnForeignMessagesThreshold,
     shouldDispatchUserTypingEvent,
     userTypingIndicatorTimeout,

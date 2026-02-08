@@ -26,24 +26,6 @@ return [
 
     ],
 
-    'actions' => [
-
-        'create' => [
-
-            'label' => 'Create',
-
-            'modal-heading' => 'Create a new conversation',
-
-            'modal-submit-action-label' => 'Create',
-
-            'notifications' => [
-
-                'conversation-created-title' => 'Conversation created',
-
-            ],
-        ],
-    ],
-
     'empty-state' => [
 
         'heading' => 'No conversations found',

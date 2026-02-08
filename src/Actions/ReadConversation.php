@@ -13,7 +13,7 @@ class ReadConversation
 {
     public function handle(ConversationParticipation $readBy, Conversation $conversation): void
     {
-        $messageRead = DB::transaction(static fn () => $readBy->update([
+        DB::transaction(static fn () => $readBy->update([
             'last_read_at' => now(),
         ]));
 

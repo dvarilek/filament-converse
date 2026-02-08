@@ -9,16 +9,16 @@ use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 
 it('can send a message', function () {
-    $creator = User::factory()->create();
+    $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
-        $creator,
+        $owner,
         $otherUser,
     );
 
-    $author = $conversation->creator;
+    $author = $conversation->owner;
 
     $message = app(SendMessage::class)->handle(
         $author,
@@ -37,16 +37,16 @@ it('can send a message', function () {
 });
 
 it('can send a message through message model', function () {
-    $creator = User::factory()->create();
+    $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
-        $creator,
+        $owner,
         $otherUser,
     );
 
-    $author = $conversation->creator;
+    $author = $conversation->owner;
 
     $message = $author->sendMessage($conversation, [
         'content' => 'Test message',
@@ -60,16 +60,16 @@ it('can send a message through message model', function () {
 });
 
 it('can send a reply to a message', function () {
-    $creator = User::factory()->create();
+    $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
     /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
-        $creator,
+        $owner,
         $otherUser
     );
 
-    $author = $conversation->creator;
+    $author = $conversation->owner;
 
     $message = $author->sendMessage($conversation, [
         'content' => 'First text message',

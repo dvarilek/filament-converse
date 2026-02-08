@@ -8,26 +8,26 @@ use Dvarilek\FilamentConverse\Tests\Models\User;
 use Illuminate\Support\Collection;
 
 it('can retrieve conversations for a specific user', function () {
-    $creator = User::factory()->create();
+    $owner = User::factory()->create();
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
 
     /* @var Conversation $firstConversation */
     $firstConversation = app(CreateConversation::class)->handle(
-        $creator,
+        $owner,
         collect([$firstUser, $secondUser])
     );
 
     /* @var Conversation $secondConversation */
     $secondConversation = app(CreateConversation::class)->handle(
-        $creator,
+        $owner,
         $firstUser
     );
 
     /* @var Conversation $thirdConversation */
     $thirdConversation = app(CreateConversation::class)->handle(
         $firstUser,
-        $creator
+        $owner
     );
 
     /* @var Conversation $fourthConversation */
@@ -38,18 +38,18 @@ it('can retrieve conversations for a specific user', function () {
 
     $conversationPrimaryKeyName = (new Conversation)->getKeyName();
 
-    /* @var Collection<int, Conversation> $creatorConversations */
-    $creatorConversations = $creator->conversations()->get();
-    /* @var list<string> $creatorConversationPrimaryKeys */
-    $creatorConversationPrimaryKeys = $creatorConversations->pluck($conversationPrimaryKeyName);
+    /* @var Collection<int, Conversation> $ownerConversations */
+    $ownerConversations = $owner->conversations()->get();
+    /* @var list<string> $ownerConversationKeys */
+    $ownerConversationKeys = $ownerConversations->pluck($conversationPrimaryKeyName);
 
-    expect($creatorConversations->count())->toBe(3)
-        ->and($creatorConversationPrimaryKeys)->toContain(
+    expect($ownerConversations->count())->toBe(3)
+        ->and($ownerConversationKeys)->toContain(
             $firstConversation->getKey(),
             $secondConversation->getKey(),
             $thirdConversation->getKey(),
         )
-        ->and($creatorConversationPrimaryKeys)->not->toContain(
+        ->and($ownerConversationKeys)->not->toContain(
             $fourthConversation->getKey()
         );
 
