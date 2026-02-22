@@ -27,11 +27,11 @@ return [
         ],
 
         'participations' => [
-          
+
             'label' => 'Participants',
-            
+
         ],
-        
+
         'name' => [
 
             'label' => 'Name',
@@ -68,9 +68,9 @@ return [
 
         'label' => 'Manage',
 
-        'modal-heading-view' => 'View :name',
-        
-        'modal-heading-edit' => 'Edit :name',
+        'modal-heading-view' => 'View conversation',
+
+        'modal-heading-edit' => 'Edit conversation',
 
         'modal-submit-action-label' => 'Save',
 
@@ -82,7 +82,7 @@ return [
 
             'transfer-conversation-text' => 'Transfer ownership of this conversation to another participant.',
 
-            'leave-conversation-text' => 'Remove yourself from this conversation. You will no longer receive messages or be able to participate.',
+            'leave-conversation-text' => 'Remove yourself from this conversation. You will no longer receive messages.',
 
             'delete-conversation-text' => 'Permanently delete this conversation for all participants. This action cannot be undone.',
 

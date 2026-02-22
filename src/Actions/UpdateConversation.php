@@ -9,6 +9,7 @@ use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -17,13 +18,13 @@ use Illuminate\Support\Facades\DB;
 class UpdateConversation
 {
     /**
-     * @param  Collection<int, Model&Authenticatable>|(Model&Authenticatable)  $participants
+     * @param  Collection<int, Model&Authenticatable>|list<Model&Authenticatable>|(Model&Authenticatable)  $participants
      * @param  array<string, mixed>  $attributes
      */
-    public function handle(Conversation $conversation, (Authenticatable & Model) | Collection $participants, array $attributes = []): Conversation
+    public function handle(Conversation $conversation, (Authenticatable & Model) | array | Collection $participants, array $attributes = []): Conversation
     {
         if (! $participants instanceof Collection) {
-            $participants = collect([$participants]);
+            $participants = collect(is_array($participants) ? $participants : [$participants]);
         }
 
         return DB::transaction(function () use ($conversation, $participants, $attributes): Conversation {
@@ -39,31 +40,24 @@ class UpdateConversation
                 $participants = $participants->push($conversationOwner->participant);
             }
 
-            $timestamp = now();
             $participantIds = $participants->map->getKey();
 
             $conversation
                 ->participations()
+                ->active()
                 ->whereNotIn('participant_id', $participantIds)
-                ->whereNull('present_until')
-                ->update([
-                    'present_until' => $timestamp
-                ]);
+                ->deactivateMany();
 
             $conversation
                 ->participations()
+                ->inactive()
                 ->whereIn('participant_id', $participantIds)
-                ->whereNotNull('present_until')
-                ->where('present_until', '<=', $timestamp)
-                ->update([
-                    'present_until' => null,
-                    'joined_at' => $timestamp
-                ]);
+                ->activateMany();
 
             $existingParticipantIds = $conversation
                 ->fresh()
                 ->participations()
-                ->whereNull('present_until')
+                ->active()
                 ->pluck('participant_id');
 
             $conversationKey = $conversation->getKey();

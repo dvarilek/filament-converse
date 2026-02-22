@@ -18,17 +18,20 @@ it('can create a conversation with a single participant', function () {
         [
             'name' => 'Test',
             'description' => 'Test description',
-            'color' => 'primary',
         ]
     );
+
+    $participations = $conversation->participations;
 
     expect($conversation)
         ->toBeInstanceOf(Conversation::class)
         ->name->toBe('Test')
         ->description->toBe('Test description')
-        ->and($conversation->participations)->toHaveCount(2)
-        ->and($owner->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
-        ->and($otherUser->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
+        ->and($participations)->toHaveCount(2)
+        ->and($participations->active())->toHaveCount(2)
+        ->and($participations->inactive())->toHaveCount(0)
+        ->and($participations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe(collect([$owner->getKey(), $otherUser->getKey()])->sort()->values()->toArray())
         ->and($conversation->owner->participant->getKey())->toBe($owner->getKey());
 });
 
@@ -47,14 +50,17 @@ it('can create a conversation with multiple participants', function () {
         ]
     );
 
+    $participations = $conversation->participations;
+
     expect($conversation)
         ->toBeInstanceOf(Conversation::class)
         ->name->toBe('Test')
         ->description->toBe('Test description')
-        ->and($conversation->participations)->toHaveCount(3)
-        ->and($owner->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
-        ->and($firstUser->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
-        ->and($secondUser->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
+        ->and($participations)->toHaveCount(3)
+        ->and($participations->active())->toHaveCount(3)
+        ->and($participations->inactive())->toHaveCount(0)
+        ->and($participations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe(collect([$owner->getKey(), $firstUser->getKey(), $secondUser->getKey()])->sort()->values()->toArray())
         ->and($conversation->owner->participant->getKey())->toBe($owner->getKey());
 });
 

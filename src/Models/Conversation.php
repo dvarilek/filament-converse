@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
+use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;
 
 /**
  * @property string|null $image
@@ -21,8 +22,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $subject_type
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property-read Collection<int, ConversationParticipation> $participations
- * @property-read Collection<int, ConversationParticipation> $otherParticipations
+ * @property-read ConversationParticipationCollection<int, ConversationParticipation> $participations
  * @property-read Collection<int, Message> $messages
  * @property-read ConversationParticipation|null $owner
  */
@@ -58,15 +58,7 @@ class Conversation extends Model
     {
         return $this->hasMany(ConversationParticipation::class, 'conversation_id');
     }
-
-    /**
-     * @return HasMany<ConversationParticipation, static>
-     */
-    public function otherParticipations(): HasMany
-    {
-        return $this->participations()->whereNot('participant_id', auth()->id());
-    }
-
+    
     public function messages(): HasManyThrough
     {
         return $this->hasManyThrough(

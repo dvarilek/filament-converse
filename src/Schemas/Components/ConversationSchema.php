@@ -103,21 +103,14 @@ class ConversationSchema extends Component
                 FilamentConverseException::throwInvalidConversableUserException($user);
             }
 
-            $userNameAttribute = $user::getFilamentNameAttribute();
-
-            if ($conversation->relationLoaded('participations')) {
-                $userNames = $conversation->participations
-                    ->where('participant_id', '!=', $user->getKey())
-                    ->pluck('participant.' . $userNameAttribute);
-            } else {
-                $userNames = $conversation->otherParticipations()
-                    ->with('participant')
-                    ->get()
-                    ->pluck('participant.' . $userNameAttribute);
-            }
+            $userNames = $conversation
+                ->participations
+                ->active()
+                ->other()
+                ->pluck('participant.' . $user::getFilamentNameAttribute());
 
             return match ($userNames->count()) {
-                0 => '',
+                0 => $user->getAttributeValue($user::getFilamentNameAttribute()),
                 1 => $userNames->first(),
                 2 => $userNames->join(' & '),
                 default => $userNames->slice(0, -1)->join(', ') . ' & ' . $userNames->last()
@@ -159,10 +152,15 @@ class ConversationSchema extends Component
         });
 
         $this->getDefaultConversationImageDataUsing(static function (ConversationSchema $component, Conversation $conversation) {
-            $otherConversationParticipations = $conversation->participations->where('participant_id', '!=', auth()->id());
+            $participations = $conversation->participations;
+            $otherParticipations = $participations->other();
 
-            if ($conversation->participations->count() <= 2) {
-                $participant = $otherConversationParticipations->first()->participant;
+            if ($participations->active()->count() <= 2) {
+                $participant = $otherParticipations->first()?->participant ?? $participations->active()->first()?->participant;
+
+                if (! $participant) {
+                    throw new Exception("No participant found for conversation {$conversation->getKey()}");
+                }
 
                 return [
                     [
@@ -173,24 +171,29 @@ class ConversationSchema extends Component
             }
 
             /* @var Collection<int, Message> $latestMessages */
-            $latestMessages = $otherConversationParticipations
+            $latestMessages = $otherParticipations
                 ->pluck('latestMessage')
                 ->filter()
                 ->sortByDesc('created_at');
 
             if ($latestMessages->isEmpty()) {
-                [$bottomAvatarParticipant, $topAvatarParticipant] = $otherConversationParticipations->pluck('participant');
+                [$bottomAvatarParticipant, $topAvatarParticipant] = $otherParticipations->pluck('participant');
             } else {
                 $conversationParticipationPrimaryKey = (new ConversationParticipation)->getKeyName();
 
                 $firstLatestMessage = $latestMessages->first();
                 $secondLatestMessage = $latestMessages->firstWhere('author_id', '!=', $firstLatestMessage->author_id);
 
-                $firstParticipationWithLatestMessage = $otherConversationParticipations
+                $firstParticipationWithLatestMessage = $otherParticipations
                     ->firstWhere($conversationParticipationPrimaryKey, $firstLatestMessage->author_id);
 
-                $secondParticipationWithLatestMessage = $otherConversationParticipations
-                    ->firstWhere($conversationParticipationPrimaryKey, $secondLatestMessage?->author_id ?? $firstParticipationWithLatestMessage->getKey());
+                if ($secondLatestMessage) {
+                    $secondParticipationWithLatestMessage = $otherParticipations
+                        ->firstWhere($conversationParticipationPrimaryKey, $secondLatestMessage->author_id);
+                } else {
+                    $secondParticipationWithLatestMessage = $otherParticipations
+                        ->firstWhere($conversationParticipationPrimaryKey, '!=', $firstLatestMessage->author_id);
+                }
 
                 $bottomAvatarParticipant = $firstParticipationWithLatestMessage->participant;
                 $topAvatarParticipant = $secondParticipationWithLatestMessage->participant;

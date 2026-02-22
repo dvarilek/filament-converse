@@ -15,21 +15,14 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 
 class ParticipantTableSelectConfiguration
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->query(static fn (TableSelectLivewireComponent $livewire, Table $table) => FilamentConverseServiceProvider::getFilamentConverseUserModel()::query()
-                ->whereKeyNot(auth()->id())
-                ->when(
-                    $livewire->isDisabled && ($conversationKey = ($table->getArguments()['conversationKey'] ?? null)),
-                    static fn (Builder $query) => $query->whereHas('conversationParticipations', static fn (Builder $subQuery) => $subQuery
-                        ->where('conversation_id', $conversationKey)
-                    )
-                )
-            )
+            ->query(static::getTableQuery(...))
             ->searchable()
             ->paginationPageOptions([
                 'all'
@@ -40,8 +33,9 @@ class ParticipantTableSelectConfiguration
                         ->circular()
                         ->grow(false)
                         ->getStateUsing(static fn (Authenticatable & Model $record) => filament()->getUserAvatarUrl($record)),
-                    TextColumn::make('name'),
-                    TextColumn::make('participant_type')
+                    TextColumn::make('name')
+                        ->weight('bold'),
+                    TextColumn::make('ownership')
                         ->badge()
                         ->getStateUsing(static function (Authenticatable & Model $record, Table $table): ?string {
                             /* @var ?Conversation $conversation */
@@ -52,7 +46,10 @@ class ParticipantTableSelectConfiguration
                             }
 
                             /* @var ?ConversationParticipation $participation */
-                            $participation = $conversation->participations()->firstWhere('participant_id', $record->getKey());
+                            $participation = $conversation
+                                ->participations()
+                                ->active()
+                                ->firstWhere('participant_id', $record->getKey());
 
                             if (! $participation) {
                                 return null;
@@ -64,5 +61,31 @@ class ParticipantTableSelectConfiguration
                         }),
                 ])
             ]);
+    }
+
+    public static function getTableQuery(TableSelectLivewireComponent $livewire, Table $table): Builder
+    {
+        $conversationKey = $table->getArguments()['conversationKey'] ?? null;
+        $userModel = FilamentConverseServiceProvider::getFilamentConverseUserModel();
+
+        $query = $userModel::query()->whereKeyNot(auth()->id());
+
+        if (! $conversationKey) {
+            return $query;
+        }
+
+        return $query;
+        $activeParticipantsQuery = $query
+            ->clone()
+            ->whereHas('conversationParticipations', static fn (Builder $subQuery) => $subQuery
+                ->where('conversation_id', $conversationKey)
+                ->active()
+            );
+
+        $livewire->state = array_values(
+            array_intersect($livewire->state, $activeParticipantsQuery->toBase()->pluck((new $userModel)->getKeyName())->toArray())
+        );
+
+        return $livewire->isDisabled ? $activeParticipantsQuery : $query;
     }
 }

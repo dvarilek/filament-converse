@@ -14,22 +14,12 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class ParticipationTableSelectConfiguration
+class ParticipationTransferTableSelectConfiguration
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->query(static function (Table $table): mixed {
-                $conversation = Conversation::query()
-                    ->whereKey($table->getArguments()['conversationKey'] ?? null)
-                    ->first();
-
-                if (!$conversation) {
-                    return null;
-                }
-
-                return $conversation->participations()->whereKeyNot($conversation->owner_id);
-            })
+            ->query(static::getTableQuery(...))
             ->searchable()
             ->paginationPageOptions([
                 'all'
@@ -48,5 +38,21 @@ class ParticipationTableSelectConfiguration
                         }),
                 ])
             ]);
+    }
+
+    public static function getTableQuery(Table $table): mixed
+    {
+        $conversation = Conversation::query()
+            ->whereKey($table->getArguments()['conversationKey'] ?? null)
+            ->first();
+
+        if (!$conversation) {
+            return null;
+        }
+
+        return $conversation
+            ->participations()
+            ->active()
+            ->whereKeyNot($conversation->owner_id);
     }
 }

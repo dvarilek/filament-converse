@@ -18,14 +18,23 @@ it('can leave a conversation as a participant', function () {
         $participant
     );
 
-    expect($conversation->participations)->toHaveCount(2)
-        ->and($participant->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue();
+    $result = app(LeaveConversation::class)->handle($conversation, $participant);
 
-    app(LeaveConversation::class)->handle($conversation, $participant);
+    $conversation = $conversation->fresh();
 
-    expect($conversation->fresh()->participations)->toHaveCount(2)
-        ->and($participant->conversationParticipations()->firstWhere('conversation_id', $conversation->getKey())->present_until)->not->toBeNull()
-        ->and($owner->conversationParticipations()->firstWhere('conversation_id', $conversation->getKey())->present_until)->toBeNull();
+    $activeParticipations = $conversation->participations->active();
+    $inactiveParticipations = $conversation->participations->inactive();
+
+    expect($result)
+        ->toBeTrue()
+        ->and($activeParticipations)
+        ->toHaveCount(1)
+        ->and($activeParticipations->value('participant_id'))
+        ->toBe($owner->getKey())
+        ->and($inactiveParticipations)
+        ->toHaveCount(1)
+        ->and($inactiveParticipations->value('participant_id'))
+        ->toBe($participant->getKey());
 });
 
 it('can leave a conversation with multiple participants', function () {
@@ -39,14 +48,23 @@ it('can leave a conversation with multiple participants', function () {
         collect([$firstParticipant, $secondParticipant])
     );
 
-    expect($conversation->participations)->toHaveCount(3);
+    $result = app(LeaveConversation::class)->handle($conversation, $firstParticipant);
 
-    app(LeaveConversation::class)->handle($conversation, $firstParticipant);
+    $conversation = $conversation->fresh();
 
-    expect($conversation->fresh()->participations)->toHaveCount(3)
-        ->and($firstParticipant->conversationParticipations()->firstWhere('conversation_id', $conversation->getKey())->present_until)->not->toBeNull()
-        ->and($secondParticipant->conversationParticipations()->firstWhere('conversation_id', $conversation->getKey())->present_until)->toBeNull()
-        ->and($owner->conversationParticipations()->firstWhere('conversation_id', $conversation->getKey())->present_until)->toBeNull();
+    $activeParticipations = $conversation->participations->active();
+    $inactiveParticipations = $conversation->participations->inactive();
+
+    expect($result)
+        ->toBeTrue()
+        ->and($activeParticipations)
+        ->toHaveCount(2)
+        ->and($activeParticipations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe(collect([$owner->getKey(), $secondParticipant->getKey()])->sort()->values()->toArray())
+        ->and($inactiveParticipations)
+        ->toHaveCount(1)
+        ->and($inactiveParticipations->value('participant_id'))
+        ->toBe($firstParticipant->getKey());
 });
 
 it('throws an exception when the owner tries to leave the conversation', function () {
@@ -60,6 +78,24 @@ it('throws an exception when the owner tries to leave the conversation', functio
     );
 
     expect(fn () => app(LeaveConversation::class)->handle($conversation, $owner))
+        ->toThrow(Exception::class);
+});
+
+it('throws an exception when inactive participant tries to leave the conversation', function () {
+    $owner = User::factory()->create();
+    $participant = User::factory()->create();
+
+    /* @var Conversation $conversation */
+    $conversation = app(CreateConversation::class)->handle(
+        $owner,
+        $participant
+    );
+
+    $conversation->participations()
+        ->firstWhere('participant_id', $participant->getKey())
+        ->deactivate();
+
+    expect(fn () => app(LeaveConversation::class)->handle($conversation, $participant))
         ->toThrow(Exception::class);
 });
 

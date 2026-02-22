@@ -7,12 +7,10 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 use App\Models\User;
 use Closure;
 use Dvarilek\FilamentConverse\Actions\TransferConversation;
-use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\Configuration\ParticipantTableSelectConfiguration;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\Configuration\ParticipationTableSelectConfiguration;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\Configuration\ParticipationTransferTableSelectConfiguration;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TableSelect;
@@ -43,8 +41,10 @@ class TransferConversationAction extends Action
         $this->modalHeading(__('filament-converse::actions.transfer.modal-heading'));
 
         $this->modalheading(static function (Conversation $conversation) {
-            if (($otherParticipations = $conversation->otherParticipations)->count() === 1) {
-                $participant = $otherParticipations->value('participant');
+            $otherParticipations = $conversation->participations->other()->active();
+
+            if ($otherParticipations->count() === 1) {
+                $participant = $otherParticipations->first()->participant;
 
                 return __('filament-converse::actions.transfer.modal-heading-single-participant', [
                     'name' => $participant->getAttribute($participant::getFilamentNameAttribute())
@@ -62,7 +62,9 @@ class TransferConversationAction extends Action
 
         $this->icon(Heroicon::OutlinedUsers);
 
-        $this->schema(static fn (TransferConversationAction $action, Conversation $conversation): ?array => $conversation->otherParticipations->count() === 1
+        $this->visible(static fn (ConversationManager $livewire): bool => $livewire->isActiveConversationOwnedByAuthenticatedUser());
+
+        $this->schema(static fn (TransferConversationAction $action, Conversation $conversation): ?array => $conversation->participations->other()->count() === 1
             ? null
             : [
                 $action->getParticipationSelectComponent()
@@ -72,10 +74,15 @@ class TransferConversationAction extends Action
         $this->transferConversationUsing(static function (array $data, Conversation $conversation): bool {
             /* @var (Authenticatable&Model) | null $participant */
 
-            if (($otherParticipations = $conversation->otherParticipations)->count() === 1) {
-                $participant = $otherParticipations->first()->participant;
+            $otherActiveParticipations = $conversation->participations->other()->active();
+
+            if ($otherActiveParticipations->count() === 1) {
+                $participant = $otherActiveParticipations->first()->participant;
             } else {
-                $participant = ConversationParticipation::query()->find($data['participation'] ?? null)?->participant;
+                $participant = ConversationParticipation::query()
+                    ->active()
+                    ->find($data['participation'] ?? null)
+                    ?->participant;
             }
 
             if (! $participant) {
@@ -121,7 +128,7 @@ class TransferConversationAction extends Action
     {
         $component = TableSelect::make('participation')
             ->label(__('filament-converse::actions.schema.participations.label'))
-            ->tableConfiguration(ParticipationTableSelectConfiguration::class)
+            ->tableConfiguration(ParticipationTransferTableSelectConfiguration::class)
             ->tableArguments(static fn (Conversation $conversation) => [
                 'conversationKey' => $conversation->getKey()
             ])

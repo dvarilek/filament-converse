@@ -38,6 +38,10 @@ class LeaveConversationAction extends Action
 
         $this->icon(Heroicon::OutlinedArrowRightStartOnRectangle);
 
+        $this->cancelParentActions();
+
+        $this->hidden(static fn (ConversationManager $livewire): bool => $livewire->isActiveConversationOwnedByAuthenticatedUser());
+
         $this->leaveConversationUsing(static fn (Conversation $conversation): bool => app(LeaveConversation::class)
             ->handle($conversation, auth()->user())
         );

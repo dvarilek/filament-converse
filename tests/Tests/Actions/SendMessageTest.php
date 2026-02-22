@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 
@@ -75,7 +76,10 @@ it('can send a reply to a message', function () {
         'content' => 'First text message',
     ]);
 
-    $reply = $conversation->otherParticipations->first()->sendMessage($conversation, [
+    /* @var ConversationParticipation $otherUserParticipation */
+    $otherUserParticipation = $conversation->participations()->firstWhere('participant_id', $otherUser->getKey());
+
+    $reply = $otherUserParticipation->sendMessage($conversation, [
         'content' => 'Second text message',
         'reply_to_message_id' => $message->getKey(),
     ]);
@@ -84,7 +88,7 @@ it('can send a reply to a message', function () {
         ->toBeInstanceOf(Message::class)
         ->content->toBe('Second text message')
         ->attachments->toBe([])
-        ->author->getKey()->toBe($author->getKey())
+        ->author->getKey()->toBe($otherUserParticipation->getKey())
         ->reply->getKey()->toBe($message->getKey())
         ->and($message->replies)->toHaveCount(1)
         ->and($message->replies->first()->getKey())->toBe($reply->getKey());

@@ -7,6 +7,7 @@ namespace Dvarilek\FilamentConverse\Models;
 use Dvarilek\FilamentConverse\Actions\ReadConversation;
 use Dvarilek\FilamentConverse\Actions\SendMessage;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
+use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -22,7 +23,7 @@ use Illuminate\Support\Collection;
  * @property int|string $participant_id
  * @property string $conversation_id
  * @property Carbon|null $joined_at
- * @property Carbon|null $present_until
+ * @property Carbon|null $deactivated_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Collection<int, Message> $messages
@@ -30,6 +31,11 @@ use Illuminate\Support\Collection;
  * @property-read Collection<int, Conversation> $ownedConversations
  * @property-read Authenticatable&Model $participant
  *
+ * @method void other()
+ * @method void active()
+ * @method void inactive()
+ * @method void deactivateMany()
+ * @method void activateMany()
  * @method void unreadMessagesCount()
  */
 class ConversationParticipation extends Model
@@ -44,7 +50,7 @@ class ConversationParticipation extends Model
         'conversation_id',
         'participant_id',
         'joined_at',
-        'present_until',
+        'deactivated_at',
     ];
 
     /**
@@ -54,10 +60,18 @@ class ConversationParticipation extends Model
         'id' => 'string',
         'last_read_at' => 'datetime',
         'joined_at' => 'datetime',
-        'present_until' => 'datetime',
+        'deactivated_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * @param list<static> $models
+     */
+    public function newCollection(array $models = []): ConversationParticipationCollection
+    {
+        return new ConversationParticipationCollection($models);
+    }
 
     /**
      * @return BelongsTo<Conversation, static>
@@ -108,6 +122,66 @@ class ConversationParticipation extends Model
     public function readConversation(Conversation $conversation): void
     {
         app(ReadConversation::class)->handle($this, $conversation);
+    }
+
+    public function deactivate(): bool
+    {
+        return $this->update([
+            'deactivated_at' => now(),
+        ]);
+    }
+
+    public function activate(): bool
+    {
+        return $this->update([
+            'deactivated_at' => null,
+            'joined_at' => now()
+        ]);
+    }
+
+    /**
+     * @param Builder<static> $query
+     */
+    public function scopeOther(Builder $query): void
+    {
+        $query->whereNot('participant_id', auth()->id());
+    }
+
+    /**
+     * @param Builder<static> $query
+     */
+    public function scopeActive(Builder $query): void
+    {
+        $query->whereNull('deactivated_at');
+    }
+
+    /**
+     * @param Builder<static> $query
+     */
+    public function scopeInactive(Builder $query): void
+    {
+        $query->whereNotNull('deactivated_at');
+    }
+
+    /**
+     * @param Builder<static> $query
+     */
+    public function scopeDeactivateMany(Builder $query): void
+    {
+        $query->update([
+            'deactivated_at' => now(),
+        ]);
+    }
+
+    /**
+     * @param Builder<static> $query
+ */
+    public function scopeActivateMany(Builder $query): void
+    {
+        $query->update([
+            'deactivated_at' => null,
+            'joined_at' => now()
+        ]);
     }
 
     /**

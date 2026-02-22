@@ -1,5 +1,5 @@
 @php
-    use Dvarilek\FilamentConverse\Models\Conversation;
+    use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;use Dvarilek\FilamentConverse\Models\Conversation;
     use Dvarilek\FilamentConverse\Models\ConversationParticipation;
     use Dvarilek\FilamentConverse\Models\Message;
     use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
@@ -42,8 +42,8 @@
     wire:key="conversation-thread-{{ $conversationKey }}"
     @if ($hasConversation)
         x-load
-        x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
-        x-data="conversationThread({
+    x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
+    x-data="conversationThread({
                     key: @js($key),
                     conversationKey: @js($conversationKey),
                     autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
@@ -53,7 +53,7 @@
                     userTypingTranslations: @js($getUserTypingTranslations()),
                     $wire,
                 })"
-        x-ref="uploadDropZoneRef"
+    x-ref="uploadDropZoneRef"
     @endif
     {{
         $getExtraAttributeBag()
@@ -107,8 +107,8 @@
         class='fi-converse-conversation-thread-content'
         @if ($hasConversation && count($messages))
             x-ref="conversationThreadContent"
-            wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}"
-            x-init="scrollToBottom()"
+        wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}"
+        x-init="scrollToBottom()"
         @endif
     >
         @if ($renderedMessagesCount = count($messages))
@@ -156,10 +156,10 @@
                     $hasMessageAuthorName = filled($messageAuthorName);
                     $hasMessageTimestamp = filled($messageTimestamp);
 
-                    /* @var Collection<int, ConversationParticipation> $readByParticipations */
-                    $readByParticipations = collect($messageReadsMap[$message->getKey()]['readBy'] ?? []);
-                    /* @var Collection<int, ConversationParticipation> $readByParticipationsAsLastMessage */
-                    $readByParticipationsAsLastMessage = collect($messageReadsMap[$message->getKey()]['readByAsLastMessage'] ?? []);
+                    /* @var ConversationParticipationCollection<int, ConversationParticipation> $readByParticipations */
+                    $readByParticipations = new ConversationParticipationCollection($messageReadsMap[$message->getKey()]['readBy'] ?? []);
+                    /* @var ConversationParticipationCollection<int, ConversationParticipation> $readByParticipationsAsLastMessage */
+                    $readByParticipationsAsLastMessage = new ConversationParticipationCollection($messageReadsMap[$message->getKey()]['readByAsLastMessage'] ?? []);
                     $showReadReceipt = $shouldShowReadReceipts($message, $readByParticipations, $readByParticipationsAsLastMessage, $messages);
 
                     $isMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
@@ -370,7 +370,7 @@
                             class="fi-converse-conversation-thread-read-receipt"
                             @if ($showFullReadReceiptMessage)
                                 x-data="{ expanded: false }"
-                                x-on:click="expanded = ! expanded"
+                            x-on:click="expanded = ! expanded"
                             @endif
                         >
                             @if ($showFullReadReceiptMessage)

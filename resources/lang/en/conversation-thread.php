@@ -28,7 +28,7 @@ return [
 
     'validation' => [
 
-        'message-required' => 'Please enter a message or attach a file.'
+        'message-required' => 'Please enter a message or attach a file.',
 
     ],
 

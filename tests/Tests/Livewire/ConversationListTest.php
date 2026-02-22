@@ -94,7 +94,7 @@ describe('render', function () {
         Carbon::setTestNow(now()->addMinutes(5));
 
         /* @var ConversationParticipation $otherParticipant */
-        $otherParticipant = $conversation->otherParticipations()->first();
+        $otherParticipant = $conversation->participations()->firstWhere('participant_id', $otherUser->getKey());;
 
         $secondMessage = app(SendMessage::class)->handle($otherParticipant, $conversation, [
             'content' => 'Second test message',

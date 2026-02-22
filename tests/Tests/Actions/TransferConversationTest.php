@@ -18,14 +18,18 @@ it('can transfer conversation ownership to another participant', function () {
         $participant
     );
 
-    expect($conversation->owner->participant->getKey())->toBe($owner->getKey());
+    $result = app(TransferConversation::class)->handle($conversation, $participant);
 
-    app(TransferConversation::class)->handle($conversation, $participant);
+    $activeParticipations = $conversation->fresh()->participations->active();
 
-    expect($conversation->fresh()->owner->participant->getKey())->toBe($participant->getKey())
-        ->and($conversation->fresh()->participations)->toHaveCount(2)
-        ->and($owner->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
-        ->and($participant->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue();
+    expect($result)
+        ->toBeTrue()
+        ->and($activeParticipations)
+        ->toHaveCount(2)
+        ->and($activeParticipations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe(collect([$owner->getKey(), $participant->getKey()])->sort()->values()->toArray())
+        ->and($conversation->owner->participant->getKey())
+        ->toBe($participant->getKey());
 });
 
 it('can transfer conversation ownership between multiple participants', function () {
@@ -39,16 +43,19 @@ it('can transfer conversation ownership between multiple participants', function
         collect([$firstParticipant, $secondParticipant])
     );
 
-    expect($conversation->owner->participant->getKey())->toBe($owner->getKey());
+    $result = app(TransferConversation::class)->handle($conversation, $firstParticipant);
 
-    app(TransferConversation::class)->handle($conversation, $firstParticipant);
+    expect($result)
+        ->toBeTrue()
+        ->and($conversation->fresh()->owner->participant->getKey())
+        ->toBe($firstParticipant->getKey());
 
-    expect($conversation->fresh()->owner->participant->getKey())->toBe($firstParticipant->getKey());
+    $result = app(TransferConversation::class)->handle($conversation->fresh(), $secondParticipant);
 
-    app(TransferConversation::class)->handle($conversation->fresh(), $secondParticipant);
-
-    expect($conversation->fresh()->owner->participant->getKey())->toBe($secondParticipant->getKey())
-        ->and($conversation->fresh()->participations)->toHaveCount(3);
+    expect($result)
+        ->toBeTrue()
+        ->and($conversation->fresh()->owner->participant->getKey())
+        ->toBe($secondParticipant->getKey());
 });
 
 it('throws an exception when transferring to a non-participant', function () {
@@ -63,6 +70,24 @@ it('throws an exception when transferring to a non-participant', function () {
     );
 
     expect(fn () => app(TransferConversation::class)->handle($conversation, $nonParticipant))
+        ->toThrow(Exception::class);
+});
+
+it('throws an exception when transferring to inactive participant', function () {
+    $owner = User::factory()->create();
+    $participant = User::factory()->create();
+
+    /* @var Conversation $conversation */
+    $conversation = app(CreateConversation::class)->handle(
+        $owner,
+        $participant
+    );
+
+    $conversation->participations()
+        ->firstWhere('participant_id', $participant->getKey())
+        ->deactivate();
+
+    expect(fn () => app(TransferConversation::class)->handle($conversation, $participant))
         ->toThrow(Exception::class);
 });
 
@@ -86,25 +111,4 @@ it('throws an exception when transferring to a user not using the Conversable tr
 
     expect(fn () => app(TransferConversation::class)->handle($conversation, $invalidUser))
         ->toThrow(Exception::class);
-});
-
-it('preserves all participations when transferring ownership', function () {
-    $owner = User::factory()->create();
-    $firstParticipant = User::factory()->create();
-    $secondParticipant = User::factory()->create();
-
-    /* @var Conversation $conversation */
-    $conversation = app(CreateConversation::class)->handle(
-        $owner,
-        collect([$firstParticipant, $secondParticipant])
-    );
-
-    $participationCountBefore = $conversation->participations()->count();
-
-    app(TransferConversation::class)->handle($conversation, $firstParticipant);
-
-    expect($conversation->fresh()->participations()->count())->toBe($participationCountBefore)
-        ->and($owner->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
-        ->and($firstParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue()
-        ->and($secondParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->exists())->toBeTrue();
 });

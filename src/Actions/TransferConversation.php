@@ -23,6 +23,7 @@ class TransferConversation
         return DB::transaction(static function () use ($conversation, $newOwner): bool {
             $newOwnerParticipation = $conversation
                 ->participations()
+                ->active()
                 ->firstWhere('participant_id', $newOwner->getKey());
 
             if (! $newOwnerParticipation) {

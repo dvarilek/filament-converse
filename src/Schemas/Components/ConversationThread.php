@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
-use App\Models\User;
 use Closure;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
+use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
@@ -16,23 +17,25 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\FusedGroup;
 use Filament\Schemas\Components\Concerns\HasKey;
+use Filament\Schemas\Components\Text;
+use Filament\Schemas\View\Components\TextComponent;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
-use Filament\Support\Enums\Size;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use League\Flysystem\UnableToCheckFileExistence;
@@ -236,21 +239,14 @@ class ConversationThread extends Component
             return $messageAuthor->getKey() === auth()->id() ? 'primary' : 'gray';
         });
 
-        $this->shortenedReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipationsAsLastMessage): ?string {
-            $user = auth()->user();
-
-            if (! in_array(Conversable::class, class_uses_recursive($user))) {
-                FilamentConverseException::throwInvalidConversableUserException($user);
-            }
-
-            $userNameAttribute = $user::getFilamentNameAttribute();
+        $this->shortenedReadReceiptMessage(static function (Conversation $conversation, Message $message, ConversationParticipationCollection $readByParticipationsAsLastMessage): ?string {
+            $userNameAttribute = FilamentConverseServiceProvider::getFilamentConverseUserModel()::getFilamentNameAttribute();
 
             $otherParticipantNames = $readByParticipationsAsLastMessage
-                ->reject(
-                    static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id ||
-                    $participation->participant_id === $user->getKey()
-                )
+                ->other()
+                ->reject(static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id)
                 ->pluck('participant.' . $userNameAttribute);
+
             $readByOtherParticipationsCount = $otherParticipantNames->count();
 
             return match (true) {
@@ -280,35 +276,21 @@ class ConversationThread extends Component
         });
 
         $this->showFullReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipationsAsLastMessage): bool {
-            $user = auth()->user();
+            $otherReadByParticipations = $readByParticipationsAsLastMessage
+                ->other()
+                ->reject(static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id);
 
-            if (! in_array(Conversable::class, class_uses_recursive($user))) {
-                FilamentConverseException::throwInvalidConversableUserException($user);
-            }
-
-            $otherReadByParticipations = $readByParticipationsAsLastMessage->reject(
-                static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id ||
-                $participation->participant_id === $user->getKey()
-            );
-
-            return $readByParticipationsAsLastMessage->count() !== $conversation->participations->count() && $otherReadByParticipations->count() > 4;
+            return $otherReadByParticipations->count() > 4;
         });
 
         $this->fullReadReceiptMessage(static function (Conversation $conversation, Message $message, Collection $readByParticipationsAsLastMessage): ?string {
-            $user = auth()->user();
-
-            if (! in_array(Conversable::class, class_uses_recursive($user))) {
-                FilamentConverseException::throwInvalidConversableUserException($user);
-            }
-
-            $userNameAttribute = $user::getFilamentNameAttribute();
+            $userNameAttribute = FilamentConverseServiceProvider::getFilamentConverseUserModel()::getFilamentNameAttribute();
 
             $otherParticipantNames = $readByParticipationsAsLastMessage
-                ->reject(
-                    static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id ||
-                    $participation->participant_id === $user->getKey()
-                )
+                ->other()
+                ->reject(static fn (ConversationParticipation $participation) => $participation->getKey() === $message->author_id)
                 ->pluck('participant.' . $userNameAttribute);
+
             $readByOtherParticipationsCount = $otherParticipantNames->count();
 
             return match (true) {

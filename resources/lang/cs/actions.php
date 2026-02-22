@@ -68,9 +68,9 @@ return [
 
         'label' => 'Spravovat',
 
-        'modal-heading-view' => 'Zobrazit :name',
+        'modal-heading-view' => 'Zobrazit konverzaci',
 
-        'modal-heading-edit' => 'Upravit :name',
+        'modal-heading-edit' => 'Upravit konverzaci',
 
         'modal-submit-action-label' => 'Uložit',
 
@@ -82,7 +82,7 @@ return [
 
             'transfer-conversation-text' => 'Převést vlastnictví této konverzace na jiného účastníka.',
 
-            'leave-conversation-text' => 'Odebrat se z této konverzace. Již nebudete dostávat zprávy ani se budete moci účastnit.',
+            'leave-conversation-text' => 'Odebrat se z této konverzace. Již nebudete dostávat zprávy.',
 
             'delete-conversation-text' => 'Trvale odstranit tuto konverzaci pro všechny účastníky. Tuto akci nelze vrátit zpět.',
 

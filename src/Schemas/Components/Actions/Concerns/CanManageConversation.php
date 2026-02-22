@@ -13,6 +13,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TableSelect;
 use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Database\Eloquent\Builder;
@@ -72,31 +73,7 @@ trait CanManageConversation
             ->required()
             ->extraAttributes([
                 'class' => 'fi-converse-table-select',
-            ])
-            ->rule(
-                fn (): Closure => function (string $attribute, $value, Closure $fail): void {
-                    if (count($value) !== 1) {
-                        return;
-                    }
-
-                    /* @var Authenticatable & Model $user */
-                    $user = auth()->user();
-
-                    $directConversationExists = Conversation::query()
-                        ->whereHas('participations', static fn (Builder $query) => $query
-                            ->where('participant_id', $user->getKey())
-                        )
-                        ->whereHas('participations', static fn (Builder $query) => $query
-                            ->where('participant_id', head($value))
-                        )
-                        ->has('participations', 2)
-                        ->exists();
-
-                    if ($directConversationExists) {
-                        $fail(__('filament-converse::actions.schema.participants.validation.direct-conversation-exists'));
-                    }
-                }
-            );
+            ]);
 
         if ($this->modifyParticipantSelectComponentUsing) {
             $component = $this->evaluate($this->modifyParticipantSelectComponentUsing, [

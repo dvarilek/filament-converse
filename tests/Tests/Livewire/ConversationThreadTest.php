@@ -11,8 +11,6 @@ use function Pest\Livewire\livewire;
 
 describe('render', function () {})->todo();
 
-// TODO: Finish
-
 describe('message input', function () {
     test('can send message', function () {
         $owner = User::factory()->create();

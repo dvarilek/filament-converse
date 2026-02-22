@@ -25,6 +25,7 @@ class LeaveConversation
             /* @var ConversationParticipation $participation */
             $participation = $conversation
                 ->participations()
+                ->active()
                 ->firstWhere('participant_id', $participant->getKey());
 
             if (! $participation) {
@@ -35,9 +36,7 @@ class LeaveConversation
                 throw new Exception("The user [$participant] cannot leave a conversation he owns.");
             }
 
-            return $participation->update([
-                'present_until' => now()
-            ]);
+            return $participation->deactivate();
         });
     }
 }

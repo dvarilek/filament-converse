@@ -1,15 +1,16 @@
 <?php
 
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\LeaveConversationAction;
+use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Filament\Actions\Testing\TestAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteConversationAction;
 
 use function Pest\Livewire\livewire;
 
-test('is hidden for conversation owner', function () {
+test('is hidden for regular participants', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -22,37 +23,27 @@ test('is hidden for conversation owner', function () {
             TestAction::make(ManageConversationAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread'),
         )
-        ->assertActionHidden(LeaveConversationAction::getDefaultName());;
+        ->assertActionVisible(DeleteConversationAction::getDefaultName());;
 
     $this->actingAs($participant);
 
-    $livewire->assertActionVisible(LeaveConversationAction::getDefaultName());
+    $livewire->assertActionHidden(DeleteConversationAction::getDefaultName());
 });
 
-it('can leave conversation', function () {
+it('can delete conversation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
-    $this->actingAs($participant);
+    $this->actingAs($owner);
 
-    $conversation = app(CreateConversation::class)->handle($owner, $participant);
+    app(CreateConversation::class)->handle($owner, $participant);
 
     livewire(ConversationManager::class)
         ->mountAction(
             TestAction::make(ManageConversationAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread'),
         )
-        ->callAction(
-            TestAction::make(LeaveConversationAction::getDefaultName()),
-        );
+        ->callAction(DeleteConversationAction::getDefaultName());
 
-    $participations = $conversation->fresh()->participations;
-
-    expect($participations->pluck('participant_id')->sort()->values()->toArray())
-        ->toHaveCount(2)
-        ->toBe(collect([$owner->getKey(), $participant->getKey()])->sort()->values()->toArray())
-        ->and($participations->active()->pluck('participant_id')->sort()->values()->toArray())
-        ->toHaveCount(1)
-        ->not->toContain($participant->getKey());
+    expect(Conversation::query()->count())->toBe(0);
 });
-

@@ -6,6 +6,7 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 
 use Closure;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;
 use Dvarilek\FilamentConverse\Models\Message;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Illuminate\Contracts\Support\Htmlable;
@@ -62,7 +63,7 @@ trait HasReadReceipts
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function shouldShowReadReceipts(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): bool
+    public function shouldShowReadReceipts(Message $message, ConversationParticipationCollection $readByParticipations, ConversationParticipationCollection $readByParticipationsAsLastMessage, Collection $messages): bool
     {
         return (bool) $this->evaluate($this->shouldShowReadReceipts, [
             'message' => $message,
@@ -71,6 +72,7 @@ trait HasReadReceipts
             'readByParticipationsAsLastMessage' => $readByParticipationsAsLastMessage,
         ], [
             Message::class => $message,
+            ConversationParticipationCollection::class => $readByParticipations,
         ]);
     }
 
@@ -82,7 +84,7 @@ trait HasReadReceipts
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getShortenedReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): string | Htmlable | null
+    public function getShortenedReadReceiptMessage(Message $message, ConversationParticipationCollection $readByParticipations, ConversationParticipationCollection $readByParticipationsAsLastMessage, Collection $messages): string | Htmlable | null
     {
         return $this->evaluate($this->shortenedReadReceiptMessage, [
             'message' => $message,
@@ -91,13 +93,14 @@ trait HasReadReceipts
             'readByParticipationsAsLastMessage' => $readByParticipationsAsLastMessage,
         ], [
             Message::class => $message,
+            ConversationParticipationCollection::class => $readByParticipations,
         ]);
     }
 
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function shouldShowFullReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): bool
+    public function shouldShowFullReadReceiptMessage(Message $message, ConversationParticipationCollection $readByParticipations, ConversationParticipationCollection $readByParticipationsAsLastMessage, Collection $messages): bool
     {
         return (bool) $this->evaluate($this->shouldShowFullReadReceiptMessage, [
             'message' => $message,
@@ -106,13 +109,14 @@ trait HasReadReceipts
             'readByParticipationsAsLastMessage' => $readByParticipationsAsLastMessage,
         ], [
             Message::class => $message,
+            ConversationParticipationCollection::class => $readByParticipations,
         ]);
     }
 
     /**
      * @param  Collection<int, Message>  $messages
      */
-    public function getFullReadReceiptMessage(Message $message, Collection $readByParticipations, Collection $readByParticipationsAsLastMessage, Collection $messages): string | Htmlable | null
+    public function getFullReadReceiptMessage(Message $message, ConversationParticipationCollection $readByParticipations, ConversationParticipationCollection $readByParticipationsAsLastMessage, Collection $messages): string | Htmlable | null
     {
         return $this->evaluate($this->fullReadReceiptMessage, [
             'message' => $message,
@@ -121,6 +125,7 @@ trait HasReadReceipts
             'readByParticipationsAsLastMessage' => $readByParticipationsAsLastMessage,
         ], [
             Message::class => $message,
+            ConversationParticipationCollection::class => $readByParticipations,
         ]);
     }
 

@@ -17,13 +17,13 @@ use Illuminate\Support\Facades\DB;
 class CreateConversation
 {
     /**
-     * @param  Collection<int, Model&Authenticatable>|(Model&Authenticatable)  $participants
+     * @param  Collection<int, Model&Authenticatable>|list<Model&Authenticatable>|(Model&Authenticatable)  $participants
      * @param  array<string, mixed>  $attributes
      */
-    public function handle(Authenticatable & Model $owner, (Authenticatable & Model) | Collection $participants, array $attributes = []): Conversation
+    public function handle(Authenticatable & Model $owner, (Authenticatable & Model) | Collection | array $participants, array $attributes = []): Conversation
     {
         if (! $participants instanceof Collection) {
-            $participants = collect([$participants]);
+            $participants = collect(is_array($participants) ? $participants : [$participants]);
         }
 
         if (! in_array(Conversable::class, class_uses_recursive($owner))) {

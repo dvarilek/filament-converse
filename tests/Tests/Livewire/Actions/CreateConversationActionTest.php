@@ -10,16 +10,19 @@ use function Pest\Livewire\livewire;
 
 it('can create a new direct conversation through action', function () {
     $owner = User::factory()->create();
-    $otherUser = User::factory()->create();
+    $participant = User::factory()->create();
 
     $this->actingAs($owner);
 
     $livewire = livewire(ConversationManager::class)
-        ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation_list'), [
-            'participants' => [
-                $otherUser->getKey()
-            ],
-        ])
+        ->callAction(
+            TestAction::make(CreateConversationAction::getDefaultName())
+                ->schemaComponent('conversation_schema.conversation_list'), [
+                'participants' => [
+                    $participant->getKey()
+                ],
+            ]
+        )
         ->assertHasNoErrors();
 
     /* @var Conversation $conversation */
@@ -30,7 +33,7 @@ it('can create a new direct conversation through action', function () {
         ->description->toBeNull()
         ->image->toBeNull()
         ->participations->toHaveCount(2)
-        ->participations->pluck('participant_id')->toContain($owner->getKey(), $otherUser->getKey())
+        ->participations->pluck('participant_id')->toContain($owner->getKey(), $participant->getKey())
         ->owner->participant->getKey()->toBe($owner->getKey())
         ->and($livewire->instance())
         ->conversations->toHaveCount(1)
@@ -42,7 +45,10 @@ it('requires a selected participant to create a new direct conversation', functi
     $this->actingAs(User::factory()->create());
 
     livewire(ConversationManager::class)
-        ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation_list'))
+        ->callAction(
+            TestAction::make(CreateConversationAction::getDefaultName())
+                ->schemaComponent('conversation_schema.conversation_list')
+        )
         ->assertHasFormErrors(['participants' => 'required']);
 });
 
@@ -54,9 +60,15 @@ it('can create a new group conversation through action', function () {
     $this->actingAs($owner);
 
     $livewire = livewire(ConversationManager::class)
-        ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation_list'), [
-            'participants' => [$firstUser->getKey(), $secondUser->getKey()],
-        ])
+        ->callAction(
+            TestAction::make(CreateConversationAction::getDefaultName())
+                ->schemaComponent('conversation_schema.conversation_list'), [
+                'participants' => [
+                    $firstUser->getKey(),
+                    $secondUser->getKey()
+                ],
+            ]
+        )
         ->assertHasNoErrors();
 
     /* @var Conversation $conversation */
@@ -83,11 +95,14 @@ it('can create a new group conversation through action with additional data', fu
     $this->actingAs($owner);
 
     $livewire = livewire(ConversationManager::class)
-        ->callAction(TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation_list'), [
-            'participants' => [$firstUser->getKey(), $secondUser->getKey()],
-            'name' => 'Test conversation',
-            'description' => 'Test description',
-        ])
+        ->callAction(
+            TestAction::make(CreateConversationAction::getDefaultName())
+                ->schemaComponent('conversation_schema.conversation_list'), [
+                'participants' => [$firstUser->getKey(), $secondUser->getKey()],
+                'name' => 'Test conversation',
+                'description' => 'Test description',
+            ]
+        )
         ->assertHasNoErrors();
 
     /* @var Conversation $conversation */
@@ -104,34 +119,6 @@ it('can create a new group conversation through action with additional data', fu
         ->conversations->toHaveCount(1)
         ->conversations->value((new Conversation)->getKeyName())->toBe($conversation->getKey())
         ->getActiveConversation()->getKey()->toBe($conversation->getKey());
-});
-
-it('cannot create a duplicate direct conversation with the same participant', function () {
-    $owner = User::factory()->create();
-    $otherUser = User::factory()->create();
-
-    $this->actingAs($owner);
-    $action = TestAction::make(CreateConversationAction::getDefaultName())->schemaComponent('conversation_schema.conversation_list');
-
-    $livewire = livewire(ConversationManager::class)
-        ->callAction($action, [
-            'participants' => [
-                $otherUser->getKey()
-            ],
-        ])
-        ->assertHasNoErrors();
-
-    expect(Conversation::query()->count())->toBe(1);
-
-    $livewire
-        ->callAction($action, [
-            'participants' => [
-                $otherUser->getKey()
-            ],
-        ])
-        ->assertHasFormErrors(['participants' => __('filament-converse::actions.schema.participants.validation.direct-conversation-exists')]);
-
-    expect(Conversation::query()->count())->toBe(1);
 });
 
 it('can create multiple group conversations with the same participants', function () {

@@ -13,9 +13,9 @@ use Filament\Actions\Action;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Flex;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Text;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Size;
 use Filament\Support\Enums\Width;
 use Filament\Support\Facades\FilamentColor;
@@ -23,9 +23,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Collection;
-use \Filament\Schemas\Schema;
 
 class ManageConversationAction extends Action
 {
@@ -33,7 +31,9 @@ class ManageConversationAction extends Action
 
     protected ?Closure $updateConversationUsing = null;
 
-    protected string | Htmlable | Closure | null $advancedActionsFieldsetLabel = null;
+    protected ?Closure $modifyAdvancedActionsFieldsetUsing = null;
+
+    protected string | Htmlable | Closure | null $modifyAdvancedActionsFieldsetLabel = null;
 
     protected ?Closure $modifyTransferConversationActionUsing = null;
 
@@ -62,9 +62,6 @@ class ManageConversationAction extends Action
             $livewire->isActiveConversationOwnedByAuthenticatedUser()
                 ? 'filament-converse::actions.manage.modal-heading-edit'
                 : 'filament-converse::actions.manage.modal-heading-view',
-            [
-                'name' => $livewire->getConversationSchema()->getConversationName($conversation),
-            ]
         ));
 
         $this->modalSubmitActionLabel(__('filament-converse::actions.manage.modal-submit-action-label'));
@@ -89,7 +86,8 @@ class ManageConversationAction extends Action
             /* @var list<string> $otherParticipantIds */
             $otherParticipantIds = $conversation
                 ->participations
-                ->reject(static fn (ConversationParticipation $participation): bool => $participation->participant_id === auth()->id())
+                ->other()
+                ->active()
                 ->pluck('participant_id')
                 ->toArray();
 
@@ -101,17 +99,20 @@ class ManageConversationAction extends Action
             ];
         });
 
-        $this->modalSubmitAction(static fn (Action $action, ConversationManager $livewire, Conversation $conversation) => $action
-            ->visible($livewire->isActiveConversationOwnedByAuthenticatedUser())
+        $this->modalSubmitAction(
+            static fn (Action $action, ConversationManager $livewire, Conversation $conversation) => $action
+                ->visible($livewire->isActiveConversationOwnedByAuthenticatedUser())
         );
 
-        $this->schema(static function (Schema $schema, ManageConversationAction $action, ConversationManager $livewire): Schema {
-
-
-            $canManageConversation = $livewire->isActiveConversationOwnedByAuthenticatedUser();
-
-            return $schema
-                ->disabled(! $canManageConversation)
+        $this->registerModalActions([
+            static fn (ManageConversationAction $action) => $action->getTransferConversationAction(),
+            static fn (ManageConversationAction $action) => $action->getLeaveConversationAction(),
+            static fn (ManageConversationAction $action) => $action->getDeleteConversationAction(),
+        ]);
+        
+        $this->schema(
+            static fn (Schema $schema, ManageConversationAction $action): Schema => $schema
+                ->disabled(static fn (ConversationManager $livewire): bool => ! $livewire->isActiveConversationOwnedByAuthenticatedUser())
                 ->schema([
                     $action->getParticipantSelectComponent(),
                     Group::make([
@@ -122,27 +123,28 @@ class ManageConversationAction extends Action
                             ->columns(1)
                             ->dense()
                             ->extraAttributes([
-                                'style' => "border-color: " . FilamentColor::getColor('danger')['600'],
+                                'style' => 'border-color: ' . FilamentColor::getColor('danger')['600'],
                             ])
                             ->schema([
                                 Flex::make([
                                     $action->getTransferConversationActionTextComponent(),
-                                    $action->getTransferConversationAction(),
+                                    $action->getModalAction(TransferConversationAction::getDefaultName()),
                                 ])
-                                    ->visible($canManageConversation),
+                                    ->visible(static fn (ConversationManager $livewire): bool => $livewire->isActiveConversationOwnedByAuthenticatedUser()),
                                 Flex::make([
                                     $action->getLeaveConversationActionTextComponent(),
-                                    $action->getLeaveConversationAction(),
-                                ]),
+                                    $action->getModalAction(LeaveConversationAction::getDefaultName()),
+                                ])
+                                    ->hidden(static fn (ConversationManager $livewire): bool => $livewire->isActiveConversationOwnedByAuthenticatedUser()),
                                 Flex::make([
                                     $action->getDeleteConversationActionTextComponent(),
-                                    $action->getDeleteConversationAction(),
+                                    $action->getModalAction(DeleteConversationAction::getDefaultName()),
                                 ])
-                                    ->visible($canManageConversation),
-                            ])
+                                    ->visible(static fn (ConversationManager $livewire): bool => $livewire->isActiveConversationOwnedByAuthenticatedUser()),
+                            ]),
                     ]),
-                ]);
-        });
+                ])
+        );
 
         $this->updateConversationUsing(static function (array $data, Conversation $conversation): Conversation {
             $user = auth()->user();
@@ -154,7 +156,7 @@ class ManageConversationAction extends Action
                 $conversation,
                 [
                     ...$otherParticipants,
-                    $user
+                    $user,
                 ],
                 [
                     'name' => $data['name'] ?? null,
@@ -191,7 +193,7 @@ class ManageConversationAction extends Action
 
     public function advancedActionsFieldsetLabel(string | Htmlable | Closure | null $label): static
     {
-        $this->advancedActionsFieldsetLabel = $label;
+        $this->modifyAdvancedActionsFieldsetLabel = $label;
 
         return $this;
     }
@@ -247,7 +249,7 @@ class ManageConversationAction extends Action
 
     public function getAdvancedActionsFieldsetLabel(): string | Htmlable | null
     {
-        return $this->evaluate($this->advancedActionsFieldsetLabel);
+        return $this->evaluate($this->modifyAdvancedActionsFieldsetLabel);
     }
 
     public function getTransferConversationAction(): Action
@@ -301,7 +303,7 @@ class ManageConversationAction extends Action
 
         if ($this->modifyTransferConversationActionTextComponentUsing) {
             $component = $this->evaluate($this->modifyTransferConversationActionTextComponentUsing, [
-                'component' => $component
+                'component' => $component,
             ], [
                 Text::class => $component,
             ]) ?? $component;
@@ -316,7 +318,7 @@ class ManageConversationAction extends Action
 
         if ($this->modifyLeaveConversationActionTextComponentUsing) {
             $component = $this->evaluate($this->modifyLeaveConversationActionTextComponentUsing, [
-                'component' => $component
+                'component' => $component,
             ], [
                 Text::class => $component,
             ]) ?? $component;
@@ -331,7 +333,7 @@ class ManageConversationAction extends Action
 
         if ($this->modifyDeleteConversationActionTextComponentUsing) {
             $component = $this->evaluate($this->modifyDeleteConversationActionTextComponentUsing, [
-                'component' => $component
+                'component' => $component,
             ], [
                 Text::class => $component,
             ]) ?? $component;

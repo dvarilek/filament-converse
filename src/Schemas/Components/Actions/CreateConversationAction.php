@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
+use App\Models\User;
 use Closure;
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
@@ -39,7 +40,7 @@ class CreateConversationAction extends Action
     protected function setUp(): void
     {
         parent::setUp();
-
+        
         $this->label(__('filament-converse::actions.create.label'));
 
         $this->modalHeading(__('filament-converse::actions.create.modal-heading'));
@@ -53,7 +54,7 @@ class CreateConversationAction extends Action
         $this->modalWidth(Width::Large);
 
         $this->slideOver();
-        
+
         $this->schema(static fn (CreateConversationAction $action): array => [
             $action->getParticipantSelectComponent(),
             Group::make([

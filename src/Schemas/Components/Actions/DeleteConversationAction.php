@@ -39,6 +39,8 @@ class DeleteConversationAction extends Action
 
         $this->cancelParentActions();
 
+        $this->visible(static fn (ConversationManager $livewire): bool => $livewire->isActiveConversationOwnedByAuthenticatedUser());
+
         $this->deleteConversationUsing(static function (Conversation $conversation): bool {
             return (bool) $conversation->delete();
         });

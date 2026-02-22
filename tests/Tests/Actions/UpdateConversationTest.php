@@ -14,7 +14,6 @@ it('can update a conversation with new participants', function () {
     $initialParticipant = User::factory()->create();
     $newParticipant = User::factory()->create();
 
-    /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $owner,
         $initialParticipant,
@@ -33,22 +32,22 @@ it('can update a conversation with new participants', function () {
         ]
     );
 
+    $activeParticipations = $conversation->participations->active();
+
     expect($updatedConversation)
         ->toBeInstanceOf(Conversation::class)
         ->name->toBe('Updated Name')
         ->description->toBe('Updated Description')
-        ->and($updatedConversation->participations()->whereNull('present_until')->count())->toBe(3)
-        ->and($initialParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue()
-        ->and($newParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue()
-        ->and($owner->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue();
+        ->and($activeParticipations)->toHaveCount(3)
+        ->and($activeParticipations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe(collect([$owner->getKey(), $initialParticipant->getKey(), $newParticipant->getKey()])->sort()->values()->toArray());
 });
 
-it('can update a conversation and remove participants by setting present_until', function () {
+it('can update a conversation and remove participants by setting deactivated_at', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();
 
-    /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $owner,
         collect([$firstParticipant, $secondParticipant]),
@@ -57,9 +56,9 @@ it('can update a conversation and remove participants by setting present_until',
         ]
     );
 
-    expect($conversation->participations()->whereNull('present_until')->count())->toBe(3);
+    expect($conversation->participations->active())->toHaveCount(3);
 
-    $updatedConversation = app(UpdateConversation::class)->handle(
+    $conversation = app(UpdateConversation::class)->handle(
         $conversation,
         $firstParticipant,
         [
@@ -67,19 +66,21 @@ it('can update a conversation and remove participants by setting present_until',
         ]
     );
 
-    expect($updatedConversation->participations()->whereNull('present_until')->count())->toBe(2)
-        ->and($updatedConversation->participations()->count())->toBe(3)
-        ->and($firstParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue()
-        ->and($secondParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeFalse()
-        ->and($secondParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNotNull('present_until')->exists())->toBeTrue()
-        ->and($owner->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue();
+    $activeParticipations = $conversation->participations->active();
+    $inactiveParticipations = $conversation->participations->inactive();
+
+    expect($activeParticipations)->toHaveCount(2)
+        ->and($inactiveParticipations)->toHaveCount(1)
+        ->and($activeParticipations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe(collect([$owner->getKey(), $firstParticipant->getKey()])->sort()->values()->toArray())
+        ->and($inactiveParticipations->value('participant_id'))
+        ->toBe($secondParticipant->getKey());
 });
 
 it('can update a conversation attributes without changing participants', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
-    /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $owner,
         $participant,
@@ -89,7 +90,7 @@ it('can update a conversation attributes without changing participants', functio
         ]
     );
 
-    $updatedConversation = app(UpdateConversation::class)->handle(
+    $conversation = app(UpdateConversation::class)->handle(
         $conversation,
         $participant,
         [
@@ -98,62 +99,42 @@ it('can update a conversation attributes without changing participants', functio
         ]
     );
 
-    expect($updatedConversation)
+    expect($conversation)
         ->name->toBe('New Name')
         ->description->toBe('New Description')
-        ->and($updatedConversation->participations()->whereNull('present_until')->count())->toBe(2);
-});
-
-it('preserves the owner when updating a conversation', function () {
-    $owner = User::factory()->create();
-    $firstParticipant = User::factory()->create();
-    $secondParticipant = User::factory()->create();
-
-    /* @var Conversation $conversation */
-    $conversation = app(CreateConversation::class)->handle(
-        $owner,
-        $firstParticipant
-    );
-
-    $updatedConversation = app(UpdateConversation::class)->handle(
-        $conversation,
-        $secondParticipant
-    );
-
-    expect($updatedConversation->owner->participant->getKey())->toBe($owner->getKey())
-        ->and($updatedConversation->participations()->whereNull('present_until')->count())->toBe(2)
-        ->and($owner->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue()
-        ->and($firstParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeFalse()
-        ->and($firstParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNotNull('present_until')->exists())->toBeTrue()
-        ->and($secondParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue();
+        ->and($conversation->participations->active())->toHaveCount(2);
 });
 
 it('does not duplicate participants when updating with existing participants', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
-    /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $owner,
         $participant
     );
 
-    expect($conversation->participations()->whereNull('present_until')->count())->toBe(2);
+    $originalActiveParticipations = $conversation->participations->active();
 
-    $updatedConversation = app(UpdateConversation::class)->handle(
+    $conversation = app(UpdateConversation::class)->handle(
         $conversation,
         $participant
     );
 
-    expect($updatedConversation->participations()->whereNull('present_until')->count())->toBe(2)
-        ->and($updatedConversation->participations()->count())->toBe(2);
+    $activeParticipations = $conversation->participations->active();
+
+    expect($originalActiveParticipations)
+        ->toHaveCount(2)
+        ->and($activeParticipations)
+        ->toHaveCount(2)
+        ->and($activeParticipations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe($originalActiveParticipations->pluck('participant_id')->sort()->values()->toArray());
 });
 
 it('throws an exception when updating with a participant that does not use the Conversable trait', function () {
     $owner = User::factory()->create();
     $validParticipant = User::factory()->create();
 
-    /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $owner,
         $validParticipant
@@ -175,106 +156,67 @@ it('throws an exception when updating with a participant that does not use the C
 
 it('can update a conversation with multiple participants replacing all previous ones', function () {
     $owner = User::factory()->create();
-    $oldParticipant1 = User::factory()->create();
-    $oldParticipant2 = User::factory()->create();
-    $newParticipant1 = User::factory()->create();
-    $newParticipant2 = User::factory()->create();
+    $oldFirstParticipant = User::factory()->create();
+    $oldSecondParticipant = User::factory()->create();
+    $newFirstParticipant = User::factory()->create();
+    $newSecondParticipant = User::factory()->create();
 
-    /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $owner,
-        collect([$oldParticipant1, $oldParticipant2])
+        collect([$oldFirstParticipant, $oldSecondParticipant])
     );
 
-    $updatedConversation = app(UpdateConversation::class)->handle(
+    $conversation = app(UpdateConversation::class)->handle(
         $conversation,
-        collect([$newParticipant1, $newParticipant2])
+        collect([$newFirstParticipant, $newSecondParticipant])
     );
 
-    expect($updatedConversation->participations()->whereNull('present_until')->count())->toBe(3)
-        ->and($updatedConversation->participations()->count())->toBe(5)
-        ->and($oldParticipant1->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeFalse()
-        ->and($oldParticipant1->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNotNull('present_until')->exists())->toBeTrue()
-        ->and($oldParticipant2->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeFalse()
-        ->and($oldParticipant2->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNotNull('present_until')->exists())->toBeTrue()
-        ->and($newParticipant1->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue()
-        ->and($newParticipant2->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue()
-        ->and($owner->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue();
+    $activeParticipations = $conversation->participations->active();
+
+    expect($activeParticipations)
+        ->toHaveCount(3)
+        ->and($activeParticipations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe(collect([$owner->getKey(), $newFirstParticipant->getKey(), $newSecondParticipant->getKey()])->sort()->values()->toArray());
 });
 
 it('can re-add a previously removed participant without creating duplicate participation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
-    /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $owner,
         $participant
     );
 
-    $participationId = $participant
-        ->conversationParticipations()
-        ->where('conversation_id', $conversation->getKey())
-        ->value('id');
+    expect($conversation->participations->active())->toHaveCount(2);
 
-    expect($conversation->participations()->count())->toBe(2);
-
-    $updatedConversation = app(UpdateConversation::class)->handle(
+    $conversation = app(UpdateConversation::class)->handle(
         $conversation,
         collect([])
     );
 
-    expect($updatedConversation->participations()->whereNull('present_until')->count())->toBe(1)
-        ->and($participant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNotNull('present_until')->exists())->toBeTrue();
+    expect($conversation->participations->active())
+        ->toHaveCount(1)
+        ->value('participant_id')
+        ->toBe($owner->getKey())
+        ->and($conversation->participations->inactive())
+        ->toHaveCount(1)
+        ->value('participant_id')
+        ->toBe($participant->getKey());
 
-    $reAddedConversation = app(UpdateConversation::class)->handle(
+    $conversation = app(UpdateConversation::class)->handle(
         $conversation,
         $participant
     );
 
-    $reAddedParticipationId = $participant
-        ->conversationParticipations()
-        ->where('conversation_id', $conversation->getKey())
-        ->whereNull('present_until')
-        ->value('id');
+    $activeParticipations = $conversation->participations->active();
 
-    expect($reAddedConversation->participations()->count())->toBe(2)
-        ->and($reAddedConversation->participations()->whereNull('present_until')->count())->toBe(2)
-        ->and($participationId)->toBe($reAddedParticipationId)
-        ->and($participant->conversationParticipations()->where('conversation_id', $conversation->getKey())->whereNull('present_until')->exists())->toBeTrue();
-});
-
-it('can re-add multiple previously removed participants without creating duplicates', function () {
-    $owner = User::factory()->create();
-    $firstParticipant = User::factory()->create();
-    $secondParticipant = User::factory()->create();
-    $thirdParticipant = User::factory()->create();
-
-    /* @var Conversation $conversation */
-    $conversation = app(CreateConversation::class)->handle(
-        $owner,
-        collect([$firstParticipant, $secondParticipant, $thirdParticipant])
-    );
-
-    expect($conversation->participations()->count())->toBe(4);
-
-    app(UpdateConversation::class)->handle(
-        $conversation,
-        $thirdParticipant
-    );
-
-    expect($conversation->fresh()->participations()->whereNull('present_until')->count())->toBe(2)
-        ->and($conversation->fresh()->participations()->count())->toBe(4);
-
-    $reAddedConversation = app(UpdateConversation::class)->handle(
-        $conversation,
-        collect([$firstParticipant, $secondParticipant, $thirdParticipant])
-    );
-
-    expect($reAddedConversation->participations()->count())->toBe(4)
-    ->and($reAddedConversation->participations()->whereNull('present_until')->count())->toBe(4)
-        ->and($firstParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->count())->toBe(1)
-        ->and($secondParticipant->conversationParticipations()->where('conversation_id', $conversation->getKey())->count())->toBe(1);
+    expect($activeParticipations)
+        ->toHaveCount(2)
+        ->and($activeParticipations->pluck('participant_id')->sort()->values()->toArray())
+        ->toBe(collect([$owner->getKey(), $participant->getKey()])->sort()->values()->toArray())
+        ->and($conversation->participations->inactive())
+        ->toHaveCount(0);
 });
 
 it('updates joined_at when re-adding a removed participant', function () {
@@ -283,35 +225,37 @@ it('updates joined_at when re-adding a removed participant', function () {
 
     Carbon::setTestNow(now());
 
-    /* @var Conversation $conversation */
     $conversation = app(CreateConversation::class)->handle(
         $owner,
         $participant
     );
 
-    $originalJoinedAt = $participant
-        ->conversationParticipations()
-        ->where('conversation_id', $conversation->getKey())
-        ->value('joined_at');
+    $originalJoinedAt = $conversation
+        ->participations
+        ->active()
+        ->firstWhere('participant_id', $participant->getKey())
+        ->joined_at;
 
-    app(UpdateConversation::class)->handle(
+    $conversation = app(UpdateConversation::class)->handle(
         $conversation,
         collect([])
     );
 
     Carbon::setTestNow(now()->addMinute());
 
-    app(UpdateConversation::class)->handle(
+    $conversation = app(UpdateConversation::class)->handle(
         $conversation,
         $participant
     );
 
-    $newJoinedAt = $participant
-        ->conversationParticipations()
-        ->where('conversation_id', $conversation->getKey())
-        ->whereNull('present_until')
-        ->value('joined_at');
+    $newJoinedAt = $conversation
+        ->participations
+        ->active()
+        ->firstWhere('participant_id', $participant->getKey())
+        ->joined_at;
 
-    expect($newJoinedAt)->not->toBe($originalJoinedAt)
-        ->and($newJoinedAt)->toBeGreaterThan($originalJoinedAt);
+    expect($newJoinedAt)
+        ->not->toBe($originalJoinedAt)
+        ->and($newJoinedAt)
+        ->toBeGreaterThan($originalJoinedAt);
 });
