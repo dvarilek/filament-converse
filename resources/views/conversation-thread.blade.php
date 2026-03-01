@@ -34,8 +34,6 @@
         $getChildComponents(ConversationThread::HEADER_ACTIONS_KEY),
         static fn (Action | ActionGroup $action) => $action->isVisible()
     );
-
-    $messageActions = $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY);
 @endphp
 
 <div
@@ -165,15 +163,6 @@
                     $isMessageUnread = $unreadMessages->contains(static fn (Message $msg) => $msg->getKey() === $message->getKey());
                     $markConversationAsRead = $message->getKey() === $latestMessage->getKey() && $isMessageUnread && $shouldMarkConversationAsRead;
                     $showNewMessagesDivider = $shouldShowNewMessagesDivider($message, $messageAuthor, $messages, $unreadMessages);
-
-                    $filteredMessageActions = array_filter(
-                        $messageActions,
-                        static function (Action | ActionGroup $action) use ($message) {
-                            $action->record($message)->arguments(['record' => $message->getKey()]);
-
-                            return $action->isVisible();
-                        }
-                    );
                 @endphp
 
                 <div
@@ -348,15 +337,14 @@
                                     @endif
                                 </div>
 
-                                @if (count($filteredMessageActions))
-                                    <div
-                                        class="fi-converse-conversation-thread-message-actions"
-                                    >
-                                        @foreach ($filteredMessageActions as $action)
-                                            {{ $action }}
-                                        @endforeach
-                                    </div>
-                                @endif
+                                <div
+                                    class="fi-converse-conversation-thread-message-actions"
+                                >
+                                    {{
+                                        $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY)[0]
+                                            ->record($message)
+                                    }}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -370,7 +358,7 @@
                             class="fi-converse-conversation-thread-read-receipt"
                             @if ($showFullReadReceiptMessage)
                                 x-data="{ expanded: false }"
-                            x-on:click="expanded = ! expanded"
+                                x-on:click="expanded = ! expanded"
                             @endif
                         >
                             @if ($showFullReadReceiptMessage)

@@ -21,8 +21,6 @@ class EditMessageAction extends Action
     {
         parent::setUp();
 
-        $this->iconButton();
-
         $this->color('primary');
 
         $this->icon(Heroicon::OutlinedPencil);

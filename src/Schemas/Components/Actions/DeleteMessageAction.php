@@ -23,9 +23,7 @@ class DeleteMessageAction extends Action
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->iconButton();
-
+        
         $this->label(__('filament-converse::conversation-thread.message-actions.edit-message.label'));
 
         $this->color('danger');

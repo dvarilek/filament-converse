@@ -134,6 +134,10 @@ class ConversationThread extends Component
 
         $this->model(static fn ($livewire) => $livewire->getActiveConversation());
 
+        // TODO: Edit / Delete message actions
+        // ConversationList latest message is not updating
+        // Participants joined_at and left_at indicators in thread
+
         $this->schema(static fn (ConversationThread $component) => [
             FusedGroup::make([
                 $component->getAttachmentAreaComponent(),
@@ -150,10 +154,22 @@ class ConversationThread extends Component
             $component->getManageConversationAction(),
         ], static::HEADER_ACTIONS_KEY);
 
-        $this->childComponents(static fn (ConversationThread $component) => [
-            $component->getEditMessageAction(),
-            $component->getDeleteMessageAction(),
-        ], static::MESSAGE_ACTIONS_KEY);
+        $this->childComponents(static fn (ConversationThread $component) => ActionGroup::make([
+                Action::make('messageTimestamp')
+                    ->label(fn (Message $message) => $message->created_at->toDateTimeString())
+                    ->mountUsing(static fn (Action $action, array $arguments, $record) => dd($action->getSchemaContainer()->getComponents()[0]->getViewData(), $action->getSchemaContainer()->getComponents()[0]))
+                    ->mountUsing(function ($message, $arguments, $recordKey) {
+                        dd($message, $arguments, $recordKey);
+                    })
+                    ->action(fn (Message $message) => dd($record)),
+                ActionGroup::make([
+                    $component->getEditMessageAction(),
+                    $component->getDeleteMessageAction(),
+                ])
+                    ->dropdown(false)
+            ]),
+            static::MESSAGE_ACTIONS_KEY
+        );
 
         $this->sendMessageUsing(static function (ConversationManager $livewire, array $data): ?Message {
             $messageContent = $data['messageContent'] ?? null;
