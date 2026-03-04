@@ -34,9 +34,19 @@ return [
 
     'message-actions' => [
 
-        'delete-label' => 'Odstranit',
+        'delete' => [
 
-        'edit-message' => [
+            'label' => 'Odstranit',
+
+            'modal-heading' => 'Odstranit zprávu',
+
+            'submit-label' => 'Upravit',
+
+            'success' => 'Zpráva odstraněna'
+
+        ],
+
+        'edit' => [
 
             'label' => 'Upravit',
 

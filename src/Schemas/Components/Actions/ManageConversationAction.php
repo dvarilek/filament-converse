@@ -8,7 +8,6 @@ use Closure;
 use Dvarilek\FilamentConverse\Actions\UpdateConversation;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Filament\Actions\Action;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Fieldset;
@@ -109,7 +108,7 @@ class ManageConversationAction extends Action
             static fn (ManageConversationAction $action) => $action->getLeaveConversationAction(),
             static fn (ManageConversationAction $action) => $action->getDeleteConversationAction(),
         ]);
-        
+
         $this->schema(
             static fn (Schema $schema, ManageConversationAction $action): Schema => $schema
                 ->disabled(static fn (ConversationManager $livewire): bool => ! $livewire->isActiveConversationOwnedByAuthenticatedUser())

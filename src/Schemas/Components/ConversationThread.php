@@ -35,6 +35,7 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
@@ -88,6 +89,11 @@ class ConversationThread extends Component
      */
     protected string | array | Closure | null $messageColor = null;
 
+    /**
+     * @var array<Action | ActionGroup> | ActionGroup | Closure
+     */
+    protected array | Closure | null $messageActions = [];
+
     protected int | Closure | null $autoScrollOnForeignMessagesThreshold = 300;
 
     protected string | Closure | null $fileAttachmentsDiskName = null;
@@ -108,9 +114,9 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyDeleteMessageActionUsing = null;
 
-    protected ?Closure $modifyAttachmentAreaUsing = null;
+    protected ?Closure $modifyAttachmentAreaComponentUsing = null;
 
-    protected ?Closure $modifyTextareaUsing = null;
+    protected ?Closure $modifyTextareaComponentUsing = null;
 
     protected ?Closure $sendMessageUsing = null;
 
@@ -134,9 +140,9 @@ class ConversationThread extends Component
 
         $this->model(static fn ($livewire) => $livewire->getActiveConversation());
 
-        // TODO: Edit / Delete message actions
-        // ConversationList latest message is not updating
-        // Participants joined_at and left_at indicators in thread
+        // TODO:
+        //  Participants joined_at and left_at indicators in thread
+        //  ConversationList latest message is not updating
 
         $this->schema(static fn (ConversationThread $component) => [
             FusedGroup::make([
@@ -150,24 +156,25 @@ class ConversationThread extends Component
             ])
         ]);
 
+        $this->messageActions(static fn (ConversationThread $component) =>
+            ActionGroup::make([
+                Action::make('messageTimestamp') // Easiest way to just show the timestamp
+                    ->label(fn (Message $message) => $message->created_at->toDateTimeString())
+                    ->disabled(),
+                ActionGroup::make([
+                    $component->getEditMessageAction(),
+                    $component->getDeleteMessageAction()
+                ])
+                    ->dropdown(false)
+            ])
+        );
+
         $this->childComponents(static fn (ConversationThread $component) => [
             $component->getManageConversationAction(),
         ], static::HEADER_ACTIONS_KEY);
 
-        $this->childComponents(static fn (ConversationThread $component) => ActionGroup::make([
-                Action::make('messageTimestamp')
-                    ->label(fn (Message $message) => $message->created_at->toDateTimeString())
-                    ->mountUsing(static fn (Action $action, array $arguments, $record) => dd($action->getSchemaContainer()->getComponents()[0]->getViewData(), $action->getSchemaContainer()->getComponents()[0]))
-                    ->mountUsing(function ($message, $arguments, $recordKey) {
-                        dd($message, $arguments, $recordKey);
-                    })
-                    ->action(fn (Message $message) => dd($record)),
-                ActionGroup::make([
-                    $component->getEditMessageAction(),
-                    $component->getDeleteMessageAction(),
-                ])
-                    ->dropdown(false)
-            ]),
+        $this->childComponents(static fn (ConversationThread $component): array =>
+            $component->getMessageActions(),
             static::MESSAGE_ACTIONS_KEY
         );
 
@@ -577,6 +584,16 @@ class ConversationThread extends Component
         return $this;
     }
 
+    /**
+     * @param array<Action | ActionGroup> | ActionGroup | Closure
+     */
+    public function messageActions(array | ActionGroup | Closure $actions): static
+    {
+        $this->messageActions = $actions;
+
+        return $this;
+    }
+
     public function autoScrollOnForeignMessagesThreshold(int | Closure | null $pixels): static
     {
         $this->autoScrollOnForeignMessagesThreshold = $pixels;
@@ -661,16 +678,16 @@ class ConversationThread extends Component
         return $this;
     }
 
-    public function modifyTextareaUsing(?Closure $callback): static
+    public function modifyTextareaComponentUsing(?Closure $callback): static
     {
-        $this->modifyTextareaUsing = $callback;
+        $this->modifyTextareaComponentUsing = $callback;
 
         return $this;
     }
 
-    public function modifyAttachmentAreaUsing(?Closure $callback): static
+    public function modifyAttachmentAreaComponentUsing(?Closure $callback): static
     {
-        $this->modifyAttachmentAreaUsing = $callback;
+        $this->modifyAttachmentAreaComponentUsing = $callback;
 
         return $this;
     }
@@ -830,6 +847,32 @@ class ConversationThread extends Component
             Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]) ?? 'gray';
+    }
+
+    /**
+     * @return array<Action | ActionGroup>
+     */
+    public function getMessageActions(): array
+    {
+        $actions = Arr::wrap($this->evaluate($this->messageActions) ?? []);
+        $livewire = $this->getLivewire();
+
+        $stack = collect($actions);
+
+        while ($action = $stack->shift()) {
+            if ($action instanceof ActionGroup) {
+                $stack->push(...$action->getFlatActions());
+            } else {
+                $action->mountUsing(static fn ($action) => $action
+                    ->record(
+                        static fn (array $arguments) => $livewire
+                            ->getActiveConversation()
+                            ->messages()
+                            ->find($arguments['recordKey'] ?? null)
+                    ));
+            }
+        }
+        return $actions;
     }
 
     public function getAutoScrollOnForeignMessagesThreshold(): int
@@ -1040,8 +1083,8 @@ class ConversationThread extends Component
                 'required_without' => __('filament-converse::conversation-thread.validation.message-required') . 'a',
             ]);
 
-        if ($this->modifyAttachmentAreaUsing) {
-            $component = $this->evaluate($this->modifyAttachmentAreaUsing, [
+        if ($this->modifyAttachmentAreaComponentUsing) {
+            $component = $this->evaluate($this->modifyAttachmentAreaComponentUsing, [
                 'component' => $component,
             ], [
                 AttachmentArea::class => $component,
@@ -1055,13 +1098,13 @@ class ConversationThread extends Component
     {
         $component = Textarea::make('messageContent')
             ->hiddenLabel()
+            ->placeholder(__('filament-converse::conversation-thread.placeholder'))
             ->autosize()
             ->autofocus()
             ->maxLength(65535)
-            ->placeholder(__('filament-converse::conversation-thread.placeholder'))
             ->requiredWithout('attachments')
             ->validationMessages([
-                'required_without' => __('filament-converse::conversation-thread.validation.message-required'). 'b',
+                'required_without' => __('filament-converse::conversation-thread.validation.message-required'),
             ])
             ->extraAttributes([
                 'style' => 'max-height: 8rem; overflow: auto'
@@ -1070,8 +1113,8 @@ class ConversationThread extends Component
                 'x-on:keydown' => '$nextTick(() => fireUserTypingEvent($event))'
             ]);
 
-        if ($this->modifyTextareaUsing) {
-            $component = $this->evaluate($this->modifyTextareaUsing, [
+        if ($this->modifyTextareaComponentUsing) {
+            $component = $this->evaluate($this->modifyTextareaComponentUsing, [
                 'component' => $component,
             ], [
                 Textarea::class => $component,

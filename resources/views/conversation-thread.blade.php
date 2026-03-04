@@ -340,10 +340,29 @@
                                 <div
                                     class="fi-converse-conversation-thread-message-actions"
                                 >
-                                    {{
-                                        $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY)[0]
-                                            ->record($message)
-                                    }}
+
+                                    @php
+                                        /* @var list<Action | ActionGroup> $actions */
+                                        $actions = $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY);
+
+                                        $stack = collect($actions);
+
+                                        while ($action = $stack->shift()) {
+                                            if ($action instanceof ActionGroup) {
+                                                $stack->push(...$action->getFlatActions());
+                                            } else {
+                                                $action
+                                                    ->record($message)
+                                                    ->arguments([
+                                                        'recordKey' => $message->getKey()
+                                                    ]);
+                                            }
+                                        }
+                                    @endphp
+
+                                    @foreach ($actions as $action)
+                                        {{ $action }}
+                                    @endforeach
                                 </div>
                             </div>
                         </div>

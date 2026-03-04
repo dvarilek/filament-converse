@@ -34,11 +34,25 @@ return [
 
     'message-actions' => [
 
-        'delete-label' => 'Delete',
+        'delete' => [
 
-        'edit-message' => [
+            'label' => 'Delete',
+            
+            'modal-heading' => 'Delete message',
+            
+            'success' => 'Message deleted'
+
+        ],
+
+        'edit' => [
 
             'label' => 'Edit',
+            
+            'modal-heading' => 'Edit message',
+
+            'submit-label' => 'Update',
+            
+            'success' => 'Message updated'
 
         ],
 
