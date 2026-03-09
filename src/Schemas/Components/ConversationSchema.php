@@ -177,7 +177,7 @@ class ConversationSchema extends Component
                 ->sortByDesc('created_at');
 
             if ($latestMessages->isEmpty()) {
-                [$bottomAvatarParticipant, $topAvatarParticipant] = $otherParticipations->pluck('participant');
+                [$bottomAvatarParticipant, $topAvatarParticipant] = $otherParticipations->active()->pluck('participant');
             } else {
                 $conversationParticipationPrimaryKey = (new ConversationParticipation)->getKeyName();
 

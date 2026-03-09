@@ -140,9 +140,7 @@ class ConversationThread extends Component
 
         $this->model(static fn ($livewire) => $livewire->getActiveConversation());
 
-        // TODO:
-        //  Participants joined_at and left_at indicators in thread
-        //  ConversationList latest message is not updating
+        // TODO: Participants joined_at and left_at indicators in thread
 
         $this->schema(static fn (ConversationThread $component) => [
             FusedGroup::make([
@@ -1177,6 +1175,9 @@ class ConversationThread extends Component
 
                 data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
                 $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
+                // The cached conversations need to be reset so that the latest message of the current conversation
+                // gets properly updated for the authenticated user.
+                unset($livewire->conversations);
 
                 $livewire->content->fill();
             });
