@@ -36,23 +36,19 @@ it('is only visible to message author', function () {
         ]);
 
     livewire(ConversationManager::class)
-        ->assertActionExists(
+        ->assertActionVisible(
             TestAction::make(EditMessageAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread')
                 ->arguments([
                     'recordKey' => $ownerMessage->getKey(),
                 ]),
-            checkActionUsing: fn (EditMessageAction $action): bool => $action->record($ownerMessage)->isVisible(),
-            generateMessageUsing: fn (string $prettyName, string $livewireClass): string => "Failed asserting that an action with name [{$prettyName}] is visible on the [{$livewireClass}] component.",
         )
-        ->assertActionExists(
+        ->assertActionHidden(
             TestAction::make(EditMessageAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread')
                 ->arguments([
                     'recordKey' => $participantMessage->getKey(),
                 ]),
-            checkActionUsing: fn (EditMessageAction $action): bool => $action->record($participantMessage)->isHidden(),
-            generateMessageUsing: fn (string $prettyName, string $livewireClass): string => "Failed asserting that an action with name [{$prettyName}] is hidden on the [{$livewireClass}] component.",
         );
 });
 
@@ -70,14 +66,12 @@ it('is hidden when message content is empty', function () {
     ]);
 
     livewire(ConversationManager::class)
-        ->assertActionExists(
+        ->assertActionHidden(
             TestAction::make(EditMessageAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread')
                 ->arguments([
                     'recordKey' => $message->getKey(),
                 ]),
-            checkActionUsing: fn (EditMessageAction $action): bool => $action->record($message)->isHidden(),
-            generateMessageUsing: fn (string $prettyName, string $livewireClass): string => "Failed asserting that an action with name [{$prettyName}] is hidden on the [{$livewireClass}] component.",
         );
 });
 
@@ -108,4 +102,4 @@ it('can update a message', function () {
         ->assertHasNoFormErrors();
 
     expect($message->fresh()->content)->toBe('updated message');
-})->todo('Figure out how to make $message resolved');
+});

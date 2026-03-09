@@ -172,7 +172,7 @@ class ConversationThread extends Component
         );
 
         $this->childComponents(
-            static fn (ConversationThread $component) => $component->getHeaderActions(),
+            static fn (ConversationThread $component): array => $component->getHeaderActions(),
             static::HEADER_ACTIONS_KEY
         );
 
@@ -867,7 +867,7 @@ class ConversationThread extends Component
      */
     public function getHeaderActions(): array
     {
-        return $this->evaluate($this->headerActions) ?? [];
+        return Arr::wrap($this->evaluate($this->headerActions)) ?? [];
     }
 
     /**
@@ -875,26 +875,7 @@ class ConversationThread extends Component
      */
     public function getMessageActions(): array
     {
-        $actions = Arr::wrap($this->evaluate($this->messageActions) ?? []);
-        $livewire = $this->getLivewire();
-
-        $stack = collect($actions);
-
-        while ($action = $stack->shift()) {
-            if ($action instanceof ActionGroup) {
-                $stack->push(...$action->getFlatActions());
-            } else {
-                $action->mountUsing(static fn ($action) => $action
-                    ->record(
-                        static fn (array $arguments) => $livewire
-                            ->getActiveConversation()
-                            ->messages()
-                            ->find($arguments['recordKey'] ?? null)
-                    ));
-            }
-        }
-
-        return $actions;
+        return Arr::wrap($this->evaluate($this->messageActions) ?? []);
     }
 
     public function getAutoScrollOnForeignMessagesThreshold(): int

@@ -23,6 +23,7 @@ use Filament\Support\Concerns\HasExtraAttributes;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 use Illuminate\Support\HtmlString;
 use Livewire\Component as LivewireComponent;
 
@@ -345,7 +346,7 @@ class ConversationList extends Component
      */
     public function getHeaderActions(): array
     {
-        return $this->evaluate($this->headerActions) ?? [];
+        return Arr::wrap($this->evaluate($this->headerActions)) ?? [];
     }
 
     public function getHeading(): string | Htmlable

@@ -45,8 +45,14 @@ class EditMessageAction extends Action
 
         $this->model(Message::class);
 
+        $this->record(
+            static fn (Conversation $conversation, array $arguments): ?Message => $conversation
+                ->messages()
+                ->find($arguments['recordKey'] ?? null)
+        );
+
         $this->visible(
-            fn (ConversationManager $livewire, ?Message $message) => filled($message?->content) &&
+            static fn (ConversationManager $livewire, ?Message $message): bool => filled($message?->content) &&
                 $message->author_id === $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey()
         );
 
@@ -58,7 +64,7 @@ class EditMessageAction extends Action
             'content' => $data['messageContent'],
         ]));
 
-        $this->action(static function (array $data, EditMessageAction $action) {
+        $this->action(static function (array $data, EditMessageAction $action): void {
             if (! $action->updateMessageUsing) {
                 return;
             }

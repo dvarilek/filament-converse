@@ -36,23 +36,19 @@ it('is only visible to message author ', function () {
         ]);
 
     livewire(ConversationManager::class)
-        ->assertActionExists(
+        ->assertActionVisible(
             TestAction::make(DeleteMessageAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread')
                 ->arguments([
                     'recordKey' => $ownerMessage->getKey(),
                 ]),
-            checkActionUsing: fn (DeleteMessageAction $action): bool => $action->record($ownerMessage)->isVisible(),
-            generateMessageUsing: fn (string $prettyName, string $livewireClass): string => "Failed asserting that an action with name [{$prettyName}] is visible on the [{$livewireClass}] component.",
         )
-        ->assertActionExists(
+        ->assertActionHidden(
             TestAction::make(DeleteMessageAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread')
                 ->arguments([
                     'recordKey' => $participantMessage->getKey(),
                 ]),
-            checkActionUsing: fn (DeleteMessageAction $action): bool => $action->record($participantMessage)->isHidden(),
-            generateMessageUsing: fn (string $prettyName, string $livewireClass): string => "Failed asserting that an action with name [{$prettyName}] is visible on the [{$livewireClass}] component.",
         );
 });
 
@@ -79,4 +75,4 @@ it('can delete a message', function () {
         );
 
     expect($conversation->fresh()->messages()->count())->toBe(0);
-})->todo('Figure out how to make $message resolved');
+});

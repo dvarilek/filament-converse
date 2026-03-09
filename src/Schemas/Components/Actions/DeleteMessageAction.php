@@ -38,12 +38,18 @@ class DeleteMessageAction extends Action
 
         $this->model(Message::class);
 
+        $this->record(
+            static fn (Conversation $conversation, array $arguments): ?Message => $conversation
+                ->messages()
+                ->find($arguments['recordKey'] ?? null)
+        );
+
         $this->visible(
-            static fn (ConversationManager $livewire, ?Message $message) => filled($message) &&
+            static fn (ConversationManager $livewire, ?Message $message): bool => filled($message) &&
                 $message->author_id === $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey()
         );
 
-        $this->deleteMessageUsing(static fn (Message $message) => $message->delete());
+        $this->deleteMessageUsing(static fn (Message $message): bool => $message->delete());
 
         $this->action(static function (DeleteMessageAction $action): void {
             if (! $action->deleteMessageUsing) {
