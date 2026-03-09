@@ -87,6 +87,11 @@ class ConversationThread extends Component
     /**
      * @var array<Action | ActionGroup> | ActionGroup | Closure
      */
+    protected array | Closure | null $headerActions = [];
+
+    /**
+     * @var array<Action | ActionGroup> | ActionGroup | Closure
+     */
     protected array | Closure | null $messageActions = [];
 
     protected int | Closure | null $autoScrollOnForeignMessagesThreshold = 300;
@@ -151,6 +156,10 @@ class ConversationThread extends Component
             ]),
         ]);
 
+        $this->headerActions(static fn (ConversationThread $component) => [
+            $component->getManageConversationAction(),
+        ]);
+
         $this->messageActions(
             static fn (ConversationThread $component) => ActionGroup::make([
                 Action::make('messageTimestamp') // Easiest way to just show the timestamp
@@ -164,9 +173,10 @@ class ConversationThread extends Component
             ])
         );
 
-        $this->childComponents(static fn (ConversationThread $component) => [
-            $component->getManageConversationAction(),
-        ], static::HEADER_ACTIONS_KEY);
+        $this->childComponents(
+            static fn (ConversationThread $component) => $component->getHeaderActions(),
+            static::HEADER_ACTIONS_KEY
+        );
 
         $this->childComponents(
             static fn (ConversationThread $component): array => $component->getMessageActions(),
@@ -582,6 +592,16 @@ class ConversationThread extends Component
     /**
      * @param array<Action | ActionGroup> | ActionGroup | Closure
      */
+    public function headerActions(array | Closure | null $actions): static
+    {
+        $this->headerActions = $actions;
+
+        return $this;
+    }
+
+    /**
+     * @param array<Action | ActionGroup> | ActionGroup | Closure
+     */
     public function messageActions(array | ActionGroup | Closure $actions): static
     {
         $this->messageActions = $actions;
@@ -842,6 +862,14 @@ class ConversationThread extends Component
             Authenticatable::class => $messageAuthor,
             Collection::class => $messages,
         ]) ?? 'gray';
+    }
+
+    /**
+     * @return array<Action | ActionGroup>
+     */
+    public function getHeaderActions(): array
+    {
+        return $this->evaluate($this->headerActions) ?? [];
     }
 
     /**

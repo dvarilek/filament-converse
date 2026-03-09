@@ -14,6 +14,7 @@ use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\CreateConversationAction;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
@@ -35,6 +36,11 @@ class ConversationList extends Component
     use HasKey;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
+
+    /**
+     * @var array<Action | ActionGroup> | ActionGroup | Closure
+     */
+    protected array | Closure | null $headerActions = [];
 
     /**
      * @var view-string
@@ -110,6 +116,15 @@ class ConversationList extends Component
 
         $this->model(static fn ($livewire) => $livewire->getActiveConversation());
 
+        $this->headerActions(static fn (ConversationList $component) => [
+            $component->getCreateConversationAction(),
+        ]);
+
+        $this->childComponents(
+            static fn (ConversationList $component) => $component->getHeaderActions(),
+            static::HEADER_ACTIONS_KEY
+        );
+
         $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string | null {
             $authenticatedUserKey = auth()->id();
 
@@ -174,10 +189,16 @@ class ConversationList extends Component
                         )
                 );
         });
+    }
 
-        $this->childComponents(fn () => [
-            $this->getCreateConversationAction(),
-        ], static::HEADER_ACTIONS_KEY);
+    /**
+     * @param array<Action | ActionGroup> | ActionGroup | Closure
+     */
+    public function headerActions(array | Closure | null $actions): static
+    {
+        $this->headerActions = $actions;
+
+        return $this;
     }
 
     public function heading(string | Htmlable | Closure | null $heading): static
@@ -196,7 +217,7 @@ class ConversationList extends Component
 
     public function headingBadge(bool | Closure $condition = true): static
     {
-        $this->hasHeadingBadge = $hasBadge;
+        $this->hasHeadingBadge = $condition;
 
         return $this;
     }
@@ -317,6 +338,14 @@ class ConversationList extends Component
         $this->searchConversationsUsing = $callback;
 
         return $this;
+    }
+
+    /**
+     * @return array<Action | ActionGroup>
+     */
+    public function getHeaderActions(): array
+    {
+        return $this->evaluate($this->headerActions) ?? [];
     }
 
     public function getHeading(): string | Htmlable
