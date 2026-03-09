@@ -113,4 +113,3 @@ it('cannot create a conversation with owner as one of its participants', functio
         collect([$owner])
     ))->toThrow(Exception::class);
 });
-

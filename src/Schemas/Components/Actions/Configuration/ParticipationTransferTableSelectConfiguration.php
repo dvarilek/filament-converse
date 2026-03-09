@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\Configuration;
 
-use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-use Filament\Facades\Filament;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\Layout\Split;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class ParticipationTransferTableSelectConfiguration
 {
@@ -22,7 +19,7 @@ class ParticipationTransferTableSelectConfiguration
             ->query(static::getTableQuery(...))
             ->searchable()
             ->paginationPageOptions([
-                'all'
+                'all',
             ])
             ->columns([
                 Split::make([
@@ -36,7 +33,7 @@ class ParticipationTransferTableSelectConfiguration
 
                             return $participant->getAttribute($participant::getFilamentNameAttribute());
                         }),
-                ])
+                ]),
             ]);
     }
 
@@ -46,7 +43,7 @@ class ParticipationTransferTableSelectConfiguration
             ->whereKey($table->getArguments()['conversationKey'] ?? null)
             ->first();
 
-        if (!$conversation) {
+        if (! $conversation) {
             return null;
         }
 

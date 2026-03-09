@@ -7,10 +7,7 @@ namespace Dvarilek\FilamentConverse\Actions;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -73,7 +70,7 @@ class UpdateConversation
 
                 $participant->conversationParticipations()->create([
                     'conversation_id' => $conversationKey,
-                    'joined_at' => now()
+                    'joined_at' => now(),
                 ]);
             }
 

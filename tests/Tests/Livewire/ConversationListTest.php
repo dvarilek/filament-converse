@@ -41,7 +41,7 @@ describe('render', function () {
             ->and($livewire)
             ->assertSeeText($firstUser->name)
             ->assertSeeText($secondUser->name)
-            ->assertSeeText($firstUser->name . " & " . $secondUser->name)
+            ->assertSeeText($firstUser->name . ' & ' . $secondUser->name)
             ->assertSeeText($firstUser->name . ', ' . $secondUser->name . ' & ' . $thirdUser->name);
     });
 
@@ -94,7 +94,7 @@ describe('render', function () {
         Carbon::setTestNow(now()->addMinutes(5));
 
         /* @var ConversationParticipation $otherParticipant */
-        $otherParticipant = $conversation->participations()->firstWhere('participant_id', $otherUser->getKey());;
+        $otherParticipant = $conversation->participations()->firstWhere('participant_id', $otherUser->getKey());
 
         $secondMessage = app(SendMessage::class)->handle($otherParticipant, $conversation, [
             'content' => 'Second test message',
@@ -185,5 +185,3 @@ describe('search', function () {
             ->not->toContain($firstUserConversation->getKey());
     });
 });
-
-

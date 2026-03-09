@@ -113,10 +113,11 @@ class ConversationList extends Component
         $this->headingBadgeState(static function (HasConversationSchema $livewire): int | string | null {
             $authenticatedUserKey = auth()->id();
 
-            $count = $livewire->conversations->sum(static fn (Conversation $conversation) => $conversation
-                ->participations
-                ->firstWhere('participant_id', $authenticatedUserKey)
-                ->unread_messages_count
+            $count = $livewire->conversations->sum(
+                static fn (Conversation $conversation) => $conversation
+                    ->participations
+                    ->firstWhere('participant_id', $authenticatedUserKey)
+                    ->unread_messages_count
             );
 
             return $count === 0 ? null : $count;

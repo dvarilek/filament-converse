@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
+use Closure;
 use Dvarilek\FilamentConverse\Actions\LeaveConversation;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Filament\Actions\Action;
-use Closure;
 use Filament\Support\Icons\Heroicon;
 
 class LeaveConversationAction extends Action
@@ -42,8 +42,9 @@ class LeaveConversationAction extends Action
 
         $this->hidden(static fn (ConversationManager $livewire): bool => $livewire->isActiveConversationOwnedByAuthenticatedUser());
 
-        $this->leaveConversationUsing(static fn (Conversation $conversation): bool => app(LeaveConversation::class)
-            ->handle($conversation, auth()->user())
+        $this->leaveConversationUsing(
+            static fn (Conversation $conversation): bool => app(LeaveConversation::class)
+                ->handle($conversation, auth()->user())
         );
 
         $this->action(static function (LeaveConversationAction $action, ConversationManager $livewire): void {

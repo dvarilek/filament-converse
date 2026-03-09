@@ -9,17 +9,16 @@ use Dvarilek\FilamentConverse\Livewire\Contracts\HasConversationSchema;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationSchema;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Schemas\Components\Component as SchemaComponent;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Arr;
 use Illuminate\View\View;
-use Filament\Schemas\Components\Component as SchemaComponent;
 use Livewire\Attributes\Locked;
-use RuntimeException;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\FileUploadConfiguration;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use RuntimeException;
 
 /**
  * @property Schema $content

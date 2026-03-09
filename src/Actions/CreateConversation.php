@@ -52,7 +52,7 @@ class CreateConversation
             /* @var ConversationParticipation $ownerParticipation */
             $ownerParticipation = $owner->conversationParticipations()->create([
                 'conversation_id' => $conversationKey,
-                'joined_at' => now()
+                'joined_at' => now(),
             ]);
 
             $conversation->owner()->associate($ownerParticipation)->save();
@@ -64,7 +64,7 @@ class CreateConversation
 
                 $participant->conversationParticipations()->create([
                     'conversation_id' => $conversationKey,
-                    'joined_at' => now()
+                    'joined_at' => now(),
                 ]);
             });
 

@@ -1,17 +1,17 @@
 @props([
-    'conversation',
-    'conversationName',
-    'conversationImageUrl' => null,
-    'getDefaultConversationImageData',
+'conversation',
+'conversationName',
+'conversationImageUrl' => null,
+'getDefaultConversationImageData',
 ])
 
 @php
     use Dvarilek\FilamentConverse\Models\Conversation;
-    use Dvarilek\FilamentConverse\Models\ConversationParticipation;
-    use Dvarilek\FilamentConverse\Models\Message;
-    use Illuminate\Support\Collection;
+            use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+            use Dvarilek\FilamentConverse\Models\Message;
+            use Illuminate\Support\Collection;
 
-    /* @var Conversation $conversation */
+            /* @var Conversation $conversation */
 @endphp
 
 @if ($conversationImageUrl)
@@ -26,19 +26,19 @@
 @else
     @php
         $conversationImageData = $getDefaultConversationImageData($conversation);
-        $hasMultipleAvatarsInConversationImage = count($conversationImageData) === 2;
+                        $hasMultipleAvatarsInConversationImage = count($conversationImageData) === 2;
     @endphp
 
     <div
         @class([
-            'fi-converse-conversation-image-multiple-avatars' => $hasMultipleAvatarsInConversationImage,
-            'fi-converse-conversation-image-container',
+        'fi-converse-conversation-image-multiple-avatars' => $hasMultipleAvatarsInConversationImage,
+        'fi-converse-conversation-image-container',
         ])
     >
         @if ($hasMultipleAvatarsInConversationImage)
             @php
                 $topAvatarParticipant = $conversationImageData[0] ?? [];
-                $bottomAvatarParticipant = $conversationImageData[1] ?? [];
+                                                $bottomAvatarParticipant = $conversationImageData[1] ?? [];
             @endphp
 
             <x-filament::avatar

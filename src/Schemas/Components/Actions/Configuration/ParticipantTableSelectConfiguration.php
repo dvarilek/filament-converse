@@ -15,7 +15,6 @@ use Filament\Tables\Table;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Arr;
 
 class ParticipantTableSelectConfiguration
 {
@@ -25,7 +24,7 @@ class ParticipantTableSelectConfiguration
             ->query(static::getTableQuery(...))
             ->searchable()
             ->paginationPageOptions([
-                'all'
+                'all',
             ])
             ->columns([
                 Split::make([
@@ -59,7 +58,7 @@ class ParticipantTableSelectConfiguration
                                 ? __('filament-converse::actions.schema.participants.participation.owner')
                                 : __('filament-converse::actions.schema.participants.participation.default');
                         }),
-                ])
+                ]),
             ]);
     }
 
@@ -77,9 +76,11 @@ class ParticipantTableSelectConfiguration
         return $query;
         $activeParticipantsQuery = $query
             ->clone()
-            ->whereHas('conversationParticipations', static fn (Builder $subQuery) => $subQuery
-                ->where('conversation_id', $conversationKey)
-                ->active()
+            ->whereHas(
+                'conversationParticipations',
+                static fn (Builder $subQuery) => $subQuery
+                    ->where('conversation_id', $conversationKey)
+                    ->active()
             );
 
         $livewire->state = array_values(

@@ -7,9 +7,9 @@ namespace Dvarilek\FilamentConverse\Actions;
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Exception;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use Exception;
 use Illuminate\Support\Facades\DB;
 
 class TransferConversation

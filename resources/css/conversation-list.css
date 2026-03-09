@@ -52,7 +52,8 @@
     & .fi-converse-conversation-area {
         @apply flex flex-col gap-3 overflow-y-auto px-6 pb-6 pt-3;
 
-        & .fi-converse-conversation-list-load-more-messages-indicator-container {
+        &
+            .fi-converse-conversation-list-load-more-messages-indicator-container {
             @apply flex flex-col;
 
             & .fi-converse-conversation-list-load-more-messages-indicator {
@@ -61,11 +62,10 @@
         }
 
         & .fi-converse-conversation-list-item-container {
-
         }
 
         & .fi-converse-conversation-list-item {
-            @apply min-h-18 flex flex-col cursor-pointer gap-y-3 rounded-xl p-2;
+            @apply min-h-18 flex cursor-pointer flex-col gap-y-3 rounded-xl p-2;
 
             &[disabled] {
                 @apply pointer-events-none cursor-default opacity-80;
@@ -88,7 +88,7 @@
             }
 
             & .fi-converse-conversation-list-item-content-wrapper {
-                @apply flex gap-3 items-center;
+                @apply flex items-center gap-3;
 
                 & .fi-converse-conversation-list-item-content {
                     @apply min-w-0 flex-1;
@@ -113,7 +113,7 @@
                         }
 
                         &
-                        .fi-converse-conversation-list-item-last-message-description {
+                            .fi-converse-conversation-list-item-last-message-description {
                             @apply truncate pt-1.5 text-sm;
                         }
                     }

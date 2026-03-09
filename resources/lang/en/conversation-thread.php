@@ -37,22 +37,22 @@ return [
         'delete' => [
 
             'label' => 'Delete',
-            
+
             'modal-heading' => 'Delete message',
-            
-            'success' => 'Message deleted'
+
+            'success' => 'Message deleted',
 
         ],
 
         'edit' => [
 
             'label' => 'Edit',
-            
+
             'modal-heading' => 'Edit message',
 
             'submit-label' => 'Update',
-            
-            'success' => 'Message updated'
+
+            'success' => 'Message updated',
 
         ],
 

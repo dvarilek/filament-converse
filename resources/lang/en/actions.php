@@ -12,7 +12,7 @@ return [
 
             'validation' => [
 
-                'direct-conversation-exists' => 'You already have a conversation with this participant.'
+                'direct-conversation-exists' => 'You already have a conversation with this participant.',
 
             ],
 
@@ -20,9 +20,9 @@ return [
 
                 'owner' => 'Owner',
 
-                'default' => 'Participant'
+                'default' => 'Participant',
 
-            ]
+            ],
 
         ],
 
@@ -60,7 +60,7 @@ return [
 
         'modal-submit-action-label' => 'Create',
 
-        'success-notification-title' => 'Conversation created'
+        'success-notification-title' => 'Conversation created',
 
     ],
 

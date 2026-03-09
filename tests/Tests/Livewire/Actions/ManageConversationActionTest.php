@@ -19,7 +19,7 @@ it('can update conversation', function () {
     $conversation = app(CreateConversation::class)->handle($owner, [
         $firstParticipant,
         $secondParticipant,
-        $thirdParticipant
+        $thirdParticipant,
     ]);
 
     livewire(ConversationManager::class)
@@ -31,8 +31,8 @@ it('can update conversation', function () {
                 'description' => 'updated description',
                 'participants' => [
                     $firstParticipant->getKey(),
-                    $thirdParticipant->getKey()
-                ]
+                    $thirdParticipant->getKey(),
+                ],
             ]
         )
         ->assertHasNoErrors();
@@ -57,11 +57,8 @@ it('requires a selected participant to update conversation', function () {
             TestAction::make(ManageConversationAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread'),
             [
-                'participants' => []
+                'participants' => [],
             ]
         )
         ->assertHasFormErrors(['participants' => 'required']);
 });
-
-
-

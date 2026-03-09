@@ -66,7 +66,7 @@ class ConversationParticipation extends Model
     ];
 
     /**
-     * @param list<static> $models
+     * @param  list<static>  $models
      */
     public function newCollection(array $models = []): ConversationParticipationCollection
     {
@@ -135,12 +135,12 @@ class ConversationParticipation extends Model
     {
         return $this->update([
             'deactivated_at' => null,
-            'joined_at' => now()
+            'joined_at' => now(),
         ]);
     }
 
     /**
-     * @param Builder<static> $query
+     * @param  Builder<static>  $query
      */
     public function scopeOther(Builder $query): void
     {
@@ -148,7 +148,7 @@ class ConversationParticipation extends Model
     }
 
     /**
-     * @param Builder<static> $query
+     * @param  Builder<static>  $query
      */
     public function scopeActive(Builder $query): void
     {
@@ -156,7 +156,7 @@ class ConversationParticipation extends Model
     }
 
     /**
-     * @param Builder<static> $query
+     * @param  Builder<static>  $query
      */
     public function scopeInactive(Builder $query): void
     {
@@ -164,7 +164,7 @@ class ConversationParticipation extends Model
     }
 
     /**
-     * @param Builder<static> $query
+     * @param  Builder<static>  $query
      */
     public function scopeDeactivateMany(Builder $query): void
     {
@@ -174,13 +174,13 @@ class ConversationParticipation extends Model
     }
 
     /**
-     * @param Builder<static> $query
- */
+     * @param  Builder<static>  $query
+     */
     public function scopeActivateMany(Builder $query): void
     {
         $query->update([
             'deactivated_at' => null,
-            'joined_at' => now()
+            'joined_at' => now(),
         ]);
     }
 

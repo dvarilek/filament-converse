@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Models;
 
+use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Support\Carbon;
-use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;
 
 /**
  * @property string|null $image
@@ -58,7 +58,7 @@ class Conversation extends Model
     {
         return $this->hasMany(ConversationParticipation::class, 'conversation_id');
     }
-    
+
     public function messages(): HasManyThrough
     {
         return $this->hasManyThrough(

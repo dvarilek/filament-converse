@@ -2,7 +2,7 @@
     @apply flex max-h-[calc(100vh-10rem)] min-h-[calc(100vh-10rem)] flex-1 flex-col rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
 
     &:has(.fi-converse-is-dragging-attachment) {
-        @apply relative ring-primary-700 dark:ring-primary-600 relative ring-2;
+        @apply ring-primary-700 dark:ring-primary-600 relative ring-2;
     }
 
     & .fi-converse-upload-modal-overlay {
@@ -246,7 +246,7 @@
     }
 
     & .fi-converse-conversation-thread-footer-wrapper {
-        @apply min-h-1/8 flex flex-shrink-0 flex-col border-t border-gray-200 dark:border-white/10 p-6;
+        @apply min-h-1/8 flex flex-shrink-0 flex-col border-t border-gray-200 p-6 dark:border-white/10;
 
         & .fi-sc {
             @apply divide-y-0 p-0.5;
@@ -257,7 +257,7 @@
         }
 
         & .fi-converse-attachment-area {
-            @apply flex max-h-22 flex-wrap gap-3 overflow-y-auto dark:bg-white/5;
+            @apply max-h-22 flex flex-wrap gap-3 overflow-y-auto dark:bg-white/5;
 
             &.fi-converse-attachment-area-has-content {
                 @apply p-3;

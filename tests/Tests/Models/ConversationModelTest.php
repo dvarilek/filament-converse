@@ -82,5 +82,3 @@ it('can retrieve inactive participations', function () {
         ->toBe([$secondParticipant->getKey()])
         ->toBe($conversation->participations()->inactive()->pluck('participant_id')->sort()->values()->toArray());
 });
-
-

@@ -4,22 +4,14 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 
+use BackedEnum;
+use Closure;
 use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
-use Dvarilek\FilamentConverse\Schemas\Components\ConversationThreadAttachmentArea;
-use Filament\Support\Icons\Heroicon;
+use Filament\Schemas\Components\Icon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
-use BackedEnum;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Closure;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\HtmlString;
-use Filament\Schemas\Components\Icon;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Validation\ValidationException;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 trait HasFileAttachments
 {
@@ -190,7 +182,7 @@ trait HasFileAttachments
             'attachmentPath' => $attachmentPath,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
-            'data' => $data
+            'data' => $data,
         ]) ?? 'primary';
     }
 

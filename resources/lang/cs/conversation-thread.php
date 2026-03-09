@@ -28,7 +28,7 @@ return [
 
     'validation' => [
 
-        'message-required' => 'Prosím zadejte zprávu nebo přiložte soubor.'
+        'message-required' => 'Prosím zadejte zprávu nebo přiložte soubor.',
 
     ],
 
@@ -42,7 +42,7 @@ return [
 
             'submit-label' => 'Upravit',
 
-            'success' => 'Zpráva odstraněna'
+            'success' => 'Zpráva odstraněna',
 
         ],
 

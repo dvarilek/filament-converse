@@ -5,31 +5,26 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use Closure;
-use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;
-use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
-use Filament\Schemas\Components\FusedGroup;
 use Filament\Schemas\Components\Concerns\HasKey;
-use Filament\Schemas\Components\Text;
-use Filament\Schemas\View\Components\TextComponent;
+use Filament\Schemas\Components\FusedGroup;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Support\Htmlable;
@@ -46,11 +41,11 @@ class ConversationThread extends Component
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
     use Concerns\HasExtraMessageAttributes;
+    use Concerns\HasFileAttachments;
     use Concerns\HasReadReceipts;
     use Concerns\HasTypingIndicator;
-    use Concerns\HasFileAttachments;
-    use HasKey;
     use HasExtraAttributes;
+    use HasKey;
 
     const HEADER_ACTIONS_KEY = 'header_actions';
 
@@ -152,20 +147,20 @@ class ConversationThread extends Component
                     $component->getUploadAttachmentAction(),
                     $component->getSendMessageAction(),
                 ])
-                    ->alignBetween()
-            ])
+                    ->alignBetween(),
+            ]),
         ]);
 
-        $this->messageActions(static fn (ConversationThread $component) =>
-            ActionGroup::make([
+        $this->messageActions(
+            static fn (ConversationThread $component) => ActionGroup::make([
                 Action::make('messageTimestamp') // Easiest way to just show the timestamp
                     ->label(fn (Message $message) => $message->created_at->toDateTimeString())
                     ->disabled(),
                 ActionGroup::make([
                     $component->getEditMessageAction(),
-                    $component->getDeleteMessageAction()
+                    $component->getDeleteMessageAction(),
                 ])
-                    ->dropdown(false)
+                    ->dropdown(false),
             ])
         );
 
@@ -173,8 +168,8 @@ class ConversationThread extends Component
             $component->getManageConversationAction(),
         ], static::HEADER_ACTIONS_KEY);
 
-        $this->childComponents(static fn (ConversationThread $component): array =>
-            $component->getMessageActions(),
+        $this->childComponents(
+            static fn (ConversationThread $component): array => $component->getMessageActions(),
             static::MESSAGE_ACTIONS_KEY
         );
 
@@ -221,7 +216,7 @@ class ConversationThread extends Component
                             'shouldShowOnlyMessageImageAttachment' => $component->shouldShowOnlyImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, [
                                 'message' => $message,
                                 'messageAuthor' => $messageAuthor,
-                                'messages' => $messages
+                                'messages' => $messages,
                             ]),
                         ],
                     ];
@@ -872,6 +867,7 @@ class ConversationThread extends Component
                     ));
             }
         }
+
         return $actions;
     }
 
@@ -1107,10 +1103,10 @@ class ConversationThread extends Component
                 'required_without' => __('filament-converse::conversation-thread.validation.message-required'),
             ])
             ->extraAttributes([
-                'style' => 'max-height: 8rem; overflow: auto'
+                'style' => 'max-height: 8rem; overflow: auto',
             ])
             ->extraAlpineAttributes([
-                'x-on:keydown' => '$nextTick(() => fireUserTypingEvent($event))'
+                'x-on:keydown' => '$nextTick(() => fireUserTypingEvent($event))',
             ]);
 
         if ($this->modifyTextareaComponentUsing) {
@@ -1141,7 +1137,7 @@ class ConversationThread extends Component
 
                 /* @var ?Message $message */
                 $message = $this->evaluate($this->sendMessageUsing, [
-                    'data' => $data['conversation_schema'] ?? []
+                    'data' => $data['conversation_schema'] ?? [],
                 ]);
 
                 if (! $message) {

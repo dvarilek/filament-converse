@@ -1,10 +1,10 @@
 <?php
 
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\CreateConversationAction;
-use Filament\Actions\Testing\TestAction;
-use Dvarilek\FilamentConverse\Tests\Models\User;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\CreateConversationAction;
+use Dvarilek\FilamentConverse\Tests\Models\User;
+use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
 
@@ -17,9 +17,10 @@ it('can create a new direct conversation through action', function () {
     $livewire = livewire(ConversationManager::class)
         ->callAction(
             TestAction::make(CreateConversationAction::getDefaultName())
-                ->schemaComponent('conversation_schema.conversation_list'), [
+                ->schemaComponent('conversation_schema.conversation_list'),
+            [
                 'participants' => [
-                    $participant->getKey()
+                    $participant->getKey(),
                 ],
             ]
         )
@@ -62,10 +63,11 @@ it('can create a new group conversation through action', function () {
     $livewire = livewire(ConversationManager::class)
         ->callAction(
             TestAction::make(CreateConversationAction::getDefaultName())
-                ->schemaComponent('conversation_schema.conversation_list'), [
+                ->schemaComponent('conversation_schema.conversation_list'),
+            [
                 'participants' => [
                     $firstUser->getKey(),
-                    $secondUser->getKey()
+                    $secondUser->getKey(),
                 ],
             ]
         )
@@ -97,7 +99,8 @@ it('can create a new group conversation through action with additional data', fu
     $livewire = livewire(ConversationManager::class)
         ->callAction(
             TestAction::make(CreateConversationAction::getDefaultName())
-                ->schemaComponent('conversation_schema.conversation_list'), [
+                ->schemaComponent('conversation_schema.conversation_list'),
+            [
                 'participants' => [$firstUser->getKey(), $secondUser->getKey()],
                 'name' => 'Test conversation',
                 'description' => 'Test description',

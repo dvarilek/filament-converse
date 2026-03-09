@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
+use Closure;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Filament\Actions\Action;
-use Closure;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Model;
 
 class DeleteMessageAction extends Action
 {

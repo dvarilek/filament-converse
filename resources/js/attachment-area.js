@@ -1,8 +1,4 @@
-export function attachmentArea({
-    uploadDropZoneRef,
-    statePath,
-    $wire
-}) {
+export function attachmentArea({ uploadDropZoneRef, statePath, $wire }) {
     return {
         isDraggingFileAttachment: false,
 
@@ -15,8 +11,10 @@ export function attachmentArea({
         registerFileAttachmentUploadEventListeners() {
             const element = this.$refs[uploadDropZoneRef]
 
-            if (! element) {
-                console.warn('Dropzone ref ' + uploadDropZoneRef + ' not found.')
+            if (!element) {
+                console.warn(
+                    'Dropzone ref ' + uploadDropZoneRef + ' not found.',
+                )
                 return
             }
 

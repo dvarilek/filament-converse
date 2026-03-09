@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
-use App\Models\User;
 use Closure;
 use Dvarilek\FilamentConverse\Actions\TransferConversation;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
@@ -47,7 +46,7 @@ class TransferConversationAction extends Action
                 $participant = $otherParticipations->first()->participant;
 
                 return __('filament-converse::actions.transfer.modal-heading-single-participant', [
-                    'name' => $participant->getAttribute($participant::getFilamentNameAttribute())
+                    'name' => $participant->getAttribute($participant::getFilamentNameAttribute()),
                 ]);
             }
 
@@ -64,10 +63,11 @@ class TransferConversationAction extends Action
 
         $this->visible(static fn (ConversationManager $livewire): bool => $livewire->isActiveConversationOwnedByAuthenticatedUser());
 
-        $this->schema(static fn (TransferConversationAction $action, Conversation $conversation): ?array => $conversation->participations->other()->count() === 1
+        $this->schema(
+            static fn (TransferConversationAction $action, Conversation $conversation): ?array => $conversation->participations->other()->count() === 1
             ? null
             : [
-                $action->getParticipationSelectComponent()
+                $action->getParticipationSelectComponent(),
             ]
         );
 
@@ -130,7 +130,7 @@ class TransferConversationAction extends Action
             ->label(__('filament-converse::actions.schema.participations.label'))
             ->tableConfiguration(ParticipationTransferTableSelectConfiguration::class)
             ->tableArguments(static fn (Conversation $conversation) => [
-                'conversationKey' => $conversation->getKey()
+                'conversationKey' => $conversation->getKey(),
             ])
             ->required()
             ->extraAttributes([
@@ -141,7 +141,7 @@ class TransferConversationAction extends Action
             $component = $this->evaluate($this->modifyParticipationSelectComponentUsing, [
                 'component' => $component,
             ], [
-                Select::class => $component
+                Select::class => $component,
             ]) ?? $component;
         }
 

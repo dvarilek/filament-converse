@@ -1,11 +1,11 @@
 <?php
 
 use Dvarilek\FilamentConverse\Actions\CreateConversation;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\LeaveConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
-use Filament\Actions\Testing\TestAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
-use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
 
@@ -22,7 +22,7 @@ test('is hidden for conversation owner', function () {
             TestAction::make(ManageConversationAction::getDefaultName())
                 ->schemaComponent('conversation_schema.conversation_thread'),
         )
-        ->assertActionHidden(LeaveConversationAction::getDefaultName());;
+        ->assertActionHidden(LeaveConversationAction::getDefaultName());
 
     $this->actingAs($participant);
 
@@ -55,4 +55,3 @@ it('can leave conversation', function () {
         ->toHaveCount(1)
         ->not->toContain($participant->getKey());
 });
-

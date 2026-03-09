@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\Concerns;
 
+use Closure;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
-use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\Configuration\ParticipantTableSelectConfiguration;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Filament\Forms\Components\Field;
@@ -13,15 +13,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TableSelect;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Utilities\Set;
-use Filament\Tables\Columns\ImageColumn;
-use Filament\Tables\Columns\TextColumn;
-use Illuminate\Database\Eloquent\Builder;
-use Closure;
 use Filament\Forms\Components\TextInput;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Auth\User;
 
 trait CanManageConversation
 {
@@ -67,7 +59,7 @@ trait CanManageConversation
             ->label(__('filament-converse::actions.schema.participants.label'))
             ->tableConfiguration(ParticipantTableSelectConfiguration::class)
             ->tableArguments(static fn (string $operation, ConversationManager $livewire) => [
-                'conversationKey' =>  $operation === ManageConversationAction::getDefaultName() ? $livewire->getActiveConversation()->getKey() : null
+                'conversationKey' => $operation === ManageConversationAction::getDefaultName() ? $livewire->getActiveConversation()->getKey() : null,
             ])
             ->multiple()
             ->required()

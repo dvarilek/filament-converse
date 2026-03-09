@@ -1,5 +1,6 @@
 @php
-    use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;use Dvarilek\FilamentConverse\Models\Conversation;
+    use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollection;
+    use Dvarilek\FilamentConverse\Models\Conversation;
     use Dvarilek\FilamentConverse\Models\ConversationParticipation;
     use Dvarilek\FilamentConverse\Models\Message;
     use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
@@ -40,8 +41,8 @@
     wire:key="conversation-thread-{{ $conversationKey }}"
     @if ($hasConversation)
         x-load
-    x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
-    x-data="conversationThread({
+        x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('conversation-thread', 'dvarilek/filament-converse') }}"
+        x-data="conversationThread({
                     key: @js($key),
                     conversationKey: @js($conversationKey),
                     autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
@@ -51,7 +52,7 @@
                     userTypingTranslations: @js($getUserTypingTranslations()),
                     $wire,
                 })"
-    x-ref="uploadDropZoneRef"
+        x-ref="uploadDropZoneRef"
     @endif
     {{
         $getExtraAttributeBag()
@@ -102,11 +103,11 @@
     </div>
 
     <div
-        class='fi-converse-conversation-thread-content'
+        class="fi-converse-conversation-thread-content"
         @if ($hasConversation && count($messages))
             x-ref="conversationThreadContent"
-        wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}"
-        x-init="scrollToBottom()"
+            wire:key="fi-converse-conversation-thread-content-{{ $id }}-{{ $key }}"
+            x-init="scrollToBottom()"
         @endif
     >
         @if ($renderedMessagesCount = count($messages))
@@ -308,7 +309,7 @@
                                                     $data = [
                                                         'message' => $message,
                                                         'messageAuthor' => $messageAuthor,
-                                                        'messages' => $messages
+                                                        'messages' => $messages,
                                                     ];
                                                 @endphp
 
@@ -340,7 +341,6 @@
                                 <div
                                     class="fi-converse-conversation-thread-message-actions"
                                 >
-
                                     @php
                                         /* @var list<Action | ActionGroup> $actions */
                                         $actions = $getChildComponents(ConversationThread::MESSAGE_ACTIONS_KEY);
@@ -354,7 +354,7 @@
                                                 $action
                                                     ->record($message)
                                                     ->arguments([
-                                                        'recordKey' => $message->getKey()
+                                                        'recordKey' => $message->getKey(),
                                                     ]);
                                             }
                                         }

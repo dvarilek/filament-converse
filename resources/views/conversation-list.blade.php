@@ -163,9 +163,9 @@
                         wire:key="fi-converse-conversation-list-item-{{ $this->getId() }}-{{ $conversationKey }}-{{ $unreadMessagesCount }}"
                         wire:loading.attr="disabled"
                         x-on:click="
-                        await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
-                        showConversationListSidebar = false
-                    "
+                            await $wire.call('updateActiveConversation', '{{ $conversationKey }}')
+                            showConversationListSidebar = false
+                        "
                         {{
                             $extraConversationAttributeBag
                                 ->class([
@@ -191,8 +191,12 @@
                                 />
                             @endif
 
-                            <div class="fi-converse-conversation-list-item-content">
-                                <div class="fi-converse-conversation-list-item-header">
+                            <div
+                                class="fi-converse-conversation-list-item-content"
+                            >
+                                <div
+                                    class="fi-converse-conversation-list-item-header"
+                                >
                                     <h4
                                         class="fi-converse-conversation-list-item-heading"
                                     >
@@ -208,7 +212,9 @@
                                     @endif
                                 </div>
 
-                                <div class="fi-converse-conversation-list-item-footer">
+                                <div
+                                    class="fi-converse-conversation-list-item-footer"
+                                >
                                     <p
                                         class="fi-converse-conversation-list-item-last-message-description"
                                     >

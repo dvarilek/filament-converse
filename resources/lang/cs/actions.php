@@ -12,7 +12,7 @@ return [
 
             'validation' => [
 
-                'direct-conversation-exists' => 'S tímto uživatelem již máte konverzaci.'
+                'direct-conversation-exists' => 'S tímto uživatelem již máte konverzaci.',
 
             ],
 
@@ -20,9 +20,9 @@ return [
 
                 'owner' => 'Vlastník',
 
-                'default' => 'Účastník'
+                'default' => 'Účastník',
 
-            ]
+            ],
 
         ],
 
@@ -60,7 +60,7 @@ return [
 
         'modal-submit-action-label' => 'Vytvořit',
 
-        'success-notification-title' => 'Konverzace vytvořena'
+        'success-notification-title' => 'Konverzace vytvořena',
 
     ],
 

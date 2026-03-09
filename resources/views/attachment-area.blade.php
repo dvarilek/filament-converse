@@ -1,8 +1,8 @@
 @php
     use Filament\Schemas\Components\Icon;
+    use Filament\Support\View\Components\ModalComponent\IconComponent;
     use Illuminate\View\ComponentAttributeBag;
     use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-    use Filament\Support\View\Components\ModalComponent\IconComponent;
 
     $id = $getId();
     $key = $getKey();
@@ -10,15 +10,16 @@
     /* @var list<TemporaryUploadedFile> $uploadedFileAttachments */
     $uploadedFileAttachments = array_reverse($getRawState() ?? []);
 @endphp
+
 <div
     wire:key="fi-converse-conversation-thread-attachment-area-{{ $id }}-{{ $key }}"
     x-load
     x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('attachment-area', 'dvarilek/filament-converse') }}"
     x-data="attachmentArea({
-        uploadDropZoneRef: @js($getUploadDropZoneRef()),
-        statePath: @js($statePath),
-        $wire,
-    })"
+                uploadDropZoneRef: @js($getUploadDropZoneRef()),
+                statePath: @js($statePath),
+                $wire,
+            })"
     x-on:filament-converse-trigger-file-input.window="$refs.fileInput.click()"
 >
     <input
@@ -38,9 +39,7 @@
     >
         <div class="fi-converse-upload-modal-backdrop"></div>
 
-        <div
-            class="fi-converse-upload-modal"
-        >
+        <div class="fi-converse-upload-modal">
             <div class="fi-converse-upload-modal-header">
                 <div
                     {{ (new ComponentAttributeBag)->color(IconComponent::class, $getUploadModalIconColor(), 'primary')->class(['fi-converse-upload-modal-icon-bg']) }}
@@ -65,19 +64,18 @@
         wire:key="fi-converse-conversation-thread-attachment-area-{{ $id }}-{{ $key }}-{{ count($uploadedFileAttachments) }}"
         class="fi-converse-attachment-area"
         x-bind:class="{
-             'fi-converse-is-dragging-attachment': isDraggingFileAttachment,
-            'fi-converse-attachment-area-has-content': isUploadingFileAttachment() || @js(count($uploadedFileAttachments) > 0),
+            'fi-converse-is-dragging-attachment': isDraggingFileAttachment,
+            'fi-converse-attachment-area-has-content':
+                isUploadingFileAttachment() || @js(count($uploadedFileAttachments) > 0),
         }"
     >
-        <template
-            x-for="file in uploadingFileAttachments.reverse()"
-        >
+        <template x-for="file in uploadingFileAttachments.reverse()">
             <div
                 x-bind:class="
-                file.type.startsWith('image/')
-                    ? 'fi-converse-image-attachment-container'
-                    : 'fi-converse-generic-attachment-container fi-converse-attachment-adaptable-width'
-            "
+                    file.type.startsWith('image/')
+                        ? 'fi-converse-image-attachment-container'
+                        : 'fi-converse-generic-attachment-container fi-converse-attachment-adaptable-width'
+                "
             >
                 <div
                     x-cloak
@@ -98,9 +96,7 @@
                     x-show="! file.type.startsWith('image/')"
                     class="fi-converse-attachment-information-container-skeleton"
                 >
-                    <div
-                        class="fi-converse-attachment-name-skeleton"
-                    ></div>
+                    <div class="fi-converse-attachment-name-skeleton"></div>
                     <div
                         class="fi-converse-attachment-mime-type-badge-skeleton"
                     ></div>
@@ -139,9 +135,9 @@
                 $wire.$refresh()
             "
                 :generic-attachment-container-extra-attributes-bag="
-                (new ComponentAttributeBag)
-                    ->class(['fi-converse-attachment-adaptable-width'])
-            "
+                    (new ComponentAttributeBag)
+                        ->class(['fi-converse-attachment-adaptable-width'])
+                "
             />
         @endforeach
     </div>

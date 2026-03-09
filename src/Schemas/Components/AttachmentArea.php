@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components;
 
-use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use BackedEnum;
+use Closure;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Filament\Forms\Components\Field;
-use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
-use BackedEnum;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Filesystem\Filesystem;
@@ -19,10 +18,8 @@ use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Closure;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use League\Flysystem\UnableToCheckFileExistence;
 use Livewire\Attributes\Renderless;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -143,7 +140,7 @@ class AttachmentArea extends Field
     }
 
     /**
-     * @param string | array<string> | Closure | null $color
+     * @param  string | array<string> | Closure | null  $color
      */
     public function uploadModalIconColor(string | array | Closure | null $color): static
     {
