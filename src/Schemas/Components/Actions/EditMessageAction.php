@@ -56,6 +56,10 @@ class EditMessageAction extends Action
                 $message->author_id === $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey()
         );
 
+        $this->fillForm(static fn (?Message $message): array => [
+            'messageContent' => $message?->content,
+        ]);
+
         $this->schema(static fn (EditMessageAction $action): array => [
             $action->getTextareaComponent(),
         ]);

@@ -649,7 +649,7 @@ class ConversationThread extends Component
         return $this;
     }
 
-    public function ManageConversationAction(?Closure $callback): static
+    public function manageConversationAction(?Closure $callback): static
     {
         $this->modifyManageConversationActionUsing = $callback;
 

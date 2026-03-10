@@ -109,9 +109,10 @@ class ManageConversationAction extends Action
             static fn (ManageConversationAction $action) => $action->getDeleteConversationAction(),
         ]);
 
+        $this->disabledSchema(static fn (ConversationManager $livewire): bool => ! $livewire->isActiveConversationOwnedByAuthenticatedUser());
+
         $this->schema(
             static fn (Schema $schema, ManageConversationAction $action): Schema => $schema
-                ->disabled(static fn (ConversationManager $livewire): bool => ! $livewire->isActiveConversationOwnedByAuthenticatedUser())
                 ->schema([
                     $action->getParticipantSelectComponent(),
                     Group::make([
