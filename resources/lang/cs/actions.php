@@ -18,9 +18,13 @@ return [
 
             'participation' => [
 
+                'ownership' => 'Vlastnictví',
+
                 'owner' => 'Vlastník',
 
                 'default' => 'Účastník',
+
+                'name-column-label' => 'Jméno',
 
             ],
 
@@ -29,6 +33,8 @@ return [
         'participations' => [
 
             'label' => 'Účastníci',
+
+            'name-column-label' => 'Jméno',
 
         ],
 

@@ -7,6 +7,7 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\Configuration;
 use Dvarilek\FilamentConverse\FilamentConverseServiceProvider;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Filament\Forms\Components\TableSelect\Livewire\TableSelectLivewireComponent;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\Layout\Split;
@@ -33,9 +34,12 @@ class ParticipantTableSelectConfiguration
                         ->grow(false)
                         ->getStateUsing(static fn (Authenticatable & Model $record) => filament()->getUserAvatarUrl($record)),
                     TextColumn::make('name')
+                        ->label(__('filament-converse::actions.schema.participants.participation.name-column-label'))
                         ->weight('bold'),
                     TextColumn::make('ownership')
+                        ->label(__('filament-converse::actions.schema.participants.participation.ownership'))
                         ->badge()
+                        ->visible(static fn (Table $table) => ($table->getArguments()['operation'] ?? null) === ManageConversationAction::getDefaultName())
                         ->getStateUsing(static function (Authenticatable & Model $record, Table $table): ?string {
                             /* @var ?Conversation $conversation */
                             $conversation = Conversation::query()->find($table->getArguments()['conversationKey'] ?? null);

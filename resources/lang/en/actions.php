@@ -18,9 +18,13 @@ return [
 
             'participation' => [
 
+                'ownership' => 'Ownership',
+
                 'owner' => 'Owner',
 
                 'default' => 'Participant',
+
+                'name-column-label' => 'Name',
 
             ],
 

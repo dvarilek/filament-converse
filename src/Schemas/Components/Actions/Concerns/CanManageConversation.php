@@ -60,6 +60,7 @@ trait CanManageConversation
             ->tableConfiguration(ParticipantTableSelectConfiguration::class)
             ->tableArguments(static fn (string $operation, ConversationManager $livewire) => [
                 'conversationKey' => $operation === ManageConversationAction::getDefaultName() ? $livewire->getActiveConversation()->getKey() : null,
+                'operation' => $operation,
             ])
             ->multiple()
             ->required()

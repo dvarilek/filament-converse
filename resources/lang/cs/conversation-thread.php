@@ -50,6 +50,12 @@ return [
 
             'label' => 'Upravit',
 
+            'modal-heading' => 'Upravit zprávu',
+
+            'submit-label' => 'Upravit',
+
+            'success' => 'Zpráva upravena',
+
         ],
 
     ],
