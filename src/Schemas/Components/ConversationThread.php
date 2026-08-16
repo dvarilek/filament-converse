@@ -1083,7 +1083,7 @@ class ConversationThread extends Component
             ->fileAttachmentMimeTypeBadgeColor($this->getFileAttachmentMimeTypeBadgeColor(...))
             ->requiredWithout('messageContent')
             ->validationMessages([
-                'required_without' => __('filament-converse::conversation-thread.validation.message-required') . 'a',
+                'required_without' => __('filament-converse::conversation-thread.validation.message-required'),
             ]);
 
         if ($this->modifyAttachmentAreaComponentUsing) {
