@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="TransferConversationActionTest.php::it can transfer conversation" type="PestRunConfigurationType">
+    <option name="pestRunnerSettings">
+      <PestRunner file="$PROJECT_DIR$/tests/Tests/Livewire/Actions/TransferConversationActionTest.php" method="it can transfer conversation" scope="Method" />
+    </option>
+    <method v="2" />
+  </configuration>
+</component>

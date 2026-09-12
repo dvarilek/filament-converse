@@ -334,14 +334,6 @@ class ConversationThread extends Component
             };
         });
 
-        $this->userTypingTranslations([
-            'single' => __('filament-converse::conversation-thread.typing-indicator.single'),
-            'double' => __('filament-converse::conversation-thread.typing-indicator.double'),
-            'multiple' => __('filament-converse::conversation-thread.typing-indicator.multiple'),
-            'other' => __('filament-converse::conversation-thread.typing-indicator.other'),
-            'others' => __('filament-converse::conversation-thread.typing-indicator.others'),
-        ]);
-
         $this->fileAttachmentIcon(function (string $attachmentMimeType): Heroicon {
             return match ($attachmentMimeType) {
                 'image/png',

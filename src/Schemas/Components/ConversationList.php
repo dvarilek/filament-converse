@@ -72,6 +72,8 @@ class ConversationList extends Component
 
     protected string | Htmlable | Closure | null $latestMessageEmptyContent = null;
 
+    protected bool | Closure $shouldShowTypingIndicator = true;
+
     protected string | array | Closure | null $unreadMessagesBadgeColor = null;
 
     protected string | BackedEnum | Htmlable | Closure | false | null $unreadMessagesBadgeIcon = null;
@@ -110,6 +112,10 @@ class ConversationList extends Component
         $this->emptyStateHeading(__('filament-converse::conversation-list.empty-state.heading'));
 
         $this->latestMessageEmptyContent(__('filament-converse::conversation-list.latest-message.empty-state'));
+
+        $this->showTypingIndicator(static function (ConversationList $component, Conversation $conversation): bool {
+            return $component->getActiveConversation()->getKey() !== $conversation->getKey();
+        });
 
         $this->emptyStateDescription(static function (): ?string {
             return ! auth()->user()->activeConversations()->exists() ? __('filament-converse::conversation-list.empty-state.description') : null;
@@ -289,6 +295,13 @@ class ConversationList extends Component
         return $this;
     }
 
+    public function showTypingIndicator(bool | Closure $condition = true): static
+    {
+        $this->shouldShowTypingIndicator = $condition;
+
+        return $this;
+    }
+
     /**
      * @param  string | array<string> | Closure | null  $color
      */
@@ -437,6 +450,15 @@ class ConversationList extends Component
     public function getLatestMessageEmptyContent(Conversation $conversation): string | Htmlable | null
     {
         return $this->evaluate($this->latestMessageEmptyContent, [
+            'conversation' => $conversation,
+        ], [
+            Conversation::class => $conversation,
+        ]);
+    }
+
+    public function shouldShowTypingIndicator(Conversation $conversation): bool
+    {
+        return (bool) $this->evaluate($this->shouldShowTypingIndicator, [
             'conversation' => $conversation,
         ], [
             Conversation::class => $conversation,

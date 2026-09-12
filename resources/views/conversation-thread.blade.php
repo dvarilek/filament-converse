@@ -47,9 +47,7 @@
                     conversationKey: @js($conversationKey),
                     autoScrollOnForeignMessagesThreshold: @js($getAutoScrollOnForeignMessagesThreshold()),
                     shouldDispatchUserTypingEvent: @js($shouldDispatchUserTypingEvent()),
-                    userTypingIndicatorTimeout: @js($getUserTypingIndicatorTimeout()),
                     userTypingEventDispatchThreshold: @js($getUserTypingEventDispatchThreshold()),
-                    userTypingTranslations: @js($getUserTypingTranslations()),
                     $wire,
                 })"
         x-ref="uploadDropZoneRef"
@@ -419,7 +417,7 @@
             @if ($shouldShowTypingIndicator())
                 <div
                     x-cloak
-                    x-show="areOtherUsersTyping()"
+                    x-show="areOtherUsersTyping(@js($conversationKey))"
                     class="fi-converse-conversation-thread-messages-users-typing-loading-indicator"
                 >
                     <div class="typing-dots-container">
@@ -428,7 +426,7 @@
                         <div class="typing-dot"></div>
                     </div>
                     <div
-                        x-text="getTypingUsersMessage()"
+                        x-text="getTypingUsersMessage(@js($conversationKey))"
                         class="typing-dots-container"
                     ></div>
                 </div>

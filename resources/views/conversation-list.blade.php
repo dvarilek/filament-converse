@@ -154,6 +154,7 @@
                         $conversationKey = $conversation->getKey();
                         /* @var ?Message $latestMessage */
                         $latestMessage = $getLatestMessage($conversation);
+                        $showTypingIndicatora = $shouldShowTypingIndicator($conversation);
                         $conversationName = $getConversationName($conversation);
                         $showConversationImage = $shouldShowConversationImage($conversation);
                         $unreadMessagesCount = $getUnreadMessagesCount($conversation);
@@ -218,11 +219,26 @@
                                     <p
                                         class="fi-converse-conversation-list-item-last-message-description"
                                     >
-                                        @if ($latestMessage)
-                                            {{ $getLatestMessageContent($latestMessage, $conversation) }}
-                                        @else
-                                            {{ $getLatestMessageEmptyContent($conversation) }}
+                                        @if ($showTypingIndicatora)
+                                            <span
+                                                x-cloak
+                                                x-show="areOtherUsersTyping(@js($conversationKey))"
+                                                x-text="getTypingUsersMessage(@js($conversationKey))"
+                                            ></span>
                                         @endif
+
+                                        <span
+                                            @if ($showTypingIndicatora)
+                                                x-cloak
+                                                x-show="! areOtherUsersTyping(@js($conversationKey))"
+                                            @endif
+                                        >
+                                            @if ($latestMessage)
+                                                {{ $getLatestMessageContent($latestMessage, $conversation) }}
+                                            @else
+                                                {{ $getLatestMessageEmptyContent($conversation) }}
+                                            @endif
+                                        </span>
                                     </p>
 
                                     @if ($unreadMessagesCount)

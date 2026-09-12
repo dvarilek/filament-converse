@@ -54,6 +54,12 @@ const defaultOptions = {
 
 compile({
     ...defaultOptions,
+    entryPoints: ['./resources/js/conversation-schema.js'],
+    outfile: './resources/js/dist/conversation-schema.js',
+})
+
+compile({
+    ...defaultOptions,
     entryPoints: ['./resources/js/conversation-thread.js'],
     outfile: './resources/js/dist/conversation-thread.js',
 })

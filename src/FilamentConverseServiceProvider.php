@@ -46,6 +46,10 @@ class FilamentConverseServiceProvider extends PackageServiceProvider
         Livewire::component('filament-converse.livewire.conversation-manager', ConversationManager::class);
 
         FilamentAsset::register([
+            AlpineComponent::make('conversation-schema', __DIR__ . '/../resources/js/dist/conversation-schema.js'),
+        ], 'dvarilek/filament-converse');
+
+        FilamentAsset::register([
             AlpineComponent::make('conversation-thread', __DIR__ . '/../resources/js/dist/conversation-thread.js'),
         ], 'dvarilek/filament-converse');
 

@@ -47,6 +47,13 @@ class ConversationSchema extends Component
 
     protected bool | Closure $shouldCheckConversationImageExistence = true;
 
+    protected int | Closure $userTypingIndicatorTimeout = 3500;
+
+    /**
+     * @var array{single: string, double: string, multiple: string, other: string, others: string}|Closure
+     */
+    protected array | Closure $userTypingTranslations = [];
+
     protected string $view = 'filament-converse::conversation-schema';
 
     final public function __construct(LivewireComponent & HasSchemas & HasConversationSchema $livewire)
@@ -210,6 +217,14 @@ class ConversationSchema extends Component
                 ],
             ];
         });
+
+        $this->userTypingTranslations([
+            'single' => __('filament-converse::conversation-thread.typing-indicator.single'),
+            'double' => __('filament-converse::conversation-thread.typing-indicator.double'),
+            'multiple' => __('filament-converse::conversation-thread.typing-indicator.multiple'),
+            'other' => __('filament-converse::conversation-thread.typing-indicator.other'),
+            'others' => __('filament-converse::conversation-thread.typing-indicator.others'),
+        ]);
     }
 
     public function conversationList(?Closure $callback): static
@@ -285,6 +300,23 @@ class ConversationSchema extends Component
     public function checkConversationImageExistence(bool | Closure $condition = true): static
     {
         $this->shouldCheckConversationImageExistence = $condition;
+
+        return $this;
+    }
+
+    public function userTypingIndicatorTimeout(int | Closure | null $milliseconds): static
+    {
+        $this->userTypingIndicatorTimeout = $milliseconds;
+
+        return $this;
+    }
+
+    /**
+     * @param  array{single: string, double: string, multiple: string, other: string, others: string}|Closure  $translations
+     */
+    public function userTypingTranslations(array | Closure $translations): static
+    {
+        $this->userTypingTranslations = $translations;
 
         return $this;
     }
@@ -412,14 +444,27 @@ class ConversationSchema extends Component
         return (bool) $this->evaluate($this->shouldCheckConversationImageExistence);
     }
 
+    public function getUserTypingIndicatorTimeout(): int
+    {
+        return $this->evaluate($this->userTypingIndicatorTimeout) ?? 3500;
+    }
+
+    /**
+     * @return array{single: string, double: string, multiple: string, other: string, others: string}
+     */
+    public function getUserTypingTranslations(): array
+    {
+        return $this->evaluate($this->userTypingTranslations) ?? [];
+    }
+
     /**
      * @return Collection<int, Conversation>
      */
-    public function getConversations(): Collection
+    public function getConversations(bool $shouldSort = true): Collection
     {
         $conversations = $this->getLivewire()->conversations;
 
-        if ($this->sortConversationsUsing) {
+        if ($this->sortConversationsUsing && $shouldSort) {
             $conversations = $this->evaluate($this->sortConversationsUsing, [
                 'conversations' => $conversations,
             ], [
