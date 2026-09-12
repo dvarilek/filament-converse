@@ -223,22 +223,27 @@
                                             <span
                                                 x-cloak
                                                 x-show="areOtherUsersTyping(@js($conversationKey))"
+                                                x-bind:class="{
+                                                    'fi-converse-conversation-list-item-last-typing-indicator-visible':
+                                                        areOtherUsersTyping(@js($conversationKey)),
+                                                }"
                                                 x-text="getTypingUsersMessage(@js($conversationKey))"
                                             ></span>
-                                        @endif
-
-                                        <span
-                                            @if ($showTypingIndicatora)
+                                            <span
                                                 x-cloak
                                                 x-show="! areOtherUsersTyping(@js($conversationKey))"
-                                            @endif
-                                        >
-                                            @if ($latestMessage)
-                                                {{ $getLatestMessageContent($latestMessage, $conversation) }}
-                                            @else
-                                                {{ $getLatestMessageEmptyContent($conversation) }}
-                                            @endif
-                                        </span>
+                                            >
+                                                @if ($latestMessage)
+                                                    {{ $getLatestMessageContent($latestMessage, $conversation) }}
+                                                @else
+                                                    {{ $getLatestMessageEmptyContent($conversation) }}
+                                                @endif
+                                            </span>
+                                        @elseif ($latestMessage)
+                                            {{ $getLatestMessageContent($latestMessage, $conversation) }}
+                                        @else
+                                            {{ $getLatestMessageEmptyContent($conversation) }}
+                                        @endif
                                     </p>
 
                                     @if ($unreadMessagesCount)

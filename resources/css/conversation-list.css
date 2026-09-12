@@ -78,6 +78,12 @@
             &.fi-converse-conversation-list-item-unread {
                 & .fi-converse-conversation-list-item-last-message-description {
                     @apply font-semibold text-gray-950 dark:text-white;
+
+                    &:has(
+                        .fi-converse-conversation-list-item-last-typing-indicator-visible
+                    ) {
+                        @apply font-normal text-gray-600 dark:text-gray-400;
+                    }
                 }
             }
 

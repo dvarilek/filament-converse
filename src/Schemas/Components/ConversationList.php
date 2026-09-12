@@ -146,6 +146,10 @@ class ConversationList extends Component
         });
 
         $this->getLatestMessageDateTimeUsing(static function (Message $latestMessage): string {
+            if ($latestMessage->created_at->gte(now()->subMinute())) {
+                return '<1m';
+            }
+
             return $latestMessage->created_at->shortAbsoluteDiffForHumans();
         });
 
@@ -425,7 +429,7 @@ class ConversationList extends Component
         ]);
     }
 
-    public function getLatestMessageDateTime(Message $latestMessage, Conversation $conversation): ?string
+    public function getLatestMessageDateTime(Message $latestMessage, Conversation $conversation): string | Htmlable | null
     {
         return $this->evaluate($this->getLatestMessageDateTimeUsing, [
             'latestMessage' => $latestMessage,
