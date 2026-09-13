@@ -77,7 +77,7 @@ class ConversationThread extends Component
     /**
      * @var string | array<string> | Closure | null
      */
-    protected string | array | Closure | null $NewMessagesDividerColor = 'primary';
+    protected string | array | Closure | null $newMessagesDividerColor = 'primary';
 
     /**
      * @var string | array<string> | Closure | null
@@ -564,7 +564,7 @@ class ConversationThread extends Component
      */
     public function newMessagesDividerColor(string | array | Closure | null $color): static
     {
-        $this->NewMessagesDividerColor = $color;
+        $this->newMessagesDividerColor = $color;
 
         return $this;
     }
@@ -827,7 +827,7 @@ class ConversationThread extends Component
      */
     public function getNewMessagesDividerColor(Message $message, Authenticatable $messageAuthor, Collection $messages, Collection $unreadMessages): string | array
     {
-        return $this->evaluate($this->NewMessagesDividerColor, [
+        return $this->evaluate($this->newMessagesDividerColor, [
             'message' => $message,
             'messageAuthor' => $messageAuthor,
             'messages' => $messages,
