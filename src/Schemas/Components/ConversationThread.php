@@ -110,6 +110,8 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyManageConversationActionUsing = null;
 
+    protected ?Closure $getMessageActionsTimestampUsing = null;
+
     protected ?Closure $modifyEditMessageActionUsing = null;
 
     protected ?Closure $modifyDeleteMessageActionUsing = null;
@@ -161,7 +163,7 @@ class ConversationThread extends Component
         $this->messageActions(
             static fn (ConversationThread $component) => ActionGroup::make([
                 Action::make('messageTimestamp') // Easiest way to just show the timestamp
-                    ->label(fn (Message $message) => $message->created_at->toDateTimeString())
+                    ->label(static fn (ConversationThread $component, Message $message) => $component->getMessageActionsTimestamp($message))
                     ->disabled(),
                 ActionGroup::make([
                     $component->getEditMessageAction(),
@@ -205,6 +207,10 @@ class ConversationThread extends Component
 
         $this->getMessageContentUsing(static function (Message $message): ?string {
             return $message->content;
+        });
+
+        $this->getMessageActionsTimestampUsing(static function (Message $message): string {
+            return $message->created_at->isoFormat('L LT');
         });
 
         $this->getMessageAttachmentDataUsing(static function (ConversationThread $component, Message $message, Authenticatable $messageAuthor, Collection $messages): array {
@@ -655,6 +661,13 @@ class ConversationThread extends Component
         return $this;
     }
 
+    public function getMessageActionsTimestampUsing(?Closure $callback): static
+    {
+        $this->getMessageActionsTimestampUsing = $callback;
+
+        return $this;
+    }
+
     public function editMessageAction(?Closure $callback): static
     {
         $this->modifyEditMessageActionUsing = $callback;
@@ -1027,6 +1040,15 @@ class ConversationThread extends Component
         }
 
         return $action;
+    }
+
+    public function getMessageActionsTimestamp(Message $message): string
+    {
+        return $this->evaluate($this->getMessageActionsTimestampUsing, [
+            'message' => $message,
+        ], [
+            Message::class => $message,
+        ]);
     }
 
     public function getEditMessageAction(): Action
