@@ -14,6 +14,7 @@ use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ReplyToMessageAction;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Field;
@@ -114,6 +115,8 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyEditMessageActionUsing = null;
 
+    protected ?Closure $modifyReplyToMessageActionUsing = null;
+
     protected ?Closure $modifyDeleteMessageActionUsing = null;
 
     protected ?Closure $modifyAttachmentAreaComponentUsing = null;
@@ -167,6 +170,7 @@ class ConversationThread extends Component
                     ->disabled(),
                 ActionGroup::make([
                     $component->getEditMessageAction(),
+                    $component->getReplyToMessageAction(),
                     $component->getDeleteMessageAction(),
                 ])
                     ->dropdown(false),
@@ -200,6 +204,7 @@ class ConversationThread extends Component
 
             return $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($livewire->getActiveConversation(), [
                 'content' => $messageContent,
+                'reply_to_message_id' => $data['reply_to_message_id'] ?? null,
                 'attachments' => $attachments,
                 'attachment_file_names' => $attachmentFileNames,
             ]);
@@ -675,6 +680,13 @@ class ConversationThread extends Component
         return $this;
     }
 
+    public function replyToMessageAction(?Closure $callback): static
+    {
+        $this->modifyReplyToMessageActionUsing = $callback;
+
+        return $this;
+    }
+
     public function deleteMessageAction(?Closure $callback): static
     {
         $this->modifyDeleteMessageActionUsing = $callback;
@@ -1067,6 +1079,25 @@ class ConversationThread extends Component
         return $action;
     }
 
+    public function getReplyToMessageAction(): Action
+    {
+        $action = ReplyToMessageAction::make()
+            ->modifyAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
+            ->modifyTextareaComponentUsing($this->getTextAreaComponent(...))
+            ->replyToMessageUsing($this->sendMessageUsing);
+
+        if ($this->modifyReplyToMessageActionUsing) {
+            $action = $this->evaluate($this->modifyReplyToMessageActionUsing, [
+                'action' => $action,
+            ], [
+                ReplyToMessageAction::class => $action,
+                Action::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+
     public function getDeleteMessageAction(): Action
     {
         $action = DeleteMessageAction::make();
@@ -1165,6 +1196,7 @@ class ConversationThread extends Component
                     return;
                 }
 
+                // TODO: Test if this is needed + deletion
                 $statePath = $livewire->getConversationSchema()->getConversationThread()->getStatePath();
                 $activeConversation = $livewire->getActiveConversation();
 

@@ -56,6 +56,16 @@ return [
 
         ],
 
+        'reply' => [
+
+            'label' => 'Reply',
+
+            'modal-heading' => 'Reply to message',
+
+            'submit-label' => 'Reply',
+
+        ]
+
     ],
 
     'new-messages-divider-content' => [

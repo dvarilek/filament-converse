@@ -8,6 +8,7 @@ use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Tests\Models\User;
+use Exception;
 
 it('can send a message', function () {
     $owner = User::factory()->create();
@@ -92,4 +93,30 @@ it('can send a reply to a message', function () {
         ->reply->getKey()->toBe($message->getKey())
         ->and($message->replies)->toHaveCount(1)
         ->and($message->replies->first()->getKey())->toBe($reply->getKey());
+});
+
+it('cannot reply to a message from different conversation', function () {
+    $owner = User::factory()->create();
+    $otherUser = User::factory()->create();
+
+    /* @var Conversation $firstConversation */
+    $firstConversation = app(CreateConversation::class)->handle(
+        $owner,
+        $otherUser
+    );
+    /* @var Conversation $secondConversation */
+    $secondConversation = app(CreateConversation::class)->handle(
+        $owner,
+        $otherUser
+    );
+
+    $secondConversationMessage = $secondConversation->owner->sendMessage($secondConversation, [
+        'content' => 'Second text message',
+    ]);
+
+    expect(fn () => $firstConversation->owner->sendMessage($firstConversation, [
+        'content' => 'Message',
+        'reply_to_message_id' => $secondConversationMessage->getKey(),
+    ]))
+        ->toTHrow(Exception::class);
 });

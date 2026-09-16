@@ -58,6 +58,16 @@ return [
 
         ],
 
+        'reply' => [
+
+            'label' => 'Odpovědět',
+
+            'modal-heading' => 'Odpovědět na zprávu',
+
+            'submit-label' => 'Odpovědět',
+
+        ]
+
     ],
 
     'new-messages-divider-content' => [
