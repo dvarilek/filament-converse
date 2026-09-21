@@ -1082,8 +1082,10 @@ class ConversationThread extends Component
     public function getReplyToMessageAction(): Action
     {
         $action = ReplyToMessageAction::make()
-            ->modifyAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
-            ->modifyTextareaComponentUsing($this->getTextAreaComponent(...))
+            ->getAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
+            ->getTextareaComponentUsing($this->getTextAreaComponent(...))
+            ->getSendMessageActionUsing($this->getSendMessageAction(...))
+            ->getUploadAttachmentActionUsing($this->getUploadAttachmentAction(...))
             ->replyToMessageUsing($this->sendMessageUsing);
 
         if ($this->modifyReplyToMessageActionUsing) {

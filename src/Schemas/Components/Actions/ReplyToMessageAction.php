@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
 use Closure;
+use Dvarilek\FilamentConverse\Actions\Concerns\CanSendMessages;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
@@ -12,14 +13,14 @@ use Dvarilek\FilamentConverse\Schemas\Components\AttachmentArea;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\FusedGroup;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 
 class ReplyToMessageAction extends Action
 {
-    protected ?Closure $modifyAttachmentAreaComponentUsing = null;
-
-    protected ?Closure $modifyTextareaComponentUsing = null;
+    use CanSendMessages;
 
     protected ?Closure $replyToMessageUsing = null;
 
@@ -52,10 +53,17 @@ class ReplyToMessageAction extends Action
                 ->find($arguments['recordKey'] ?? null)
         );
 
+        // TODO: probably move this to trait and also add it to EditMessageAction
         $this->schema(static fn (ReplyToMessageAction $action): array => [
-            // TODO: Add upload modal and actions from main thread
-            $action->getAttachmentAreaComponent(),
-            $action->getTextareaComponent(),
+            FusedGroup::make([
+                $action->getAttachmentAreaComponent(),
+                $action->getTextareaComponent(),
+                Actions::make([
+                    $action->getUploadAttachmentAction(),
+                    $action->getSendMessageAction(),
+                ])
+                    ->alignBetween()
+            ]),
         ]);
 
         $this->action(static function (array $data, Message $message, ReplyToMessageAction $action, ConversationManager $livewire): void {
@@ -90,58 +98,11 @@ class ReplyToMessageAction extends Action
         });
     }
 
-    public function modifyAttachmentAreaComponentUsing(?Closure $callback = null): static
-    {
-        $this->modifyAttachmentAreaComponentUsing = $callback;
-
-        return $this;
-    }
-
-    public function modifyTextareaComponentUsing(?Closure $callback = null): static
-    {
-        $this->modifyTextareaComponentUsing = $callback;
-
-        return $this;
-    }
-
     public function replyToMessageUsing(?Closure $callback = null): static
     {
         $this->replyToMessageUsing = $callback;
 
         return $this;
-    }
-
-    public function getAttachmentAreaComponent(): Field
-    {
-        $component = AttachmentArea::make('attachments');
-
-        if ($this->modifyAttachmentAreaComponentUsing) {
-            $component = $this->evaluate($this->modifyAttachmentAreaComponentUsing, [
-                'component' => $component,
-            ], [
-                AttachmentArea::class => $component,
-            ]) ?? $component;
-        }
-
-        return $component;
-    }
-
-    public function getTextareaComponent(): Field
-    {
-        $component = Textarea::make('messageContent')
-            ->extraAlpineAttributes([
-                'x-on:keydown' => ''
-            ]);
-
-        if ($this->modifyTextareaComponentUsing) {
-            $component = $this->evaluate($this->modifyTextareaComponentUsing, [
-                'component' => $component,
-            ], [
-                Textarea::class => $component,
-            ]) ?? $component;
-        }
-
-        return $component;
     }
 
     /**
