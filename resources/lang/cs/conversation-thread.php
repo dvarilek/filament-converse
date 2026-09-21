@@ -66,7 +66,7 @@ return [
 
             'submit-label' => 'Odpovědět',
 
-        ]
+        ],
 
     ],
 

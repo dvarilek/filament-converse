@@ -6,9 +6,9 @@ namespace Dvarilek\FilamentConverse\Actions;
 
 use Dvarilek\FilamentConverse\Events\MessageSent;
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Exception;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
+use Exception;
 use Illuminate\Support\Facades\DB;
 
 class SendMessage

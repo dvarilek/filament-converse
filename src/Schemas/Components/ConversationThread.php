@@ -246,7 +246,7 @@ class ConversationThread extends Component
         $this->messenger();
 
         $this->showNewMessagesDivider(static function (Message $message, Collection $unreadMessages, Collection $messages, ConversationManager $livewire): bool {
-            if (collect($livewire->messagesCreatedDuringConversationSession)->contains('createdByAuthenticatedUser', true)) {
+            if (collect($livewire->messageChangesDuringConversationSession)->contains('createdByAuthenticatedUser', true)) {
                 return false;
             }
 
@@ -986,7 +986,7 @@ class ConversationThread extends Component
             $limit = $this->getDefaultLoadedMessagesCount()
                 + (($livewire->getActiveConversationMessagesPage() - 1) * $this->getMessagesLoadedPerPage());
 
-            $extra = count(array_filter($livewire->messagesCreatedDuringConversationSession, static fn (array $data) => $data['exists'] === true));
+            $extra = count(array_filter($livewire->messageChangesDuringConversationSession, static fn (array $data) => $data['exists'] === true));
 
             $query->limit($limit + $extra);
         }
@@ -1198,15 +1198,11 @@ class ConversationThread extends Component
                     return;
                 }
 
-                // TODO: Test if this is needed + deletion
                 $statePath = $livewire->getConversationSchema()->getConversationThread()->getStatePath();
                 $activeConversation = $livewire->getActiveConversation();
 
                 data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
-                $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
-                // The cached conversations need to be reset so that the latest message of the current conversation
-                // gets properly updated for the authenticated user.
-                unset($livewire->conversations);
+                $livewire->handleMessageChangeDuringConversationSession($message->getKey());
 
                 $livewire->content->fill();
             });

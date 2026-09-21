@@ -31,7 +31,7 @@ trait InteractsWithConversationManager
      *
      * @var array<string, array{exists: bool, createdByAuthenticatedUser: bool}>
      */
-    public array $messagesCreatedDuringConversationSession = [];
+    public array $messageChangesDuringConversationSession = [];
 
     public ?string $oldestNewMessageKey = null;
 
@@ -63,7 +63,7 @@ trait InteractsWithConversationManager
 
         $this->activeConversationMessagesPage = 1;
         $this->oldestNewMessageKey = null;
-        $this->messagesCreatedDuringConversationSession = [];
+        $this->messageChangesDuringConversationSession = [];
 
         $conversationSchema = $this->getConversationSchema();
 
@@ -141,13 +141,21 @@ trait InteractsWithConversationManager
         $this->activeConversationMessagesPage++;
     }
 
-    public function registerMessageCreatedDuringConversationSession(string $messageKey, mixed $messageAuthorKey, bool $exists = true): void
+    public function handleMessageChangeDuringConversationSession(string $messageKey, bool $exists = true): void
     {
-        if ($exists === false && ! isset($this->messagesCreatedDuringConversationSession[$messageKey])) {
+        $this->trackMessageChangeDuringConversationSession($messageKey, auth()->id(), $exists);
+        // The cached conversations need to be reset so that the latest message of the current conversation
+        // gets properly updated for the authenticated user.
+        unset($this->conversations);
+    }
+
+    public function trackMessageChangeDuringConversationSession(string $messageKey, mixed $messageAuthorKey, bool $exists = true): void
+    {
+        if ($exists === false && ! isset($this->messageChangesDuringConversationSession[$messageKey])) {
             return;
         }
 
-        $this->messagesCreatedDuringConversationSession[$messageKey] = [
+        $this->messageChangesDuringConversationSession[$messageKey] = [
             'exists' => $exists,
             'createdByAuthenticatedUser' => $messageAuthorKey === auth()->id(),
         ];

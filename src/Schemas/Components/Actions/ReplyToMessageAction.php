@@ -9,10 +9,7 @@ use Dvarilek\FilamentConverse\Actions\Concerns\CanSendMessages;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\AttachmentArea;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\FusedGroup;
 use Filament\Support\Enums\Width;
@@ -53,16 +50,17 @@ class ReplyToMessageAction extends Action
                 ->find($arguments['recordKey'] ?? null)
         );
 
-        // TODO: probably move this to trait and also add it to EditMessageAction
+        // TODO: add to EditMessageAction
         $this->schema(static fn (ReplyToMessageAction $action): array => [
             FusedGroup::make([
                 $action->getAttachmentAreaComponent(),
                 $action->getTextareaComponent(),
                 Actions::make([
                     $action->getUploadAttachmentAction(),
-                    $action->getSendMessageAction(),
+                    $action->getSendMessageAction()
+                        ->action($action->getLivewireCallMountedActionName()),
                 ])
-                    ->alignBetween()
+                    ->alignBetween(),
             ]),
         ]);
 
@@ -75,8 +73,8 @@ class ReplyToMessageAction extends Action
             $message = $action->evaluate($action->replyToMessageUsing, [
                 'data' => [
                     ...$data,
-                    'reply_to_message_id' => $message->getKey()
-                ]
+                    'reply_to_message_id' => $message->getKey(),
+                ],
             ]);
 
             if (! $message) {
@@ -85,17 +83,11 @@ class ReplyToMessageAction extends Action
                 return;
             }
 
-            $statePath = $livewire->getConversationSchema()->getConversationThread()->getStatePath();
-            $activeConversation = $livewire->getActiveConversation();
-
-            data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
-            $livewire->registerMessageCreatedDuringConversationSession($message->getKey(), auth()->id());
-            // The cached conversations need to be reset so that the latest message of the current conversation
-            // gets properly updated for the authenticated user.
-            unset($livewire->conversations);
-
+            $livewire->handleMessageChangeDuringConversationSession($message->getKey());
             $action->success();
         });
+
+        $this->modalFooterActions([]);
     }
 
     public function replyToMessageUsing(?Closure $callback = null): static

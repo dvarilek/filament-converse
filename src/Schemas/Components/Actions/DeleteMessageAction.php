@@ -51,7 +51,7 @@ class DeleteMessageAction extends Action
 
         $this->deleteMessageUsing(static fn (Message $message): bool => $message->delete());
 
-        $this->action(static function (DeleteMessageAction $action): void {
+        $this->action(static function (DeleteMessageAction $action, ConversationManager $livewire, Message $message): void {
             if (! $action->deleteMessageUsing) {
                 return;
             }
@@ -64,6 +64,8 @@ class DeleteMessageAction extends Action
                 return;
             }
 
+
+            $livewire->handleMessageChangeDuringConversationSession($message->getKey(), false);
             $action->success();
         });
     }

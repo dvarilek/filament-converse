@@ -47,7 +47,7 @@ export function conversationSchema({
                     .listen('.message.sent', (event) => {
                         if (isActiveConversationOpened) {
                             $wire.call(
-                                'registerMessageCreatedDuringConversationSession',
+                                'trackMessageChangeDuringConversationSession',
                                 event.message.id,
                                 event.message.authorId,
                             )
@@ -60,7 +60,7 @@ export function conversationSchema({
                     .listen('.message.deleted', (event) => {
                         if (isActiveConversationOpened) {
                             $wire.call(
-                                'registerMessageCreatedDuringConversationSession',
+                                'trackMessageChangeDuringConversationSession',
                                 event.message.id,
                                 event.message.authorId,
                                 false,

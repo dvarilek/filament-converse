@@ -64,7 +64,7 @@ return [
 
             'submit-label' => 'Reply',
 
-        ]
+        ],
 
     ],
 

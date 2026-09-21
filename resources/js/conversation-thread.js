@@ -6,8 +6,8 @@ export function conversationThread({
     $wire,
 }) {
     return {
-        messagesCreatedDuringConversationSession: $wire.entangle(
-            'messagesCreatedDuringConversationSession',
+        messageChangesDuringConversationSession: $wire.entangle(
+            'messageChangesDuringConversationSession',
         ),
 
         lastUserTypingEventSentAt: null,
@@ -16,7 +16,7 @@ export function conversationThread({
 
         init() {
             this.$watch(
-                'messagesCreatedDuringConversationSession',
+                'messageChangesDuringConversationSession',
                 (newMessages, oldMessages) => {
                     const isForeign = (message) =>
                         !message.createdByAuthenticatedUser && message.exists
