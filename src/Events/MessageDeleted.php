@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Events;
 
 use Dvarilek\FilamentConverse\Models\Conversation;
-use Dvarilek\FilamentConverse\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -19,7 +18,8 @@ class MessageDeleted implements ShouldBroadcast
     use SerializesModels;
 
     public function __construct(
-        private readonly Message $message,
+        private readonly string $messageKey,
+        private readonly string $messageAuthorKey,
         private readonly Conversation $conversation
     ) {}
 
@@ -40,8 +40,8 @@ class MessageDeleted implements ShouldBroadcast
     {
         return [
             'message' => [
-                'id' => $this->message->getKey(),
-                'authorId' => $this->message->author_id,
+                'id' => $this->messageKey,
+                'authorId' => $this->messageAuthorKey,
             ],
         ];
     }

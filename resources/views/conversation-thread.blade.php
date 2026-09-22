@@ -9,6 +9,7 @@
     use Filament\Actions\Action;
     use Filament\Actions\ActionGroup;
     use Filament\Schemas\Components\Icon;
+    use Illuminate\Contracts\Filesystem\Filesystem;
     use Illuminate\Contracts\Support\Htmlable;
     use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
@@ -50,6 +51,7 @@
                     userTypingEventDispatchThreshold: @js($getUserTypingEventDispatchThreshold()),
                     $wire,
                 })"
+        x-on:filament-converse-fire-user-typing-event.window="fireUserTypingEvent($event)"
         x-ref="uploadDropZoneRef"
     @endif
     {{
@@ -110,6 +112,9 @@
     >
         @if ($renderedMessagesCount = count($messages))
             @php
+                /* @var Filesystem $fileAttachmentsDisk */
+                $fileAttachmentsDisk = $getFileAttachmentsDisk();
+
                 /* @var ConversationParticipation $currentAuthenticatedUserParticipation */
                 $currentAuthenticatedUserParticipation = $this->getActiveConversationAuthenticatedUserParticipation();
                 $latestMessage = $messages->last();
@@ -146,8 +151,8 @@
                     $messageAuthorAvatar = $getMessageAuthorAvatar($message, $messageAuthor, $messages);
                     $messageTimestamp = $getMessageTimestamp($message, $messageAuthor, $messages);
                     $messageContent = $getMessageContent($message, $messageAuthor, $messages);
-                    /* @var array{attachmentOriginalName: string, attachmentMimeType: string, hasImageMimeType: bool, shouldShowOnlyMessageImageAttachment: bool} $messageAttachmentData */
-                    $messageAttachmentData = $getMessageAttachmentData($message, $messageAuthor, $messages);
+                    /* @var array<string, string> $messageFileAttachments */
+                    $messageFileAttachments = array_combine($message->attachments, $message->attachment_file_names);
                     $messageDividerContent = $getMessageDividerContent($message, $messageAuthor, $messages);
                     $messageColor = $getMessageColor($message, $messageAuthor, $messages);
                     $hasMessageAuthorName = filled($messageAuthorName);
@@ -287,10 +292,20 @@
                                         @endif
                                     @endif
 
-                                    @if (count($messageAttachmentData))
+                                    @if (count($messageFileAttachments))
                                         @php
-                                            $hasOnlyImageAttachments = collect($messageAttachmentData)
-                                                ->every(static fn (array $data) => $data['hasImageMimeType'] && $data['shouldShowOnlyMessageImageAttachment']);
+                                            $messageContext = [
+                                                'message' => $message,
+                                                'messageAuthor' => $messageAuthor,
+                                                'messages' => $messages,
+                                            ];
+
+                                            $hasOnlyImageAttachments = collect($messageFileAttachments)
+                                                ->every(static function (string $attachmentOriginalName, string $attachmentName) use ($fileAttachmentsDisk, $isImageMimeType, $shouldShowOnlyImageAttachment, $messageContext) {
+                                                    $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentName);
+
+                                                    return $isImageMimeType($attachmentMimeType) && $shouldShowOnlyImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext);
+                                                });
                                         @endphp
 
                                         <div
@@ -299,29 +314,23 @@
                                                 'fi-converse-conversation-thread-message-attachments-with-generic-attachments' => ! $hasOnlyImageAttachments,
                                             ])
                                         >
-                                            @foreach ($messageAttachmentData as $attachmentPath => $data)
+                                            @foreach ($messageFileAttachments as $attachmentName => $attachmentOriginalName)
                                                 @php
-                                                    $attachmentOriginalName = $data['attachmentOriginalName'];
-                                                    $attachmentMimeType = $data['attachmentMimeType'];
-                                                    $hasImageMimeType = $data['hasImageMimeType'];
-                                                    $data = [
-                                                        'message' => $message,
-                                                        'messageAuthor' => $messageAuthor,
-                                                        'messages' => $messages,
-                                                    ];
+                                                    $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentName);
+                                                    $hasImageMimeType = $isImageMimeType($attachmentMimeType);
                                                 @endphp
 
                                                 <x-filament-converse::conversation-attachment
                                                     :has-image-mime-type="$hasImageMimeType"
-                                                    :file-attachment-name="$getFileAttachmentName($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
-                                                    :file-attachment-toolbar="$getFileAttachmentToolbar($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
-                                                    :should-show-only-image-attachment="$data['shouldShowOnlyMessageImageAttachment'] ?? $shouldShowOnlyImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
-                                                    :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentPath) : null"
-                                                    :should-preview-image-attachment="$shouldPreviewImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
-                                                    :file-attachment-icon="$getFileAttachmentIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
-                                                    :mime-type-badge-label="$getFileAttachmentMimeTypeBadgeLabel($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
-                                                    :mime-type-badge-icon="$getFileAttachmentMimeTypeBadgeIcon($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
-                                                    :mime-type-badge-color="$getFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
+                                                    :file-attachment-name="$getFileAttachmentName($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                    :file-attachment-toolbar="$getFileAttachmentToolbar($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                    :should-show-only-image-attachment="$shouldShowOnlyImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                    :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentName) : null"
+                                                    :should-preview-image-attachment="$shouldPreviewImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                    :file-attachment-icon="$getFileAttachmentIcon($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                    :mime-type-badge-label="$getFileAttachmentMimeTypeBadgeLabel($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                    :mime-type-badge-icon="$getFileAttachmentMimeTypeBadgeIcon($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                    :mime-type-badge-color="$getFileAttachmentMimeTypeBadgeColor($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
                                                     :image-attachment-container-extra-attributes-bag="
                                                         (new ComponentAttributeBag)
                                                             ->class(['fi-converse-image-attachment-container-grid'])
@@ -440,7 +449,10 @@
     </div>
 
     @if ($hasConversation)
-        <div class="fi-converse-conversation-thread-footer-wrapper">
+        <div
+            class="fi-converse-conversation-thread-footer-wrapper"
+            x-ref="conversationThreadFooter"
+        >
             {{ $getChildSchema() }}
         </div>
     @endif

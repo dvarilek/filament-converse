@@ -6,6 +6,10 @@ export function conversationThread({
     $wire,
 }) {
     return {
+        resizeObserver: null,
+
+        previousFooterHeight: 0,
+
         messageChangesDuringConversationSession: $wire.entangle(
             'messageChangesDuringConversationSession',
         ),
@@ -17,38 +21,70 @@ export function conversationThread({
         init() {
             this.$watch(
                 'messageChangesDuringConversationSession',
-                (newMessages, oldMessages) => {
-                    const isForeign = (message) =>
-                        !message.createdByAuthenticatedUser && message.exists
-                    const isNonForeign = (message) =>
-                        message.createdByAuthenticatedUser && message.exists
-
-                    const newForeignCount =
-                        Object.values(newMessages).filter(isForeign).length
-                    const oldForeignCount =
-                        Object.values(oldMessages).filter(isForeign).length
-
-                    const newNonForeignCount =
-                        Object.values(newMessages).filter(isNonForeign).length
-                    const oldNonForeignCount =
-                        Object.values(oldMessages).filter(isNonForeign).length
-
-                    if (
-                        newForeignCount > oldForeignCount &&
-                        this.isPositionedNearBottom()
-                    ) {
-                        this.$nextTick(() =>
-                            this.scrollToBottom({ behaviour: 'smooth' }),
-                        )
-                    }
-
-                    if (newNonForeignCount > oldNonForeignCount) {
-                        this.$nextTick(() =>
-                            this.scrollToBottom({ behaviour: 'smooth' }),
-                        )
-                    }
-                },
+                this.handleConversationMessagesChange.bind(this),
             )
+
+            this.observeConversationThreadFooterResize()
+        },
+
+        observeConversationThreadFooterResize() {
+            const footer = this.$refs.conversationThreadFooter
+            const threadContent = this.$refs.conversationThreadContent
+
+            if (!footer || !threadContent) {
+                return
+            }
+
+            this.previousFooterHeight = footer.getBoundingClientRect().height
+
+            this.resizeObserver = new ResizeObserver(([entry]) => {
+                const newHeight = entry.target.getBoundingClientRect().height
+                const difference = newHeight - this.previousFooterHeight
+
+                if (difference === 0) {
+                    return
+                }
+
+                const distanceFromBottom =
+                    threadContent.scrollHeight -
+                    threadContent.clientHeight -
+                    threadContent.scrollTop
+
+                if (distanceFromBottom === 0) {
+                    threadContent.scrollTop = threadContent.scrollHeight
+                } else {
+                    threadContent.scrollTop += difference
+                }
+
+                this.previousFooterHeight = newHeight
+            })
+
+            this.resizeObserver.observe(footer)
+        },
+
+        handleConversationMessagesChange(newMessages, oldMessages) {
+            const isForeign = (message) =>
+                !message.createdByAuthenticatedUser && message.exists
+            const isNonForeign = (message) =>
+                message.createdByAuthenticatedUser && message.exists
+
+            const newForeignCount =
+                Object.values(newMessages).filter(isForeign).length
+            const oldForeignCount =
+                Object.values(oldMessages).filter(isForeign).length
+
+            const newNonForeignCount =
+                Object.values(newMessages).filter(isNonForeign).length
+            const oldNonForeignCount =
+                Object.values(oldMessages).filter(isNonForeign).length
+
+            if (
+                (newForeignCount > oldForeignCount &&
+                    this.isPositionedNearBottom()) ||
+                newNonForeignCount > oldNonForeignCount
+            ) {
+                this.scrollToBottom({ behavior: 'smooth' })
+            }
         },
 
         scrollToBottom(options) {
@@ -111,8 +147,8 @@ export function conversationThread({
             )
         },
 
-        isUploadingFileAttachment() {
-            return this.uploadingFileAttachments.length > 0
+        destroy() {
+            this.resizeObserver?.disconnect()
         },
     }
 }

@@ -82,11 +82,13 @@ return [
 
     ],
 
-    'footer-actions' => [
+    'message-input-actions' => [
 
         'upload-attachment-label' => 'Upload Attachments',
 
         'send-message-label' => 'Send Message',
+
+        'update-message-label' => 'Update Message',
 
     ],
 
