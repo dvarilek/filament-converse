@@ -145,6 +145,10 @@ class ConversationThread extends Component
 
         $this->model(static fn ($livewire) => $livewire->getActiveConversation());
 
+        // TODO: Livewire temp file upload UI not updating after upload
+        //       Uploading file pushes the scrollbar of thread up
+        //       Multiple AttachmentAreas don't work
+
         // TODO: Participants joined_at and left_at indicators in thread
 
         $this->schema(static fn (ConversationThread $component) => [
@@ -156,7 +160,10 @@ class ConversationThread extends Component
                     $component->getSendMessageAction(),
                 ])
                     ->alignBetween(),
-            ]),
+            ])
+                ->extraAttributes([
+                    'class' => 'fi-converse-conversation-thread-message-input'
+                ]),
         ]);
 
         $this->headerActions(static fn (ConversationThread $component) => [

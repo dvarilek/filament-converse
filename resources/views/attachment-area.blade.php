@@ -106,12 +106,17 @@
 
         @foreach ($uploadedFileAttachments as $fileAttachment)
             @php
-                $hasImageMimeType = $isImageMimeType($fileAttachment->getMimeType());
+                $attachmentMimeType = $fileAttachment->getMimeType();
+
+                if ($attachmentMimeType === 'application/octet-stream') {
+                    continue;
+                }
 
                 $attachmentPath = $fileAttachment->getPath();
                 $attachmentOriginalName = $fileAttachment->getClientOriginalName();
-                $attachmentMimeType = $fileAttachment->getMimeType();
+
                 $data = ['fileAttachment' => $fileAttachment];
+                $hasImageMimeType = $isImageMimeType($attachmentMimeType);
             @endphp
 
             <x-filament-converse::conversation-attachment
@@ -127,13 +132,13 @@
                 :mime-type-badge-color="$getFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
                 :is-removable="true"
                 file-attachment-remove-handler="
-                await $wire.callSchemaComponentMethod(
-                   '{{ $key }}',
-                   'removeUploadedFile',
-                   ['{{ $fileAttachment->getFilename() }}']
-                )
-                $wire.$refresh()
-            "
+                    await $wire.callSchemaComponentMethod(
+                       '{{ $key }}',
+                       'removeUploadedFile',
+                       ['{{ $fileAttachment->getFilename() }}']
+                    )
+                    $wire.$refresh()
+                "
                 :generic-attachment-container-extra-attributes-bag="
                     (new ComponentAttributeBag)
                         ->class(['fi-converse-attachment-adaptable-width'])

@@ -65,12 +65,16 @@ export function attachmentArea({ uploadDropZoneRef, statePath, $wire }) {
             }
 
             this.uploadingFileAttachments.push(...files)
+            const afterUploadFinished = async () => {
+                this.uploadingFileAttachments = []
+                await $wire.$refresh()
+            }
 
             await $wire.uploadMultiple(
                 statePath,
                 files,
-                () => (this.uploadingFileAttachments = []),
-                () => (this.uploadingFileAttachments = []),
+                afterUploadFinished,
+                afterUploadFinished,
             )
         },
     }

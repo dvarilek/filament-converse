@@ -61,7 +61,10 @@ class ReplyToMessageAction extends Action
                         ->action($action->getLivewireCallMountedActionName()),
                 ])
                     ->alignBetween(),
-            ]),
+            ])
+                ->extraAttributes([
+                    'class' => 'fi-converse-conversation-thread-message-input'
+                ]),
         ]);
 
         $this->action(static function (array $data, Message $message, ReplyToMessageAction $action, ConversationManager $livewire): void {
