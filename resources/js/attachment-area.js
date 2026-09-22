@@ -71,6 +71,9 @@ export function attachmentArea({ uploadDropZoneRef, statePath, $wire }) {
                 files,
                 () => (this.uploadingFileAttachments = []),
                 () => (this.uploadingFileAttachments = []),
+                () => {},
+                () => {},
+                true,
             )
         },
     }

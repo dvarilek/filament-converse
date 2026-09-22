@@ -20,7 +20,9 @@
                 statePath: @js($statePath),
                 $wire,
             })"
-    x-on:filament-converse-trigger-file-input.window="$refs.fileInput.click()"
+    x-on:filament-converse-trigger-file-input.window="
+        if ($event.detail.statePath === @js($statePath)) $refs.fileInput.click()
+    "
 >
     <input
         type="file"
@@ -106,11 +108,11 @@
 
         @foreach ($uploadedFileAttachments as $fileAttachment)
             @php
-                $hasImageMimeType = $isImageMimeType($fileAttachment->getMimeType());
-
-                $attachmentPath = $fileAttachment->getPath();
                 $attachmentOriginalName = $fileAttachment->getClientOriginalName();
                 $attachmentMimeType = $fileAttachment->getMimeType();
+                $hasImageMimeType = $isImageMimeType($attachmentMimeType);
+                $attachmentPath = $fileAttachment->getPath();
+
                 $data = ['fileAttachment' => $fileAttachment];
             @endphp
 
@@ -127,13 +129,13 @@
                 :mime-type-badge-color="$getFileAttachmentMimeTypeBadgeColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data)"
                 :is-removable="true"
                 file-attachment-remove-handler="
-                await $wire.callSchemaComponentMethod(
-                   '{{ $key }}',
-                   'removeUploadedFile',
-                   ['{{ $fileAttachment->getFilename() }}']
-                )
-                $wire.$refresh()
-            "
+                    await $wire.callSchemaComponentMethod(
+                       '{{ $key }}',
+                       'removeUploadedFile',
+                       ['{{ $fileAttachment->getFilename() }}']
+                    )
+                    $wire.$refresh()
+                "
                 :generic-attachment-container-extra-attributes-bag="
                     (new ComponentAttributeBag)
                         ->class(['fi-converse-attachment-adaptable-width'])

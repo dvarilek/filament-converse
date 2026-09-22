@@ -50,6 +50,7 @@
                     userTypingEventDispatchThreshold: @js($getUserTypingEventDispatchThreshold()),
                     $wire,
                 })"
+        x-on:filament-converse-fire-user-typing-event.window="fireUserTypingEvent($event)"
         x-ref="uploadDropZoneRef"
     @endif
     {{
@@ -304,6 +305,7 @@
                                                     $attachmentOriginalName = $data['attachmentOriginalName'];
                                                     $attachmentMimeType = $data['attachmentMimeType'];
                                                     $hasImageMimeType = $data['hasImageMimeType'];
+
                                                     $data = [
                                                         'message' => $message,
                                                         'messageAuthor' => $messageAuthor,

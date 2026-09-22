@@ -15,14 +15,16 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ReplyToMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\UploadAttachmentAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
+use Dvarilek\FilamentConverse\Schemas\Components\Contracts\HasMessageInput;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
-use Filament\Schemas\Components\FusedGroup;
+use Filament\Schemas\Schema;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
@@ -37,7 +39,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use League\Flysystem\UnableToCheckFileExistence;
 
-class ConversationThread extends Component
+class ConversationThread extends Component implements HasMessageInput
 {
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
@@ -143,21 +145,20 @@ class ConversationThread extends Component
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
-        $this->model(static fn ($livewire) => $livewire->getActiveConversation());
+        $this->model(static fn (ConversationManager $livewire) => $livewire->getActiveConversation());
 
+        // TODO: test MessageUpdated, MessageDeleted event dispatching in browser
+        // TODO: tests, fix attachment area in EditMessage to work, UpdateMessage action, add test case
+        // TODO: Fix modal upload dropzone not showing styles
+        // TODO: Uploading file pushes the scrollbar of thread up <---
+        // TODO: Lightbox for image attachments
+        // TODO: Show reply indication in thread and navigate on click
+        // TODO: Add option to download file attachments
+        // TODO: Show message edited indicator, message history
         // TODO: Participants joined_at and left_at indicators in thread
+        // TODO: Refactor last_read_at
 
-        $this->schema(static fn (ConversationThread $component) => [
-            FusedGroup::make([
-                $component->getAttachmentAreaComponent(),
-                $component->getTextareaComponent(),
-                Actions::make([
-                    $component->getUploadAttachmentAction(),
-                    $component->getSendMessageAction(),
-                ])
-                    ->alignBetween(),
-            ]),
-        ]);
+        $this->schema(static fn (Schema $schema, ConversationThread $component): Schema => MessageInputSchemaConfiguration::configure($schema, $component));
 
         $this->headerActions(static fn (ConversationThread $component) => [
             $component->getManageConversationAction(),
@@ -1021,12 +1022,7 @@ class ConversationThread extends Component
 
     public function getUploadAttachmentAction(): Action
     {
-        $action = Action::make('uploadAttachment')
-            ->label(__('filament-converse::conversation-thread.footer-actions.upload-attachment-label'))
-            ->iconButton()
-            ->iconSize(IconSize::Large)
-            ->icon(Heroicon::PaperClip)
-            ->alpineClickHandler("\$dispatch('filament-converse-trigger-file-input')");
+        $action = UploadAttachmentAction::make();
 
         if ($this->modifyUploadAttachmentActionUsing) {
             $action = $this->evaluate($this->modifyUploadAttachmentActionUsing, [
@@ -1065,7 +1061,11 @@ class ConversationThread extends Component
 
     public function getEditMessageAction(): Action
     {
-        $action = EditMessageAction::make();
+        $action = EditMessageAction::make()
+            ->getAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
+            ->getTextareaComponentUsing($this->getTextAreaComponent(...))
+            ->getSendMessageActionUsing($this->getSendMessageAction(...))
+            ->getUploadAttachmentActionUsing($this->getUploadAttachmentAction(...));
 
         if ($this->modifyEditMessageActionUsing) {
             $action = $this->evaluate($this->modifyEditMessageActionUsing, [
@@ -1160,7 +1160,7 @@ class ConversationThread extends Component
                 'style' => 'max-height: 8rem; overflow: auto',
             ])
             ->extraAlpineAttributes([
-                'x-on:keydown' => '$nextTick(() => fireUserTypingEvent($event))',
+                'x-on:keydown' => "\$nextTick(() => \$dispatch('filament-converse-fire-user-typing-event'))",
             ]);
 
         if ($this->modifyTextareaComponentUsing) {

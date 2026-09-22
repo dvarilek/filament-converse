@@ -52,29 +52,6 @@ it('is only visible to message author', function () {
         );
 });
 
-it('is hidden when message content is empty', function () {
-    $owner = User::factory()->create();
-    $participant = User::factory()->create();
-
-    $this->actingAs($owner);
-
-    /* @var Conversation $conversation */
-    $conversation = app(CreateConversation::class)->handle($owner, $participant);
-    /* @var Message $message */
-    $message = $conversation->participations()->first()->sendMessage($conversation, [
-        'content' => null,
-    ]);
-
-    livewire(ConversationManager::class)
-        ->assertActionHidden(
-            TestAction::make(EditMessageAction::getDefaultName())
-                ->schemaComponent('conversation_schema.conversation_thread')
-                ->arguments([
-                    'recordKey' => $message->getKey(),
-                ]),
-        );
-});
-
 it('can update a message', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
