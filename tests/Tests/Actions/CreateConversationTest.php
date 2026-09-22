@@ -7,7 +7,7 @@ use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Illuminate\Foundation\Auth\User as DefaultUser;
 
-it('can create a conversation with a single participant', function () {
+test('can create a conversation with a single participant', function () {
     $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
@@ -35,7 +35,7 @@ it('can create a conversation with a single participant', function () {
         ->and($conversation->owner->participant->getKey())->toBe($owner->getKey());
 });
 
-it('can create a conversation with multiple participants', function () {
+test('can create a conversation with multiple participants', function () {
     $owner = User::factory()->create();
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
@@ -64,7 +64,7 @@ it('can create a conversation with multiple participants', function () {
         ->and($conversation->owner->participant->getKey())->toBe($owner->getKey());
 });
 
-it('throws an exception when the owner user is not a model that uses the Conversable trait', function () {
+test('throws an exception when the owner user is not a model that uses the Conversable trait', function () {
     $owner = DefaultUser::unguarded(function () {
         return DefaultUser::query()->create([
             'name' => 'Default User',
@@ -80,7 +80,7 @@ it('throws an exception when the owner user is not a model that uses the Convers
     ))->toThrow(Exception::class);
 });
 
-it('throws an exception when a participating user is not a model that uses the Conversable trait', function () {
+test('throws an exception when a participating user is not a model that uses the Conversable trait', function () {
     $owner = User::factory()->create();
     $otherUser = DefaultUser::unguarded(function () {
         return DefaultUser::query()->create([
@@ -96,7 +96,7 @@ it('throws an exception when a participating user is not a model that uses the C
     ))->toThrow(Exception::class);
 });
 
-it('cannot create a conversation without participants', function () {
+test('cannot create a conversation without participants', function () {
     $owner = User::factory()->create();
 
     expect(fn () => app(CreateConversation::class)->handle(
@@ -105,7 +105,7 @@ it('cannot create a conversation without participants', function () {
     ))->toThrow(Exception::class);
 });
 
-it('cannot create a conversation with owner as one of its participants', function () {
+test('cannot create a conversation with owner as one of its participants', function () {
     $owner = User::factory()->create();
 
     expect(fn () => app(CreateConversation::class)->handle(

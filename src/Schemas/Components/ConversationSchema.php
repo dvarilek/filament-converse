@@ -31,8 +31,6 @@ class ConversationSchema extends Component
 
     protected ?Closure $sortConversationsUsing = null;
 
-    protected bool | Closure | null $persistsActiveConversationInSession = false;
-
     protected ?Closure $getDefaultActiveConversationUsing = null;
 
     protected ?Closure $conversationImageName = null;
@@ -248,13 +246,6 @@ class ConversationSchema extends Component
         return $this;
     }
 
-    public function persistActiveConversationInSession(bool | Closure | null $condition = true): static
-    {
-        $this->persistsActiveConversationInSession = $condition;
-
-        return $this;
-    }
-
     public function getDefaultActiveConversationUsing(?Closure $callback = null): static
     {
         $this->getDefaultActiveConversationUsing = $callback;
@@ -361,11 +352,6 @@ class ConversationSchema extends Component
     public function getConversationThread(): ConversationThread
     {
         return $this->getChildSchema()->getComponent(static fn ($component) => $component instanceof ConversationThread) ?? throw new \RuntimeException('The conversation thread component is missing.');
-    }
-
-    public function shouldPersistActiveConversationInSession(): bool
-    {
-        return (bool) $this->evaluate($this->persistsActiveConversationInSession);
     }
 
     public function getConversationName(Conversation $conversation): string | Htmlable | null

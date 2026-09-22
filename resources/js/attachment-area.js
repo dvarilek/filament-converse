@@ -1,4 +1,10 @@
-export function attachmentArea({ uploadDropZoneRef, statePath, $wire }) {
+export function attachmentArea({
+    uploadDropZoneRef,
+    statePath,
+    isMultiple,
+    fileAttachmentsCount,
+    $wire,
+}) {
     return {
         isDraggingFileAttachment: false,
 
@@ -9,6 +15,10 @@ export function attachmentArea({ uploadDropZoneRef, statePath, $wire }) {
         },
 
         registerFileAttachmentUploadEventListeners() {
+            if (!uploadDropZoneRef) {
+                return
+            }
+
             const element = this.$refs[uploadDropZoneRef]
 
             if (!element) {
@@ -64,6 +74,10 @@ export function attachmentArea({ uploadDropZoneRef, statePath, $wire }) {
                 return
             }
 
+            if (!isMultiple && fileAttachmentsCount + files.length >= 2) {
+                return
+            }
+
             this.uploadingFileAttachments.push(...files)
 
             await $wire.uploadMultiple(
@@ -71,6 +85,9 @@ export function attachmentArea({ uploadDropZoneRef, statePath, $wire }) {
                 files,
                 () => (this.uploadingFileAttachments = []),
                 () => (this.uploadingFileAttachments = []),
+                () => {},
+                () => {},
+                true,
             )
         },
     }

@@ -11,18 +11,24 @@ use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollec
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\CancelReplyToMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ReplyToMessageAction;
+use Illuminate\Support\Js;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\UploadAttachmentAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
+use Dvarilek\FilamentConverse\Schemas\Components\Contracts\HasMessageInput;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
-use Filament\Schemas\Components\FusedGroup;
+use Filament\Schemas\Components\Flex;
+use Filament\Schemas\Components\Text;
+use Filament\Schemas\Schema;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
@@ -37,7 +43,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use League\Flysystem\UnableToCheckFileExistence;
 
-class ConversationThread extends Component
+class ConversationThread extends Component implements HasMessageInput
 {
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
@@ -105,8 +111,6 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyMessagesQueryUsing = null;
 
-    protected ?Closure $getMessageAttachmentDataUsing = null;
-
     protected ?Closure $modifyUploadAttachmentActionUsing = null;
 
     protected ?Closure $modifyManageConversationActionUsing = null;
@@ -119,11 +123,23 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyDeleteMessageActionUsing = null;
 
+    protected ?Closure $getReplyingToMessageTextUsing = null;
+
+    protected ?Closure $modifyReplyingToMessageTextComponent = null;
+
+    protected ?Closure $modifyCancelReplyToMessageActionUsing = null;
+
     protected ?Closure $modifyAttachmentAreaComponentUsing = null;
 
     protected ?Closure $modifyTextareaComponentUsing = null;
 
     protected ?Closure $sendMessageUsing = null;
+
+    protected bool | Closure $canReplyToMessage = true;
+
+    protected bool | Closure $persistsActiveConversationInSession = false;
+
+    protected bool | Closure $shouldCacheUnsendMessagesOnConversationChange = true;
 
     protected ?Closure $modifySendMessageActionUsing = null;
 
@@ -143,21 +159,16 @@ class ConversationThread extends Component
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
-        $this->model(static fn ($livewire) => $livewire->getActiveConversation());
+        $this->model(static fn (ConversationManager $livewire) => $livewire->getActiveConversation());
 
+        // TODO: Show reply indication in thread and navigate on click
+        // TODO: Lightbox for image attachments
+        // TODO: Add option to download file attachments <- attachmentActions/in lightbox
+        // TODO: Show message edited indicator, message history
         // TODO: Participants joined_at and left_at indicators in thread
+        // TODO: Refactor last_read_at
 
-        $this->schema(static fn (ConversationThread $component) => [
-            FusedGroup::make([
-                $component->getAttachmentAreaComponent(),
-                $component->getTextareaComponent(),
-                Actions::make([
-                    $component->getUploadAttachmentAction(),
-                    $component->getSendMessageAction(),
-                ])
-                    ->alignBetween(),
-            ]),
-        ]);
+        $this->schema(static fn (Schema $schema, ConversationThread $component): Schema => MessageInputSchemaConfiguration::configure($schema, $component));
 
         $this->headerActions(static fn (ConversationThread $component) => [
             $component->getManageConversationAction(),
@@ -187,12 +198,49 @@ class ConversationThread extends Component
             static::MESSAGE_ACTIONS_KEY
         );
 
-        $this->sendMessageUsing(static function (ConversationManager $livewire, array $data): ?Message {
+        $this->getReplyingToMessageTextUsing(static function (ConversationManager $livewire, ConversationThread $component): ?HtmlString {
+            if (! ($replyingToMessageKey = $livewire->replyingToMessageKey)) {
+                return null;
+            }
+
+            /* @var ?Message $message */
+            $message = $component->getMessagesQuery(false)->find($replyingToMessageKey);
+
+            if (! $message) {
+                return null;
+            }
+
+            $name = $message->author->participant->getAttributeValue(
+                FilamentConverseServiceProvider::getFilamentConverseUserModel()::getFilamentNameAttribute()
+            );
+
+            return new HtmlString(__(
+                'filament-converse::conversation-thread.message-input.reply-to-message-text',
+                [
+                    'name' => '<span class="fi-converse-reply-to-message-author-name">' . e($name) . '</span>',
+                ],
+            ));
+        });
+
+        $this->sendMessageUsing(static function (ConversationManager $livewire, ConversationThread $component, array $data): ?Message {
             $messageContent = $data['messageContent'] ?? null;
             $uploadedAttachments = $data['attachments'] ?? [];
 
             if (blank($messageContent) && blank($uploadedAttachments)) {
                 return null;
+            }
+
+            if ($replyToMessageKey = $livewire->replyingToMessageKey) {
+                /* @var ?Message $replyToMessage*/
+                $replyToMessage = $component->getMessagesQuery(false)->find($replyToMessageKey);
+
+                if (! $replyToMessage instanceof Message) {
+                    return null;
+                }
+
+                if (! $component->canReplyToMessage($replyToMessage)) {
+                    return null;
+                }
             }
 
             $attachments = $attachmentFileNames = [];
@@ -204,7 +252,7 @@ class ConversationThread extends Component
 
             return $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($livewire->getActiveConversation(), [
                 'content' => $messageContent,
-                'reply_to_message_id' => $data['reply_to_message_id'] ?? null,
+                'reply_to_message_id' => $replyToMessageKey,
                 'attachments' => $attachments,
                 'attachment_file_names' => $attachmentFileNames,
             ]);
@@ -216,31 +264,6 @@ class ConversationThread extends Component
 
         $this->getMessageActionsTimestampUsing(static function (Message $message): string {
             return $message->created_at->isoFormat('L LT');
-        });
-
-        $this->getMessageAttachmentDataUsing(static function (ConversationThread $component, Message $message, Authenticatable $messageAuthor, Collection $messages): array {
-            $fileAttachmentsDisk = $component->getFileAttachmentsDisk();
-
-            return collect(array_combine($message->attachments, $message->attachment_file_names))
-                ->filter(static fn (string $attachmentOriginalName, string $attachmentPath) => $fileAttachmentsDisk->exists($attachmentPath))
-                ->mapWithKeys(function (string $attachmentOriginalName, string $attachmentPath) use ($component, $fileAttachmentsDisk, $message, $messageAuthor, $messages) {
-                    $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentPath);
-                    $hasImageMimeType = $component->isImageMimeType($attachmentMimeType);
-
-                    return [
-                        $attachmentPath => [
-                            'attachmentOriginalName' => $attachmentOriginalName,
-                            'attachmentMimeType' => $attachmentMimeType,
-                            'hasImageMimeType' => $hasImageMimeType,
-                            'shouldShowOnlyMessageImageAttachment' => $component->shouldShowOnlyImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, [
-                                'message' => $message,
-                                'messageAuthor' => $messageAuthor,
-                                'messages' => $messages,
-                            ]),
-                        ],
-                    ];
-                })
-                ->toArray();
         });
 
         $this->messenger();
@@ -645,13 +668,6 @@ class ConversationThread extends Component
         return $this;
     }
 
-    public function getMessageAttachmentDataUsing(?Closure $callback): static
-    {
-        $this->getMessageAttachmentDataUsing = $callback;
-
-        return $this;
-    }
-
     public function manageConversationAction(?Closure $callback): static
     {
         $this->modifyManageConversationActionUsing = $callback;
@@ -708,9 +724,44 @@ class ConversationThread extends Component
         return $this;
     }
 
-    public function modifyTextareaComponentUsing(?Closure $callback): static
+    public function replyToMessage(bool | CLosure $condition = true): static
     {
-        $this->modifyTextareaComponentUsing = $callback;
+        $this->canReplyToMessage = $condition;
+
+        return $this;
+    }
+
+    public function persistActiveConversationInSession(bool | Closure $condition = true): static
+    {
+        $this->persistsActiveConversationInSession = $condition;
+
+        return $this;
+    }
+
+    public function cacheUnsendMessagesOnConversationChange(bool | Closure $condition = true): static
+    {
+        $this->shouldCacheUnsendMessagesOnConversationChange = $condition;
+
+        return $this;
+    }
+
+    public function getReplyingToMessageTextUsing(?Closure $callback): static
+    {
+        $this->getReplyingToMessageTextUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyReplyingToMessageTextComponent(?Closure $callback): static
+    {
+        $this->modifyReplyingToMessageTextComponent = $callback;
+
+        return $this;
+    }
+
+    public function modifyCancelReplyToMessageActionUsing(?Closure $callback): static
+    {
+        $this->modifyCancelReplyToMessageActionUsing = $callback;
 
         return $this;
     }
@@ -718,6 +769,13 @@ class ConversationThread extends Component
     public function modifyAttachmentAreaComponentUsing(?Closure $callback): static
     {
         $this->modifyAttachmentAreaComponentUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyTextareaComponentUsing(?Closure $callback): static
+    {
+        $this->modifyTextareaComponentUsing = $callback;
 
         return $this;
     }
@@ -1002,31 +1060,28 @@ class ConversationThread extends Component
         return $query;
     }
 
-    /**
-     * @param  Collection<int, Message>  $messages
-     * @return array{attachmentOriginalName: string, attachmentMimeType: string, hasImageMimeType: bool, shouldShowOnlyMessageImageAttachment: bool}
-     */
-    public function getMessageAttachmentData(Message $message, Authenticatable $messageAuthor, Collection $messages): array
+    public function canReplyToMessage(Message $message): bool
     {
-        return $this->evaluate($this->getMessageAttachmentDataUsing, [
+        return (bool) $this->evaluate($this->canReplyToMessage, [
             'message' => $message,
-            'messageAuthor' => $messageAuthor,
-            'messages' => $messages,
         ], [
             Message::class => $message,
-            Authenticatable::class => $messageAuthor,
-            Collection::class => $messages,
         ]);
+    }
+
+    public function shouldPersistActiveConversationInSession(): bool
+    {
+        return (bool) $this->evaluate($this->persistsActiveConversationInSession);
+    }
+
+    public function shouldCacheUnsendMessagesOnConversationChange(): bool
+    {
+        return (bool) $this->evaluate($this->shouldCacheUnsendMessagesOnConversationChange);
     }
 
     public function getUploadAttachmentAction(): Action
     {
-        $action = Action::make('uploadAttachment')
-            ->label(__('filament-converse::conversation-thread.footer-actions.upload-attachment-label'))
-            ->iconButton()
-            ->iconSize(IconSize::Large)
-            ->icon(Heroicon::PaperClip)
-            ->alpineClickHandler("\$dispatch('filament-converse-trigger-file-input')");
+        $action = UploadAttachmentAction::make();
 
         if ($this->modifyUploadAttachmentActionUsing) {
             $action = $this->evaluate($this->modifyUploadAttachmentActionUsing, [
@@ -1065,7 +1120,11 @@ class ConversationThread extends Component
 
     public function getEditMessageAction(): Action
     {
-        $action = EditMessageAction::make();
+        $action = EditMessageAction::make()
+            ->getAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
+            ->getTextareaComponentUsing($this->getTextAreaComponent(...))
+            ->getSendMessageActionUsing($this->getSendMessageAction(...))
+            ->getUploadAttachmentActionUsing($this->getUploadAttachmentAction(...));
 
         if ($this->modifyEditMessageActionUsing) {
             $action = $this->evaluate($this->modifyEditMessageActionUsing, [
@@ -1082,11 +1141,7 @@ class ConversationThread extends Component
     public function getReplyToMessageAction(): Action
     {
         $action = ReplyToMessageAction::make()
-            ->getAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
-            ->getTextareaComponentUsing($this->getTextAreaComponent(...))
-            ->getSendMessageActionUsing($this->getSendMessageAction(...))
-            ->getUploadAttachmentActionUsing($this->getUploadAttachmentAction(...))
-            ->replyToMessageUsing($this->sendMessageUsing);
+            ->visible(fn (?Message $message): bool => $message && $this->canReplyToMessage($message));
 
         if ($this->modifyReplyToMessageActionUsing) {
             $action = $this->evaluate($this->modifyReplyToMessageActionUsing, [
@@ -1114,6 +1169,42 @@ class ConversationThread extends Component
         }
 
         return $action;
+    }
+
+    public function getReplyToMessageBanner(): ?Component
+    {
+        $replyingToMessageKey = $this->getLivewire()->replyingToMessageKey;
+
+        if (! $replyingToMessageKey) {
+            return null;
+        }
+
+        $textComponent = Text::make(fn () => $this->evaluate($this->getReplyingToMessageTextUsing))
+            ->extraAttributes([
+                'x-on:click' => 'navigateToMessage(' . Js::from($replyingToMessageKey) . ')',
+            ]);
+        $action = CancelReplyToMessageAction::make();
+
+        if ($this->modifyReplyingToMessageTextComponent) {
+            $textComponent = $this->evaluate($this->modifyReplyingToMessageTextComponent, [
+                'component' => $textComponent,
+            ], [
+                Text::class => $textComponent,
+            ]) ?? $textComponent;
+        }
+
+        if ($this->modifyCancelReplyToMessageActionUsing) {
+            $action = $this->evaluate($this->modifyCancelReplyToMessageActionUsing, [
+                'action' => $action,
+            ], [
+                CancelReplyToMessageAction::class => $action,
+            ]) ?? $action;
+        }
+
+        return Flex::make([
+            $textComponent,
+            $action
+        ]);
     }
 
     public function getAttachmentAreaComponent(): Field
@@ -1148,7 +1239,7 @@ class ConversationThread extends Component
     {
         $component = Textarea::make('messageContent')
             ->hiddenLabel()
-            ->placeholder(__('filament-converse::conversation-thread.placeholder'))
+            ->placeholder(__('filament-converse::conversation-thread.message-input.placeholder'))
             ->autosize()
             ->autofocus()
             ->maxLength(65535)
@@ -1160,7 +1251,7 @@ class ConversationThread extends Component
                 'style' => 'max-height: 8rem; overflow: auto',
             ])
             ->extraAlpineAttributes([
-                'x-on:keydown' => '$nextTick(() => fireUserTypingEvent($event))',
+                'x-on:keydown' => "\$nextTick(() => \$dispatch('filament-converse-fire-user-typing-event'))",
             ]);
 
         if ($this->modifyTextareaComponentUsing) {
@@ -1177,7 +1268,7 @@ class ConversationThread extends Component
     public function getSendMessageAction(): Action
     {
         $action = Action::make('sendMessage')
-            ->label(__('filament-converse::conversation-thread.footer-actions.send-message-label'))
+            ->label(__('filament-converse::conversation-thread.message-input.actions.send-message-label'))
             ->iconButton()
             ->iconSize(IconSize::Large)
             ->icon(Heroicon::PaperAirplane)
@@ -1198,12 +1289,15 @@ class ConversationThread extends Component
                     return;
                 }
 
-                $statePath = $livewire->getConversationSchema()->getConversationThread()->getStatePath();
-                $activeConversation = $livewire->getActiveConversation();
+                if (! $livewire->isReplyingToMessage($message->getKey()) && $this->shouldCacheUnsendMessagesOnConversationChange()) {
+                    $statePath = $this->getStatePath();
+                    $activeConversation = $livewire->getActiveConversation();
 
-                data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
-                $livewire->handleMessageChangeDuringConversationSession($message->getKey());
+                    data_set($livewire->cachedUnsendMessages, $statePath . '.' . $activeConversation->getKey(), null);
 
+                }
+
+                $livewire->cancelReplyToMessage();
                 $livewire->content->fill();
             });
 
@@ -1211,7 +1305,7 @@ class ConversationThread extends Component
             $action = $this->evaluate($this->modifySendMessageActionUsing, [
                 'action' => $action,
             ], [
-                Action::class => $action,
+                SendMessageAction::class => $action,
             ]) ?? $action;
         }
 

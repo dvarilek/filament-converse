@@ -29,7 +29,7 @@ test('is hidden for regular participants', function () {
     $livewire->assertActionVisible(TransferConversationAction::getDefaultName());
 });
 
-it('can transfer conversation in a direct conversation', function () {
+test('can transfer conversation in a direct conversation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -53,7 +53,7 @@ it('can transfer conversation in a direct conversation', function () {
     expect($conversation->owner_id)->toBe($userParticipation->getKey());
 });
 
-it('can transfer conversation in a group conversation', function () {
+test('can transfer conversation in a group conversation', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();

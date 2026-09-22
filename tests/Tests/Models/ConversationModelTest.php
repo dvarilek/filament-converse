@@ -7,7 +7,7 @@ use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollec
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 
-it('can retrieve other participations', function () {
+test('can retrieve other participations', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();
@@ -31,7 +31,7 @@ it('can retrieve other participations', function () {
         ->toBe($conversation->participations()->other()->pluck('participant_id')->sort()->values()->toArray());
 });
 
-it('can retrieve active participations', function () {
+test('can retrieve active participations', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();
@@ -57,7 +57,7 @@ it('can retrieve active participations', function () {
         ->toBe($conversation->participations()->active()->pluck('participant_id')->sort()->values()->toArray());
 });
 
-it('can retrieve inactive participations', function () {
+test('can retrieve inactive participations', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();

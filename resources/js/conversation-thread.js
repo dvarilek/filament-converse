@@ -1,11 +1,15 @@
 export function conversationThread({
-    key,
-    autoScrollOnForeignMessagesThreshold,
-    shouldDispatchUserTypingEvent,
-    userTypingEventDispatchThreshold,
-    $wire,
-}) {
+                                       key,
+                                       autoScrollOnForeignMessagesThreshold,
+                                       shouldDispatchUserTypingEvent,
+                                       userTypingEventDispatchThreshold,
+                                       $wire,
+                                   }) {
     return {
+        resizeObserver: null,
+
+        previousFooterHeight: 0,
+
         messageChangesDuringConversationSession: $wire.entangle(
             'messageChangesDuringConversationSession',
         ),
@@ -17,44 +21,97 @@ export function conversationThread({
         init() {
             this.$watch(
                 'messageChangesDuringConversationSession',
-                (newMessages, oldMessages) => {
-                    const isForeign = (message) =>
-                        !message.createdByAuthenticatedUser && message.exists
-                    const isNonForeign = (message) =>
-                        message.createdByAuthenticatedUser && message.exists
-
-                    const newForeignCount =
-                        Object.values(newMessages).filter(isForeign).length
-                    const oldForeignCount =
-                        Object.values(oldMessages).filter(isForeign).length
-
-                    const newNonForeignCount =
-                        Object.values(newMessages).filter(isNonForeign).length
-                    const oldNonForeignCount =
-                        Object.values(oldMessages).filter(isNonForeign).length
-
-                    if (
-                        newForeignCount > oldForeignCount &&
-                        this.isPositionedNearBottom()
-                    ) {
-                        this.$nextTick(() =>
-                            this.scrollToBottom({ behaviour: 'smooth' }),
-                        )
-                    }
-
-                    if (newNonForeignCount > oldNonForeignCount) {
-                        this.$nextTick(() =>
-                            this.scrollToBottom({ behaviour: 'smooth' }),
-                        )
-                    }
-                },
+                this.handleConversationMessagesChange.bind(this),
             )
+
+            this.observeConversationThreadFooterResize()
+        },
+
+        observeConversationThreadFooterResize() {
+            const footer = this.$refs.conversationThreadFooter
+            const threadContent = this.$refs.conversationThreadContent
+
+            if (!footer || !threadContent) {
+                return
+            }
+
+            this.previousFooterHeight = footer.getBoundingClientRect().height
+
+            this.resizeObserver = new ResizeObserver(([entry]) => {
+                const newHeight = entry.target.getBoundingClientRect().height
+                const difference = newHeight - this.previousFooterHeight
+
+                if (difference === 0) {
+                    return
+                }
+
+                const distanceFromBottom =
+                    threadContent.scrollHeight -
+                    threadContent.clientHeight -
+                    threadContent.scrollTop
+
+                if (distanceFromBottom === 0) {
+                    threadContent.scrollTop = threadContent.scrollHeight
+                } else {
+                    threadContent.scrollTop += difference
+                }
+
+                this.previousFooterHeight = newHeight
+            })
+
+            this.resizeObserver.observe(footer)
+        },
+
+        handleConversationMessagesChange(newMessages, oldMessages) {
+            const isForeign = (message) =>
+                !message.createdByAuthenticatedUser && message.exists
+            const isNonForeign = (message) =>
+                message.createdByAuthenticatedUser && message.exists
+
+            const newForeignCount =
+                Object.values(newMessages).filter(isForeign).length
+            const oldForeignCount =
+                Object.values(oldMessages).filter(isForeign).length
+
+            const newNonForeignCount =
+                Object.values(newMessages).filter(isNonForeign).length
+            const oldNonForeignCount =
+                Object.values(oldMessages).filter(isNonForeign).length
+
+            if (
+                (newForeignCount > oldForeignCount &&
+                    this.isPositionedNearBottom()) ||
+                newNonForeignCount > oldNonForeignCount
+            ) {
+                this.scrollToBottom({ behavior: 'smooth' })
+            }
         },
 
         scrollToBottom(options) {
             this.$refs.conversationThreadContentEndMarker.scrollIntoView(
                 options,
             )
+        },
+
+        navigateToMessage(messageKey) {
+            const element = document.getElementById(
+                'fi-converse-conversation-thread-message-content-' + messageKey
+            )
+
+            if (!element) {
+                return
+            }
+
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            })
+
+            element.classList.add('message-highlight')
+
+            setTimeout(() => {
+                element.classList.remove('message-highlight')
+            }, 1500)
         },
 
         async fireUserTypingEvent(event) {
@@ -73,7 +130,7 @@ export function conversationThread({
             if (
                 this.lastUserTypingEventSentAt &&
                 now - this.lastUserTypingEventSentAt <
-                    userTypingEventDispatchThreshold
+                userTypingEventDispatchThreshold
             ) {
                 return
             }
@@ -105,14 +162,14 @@ export function conversationThread({
 
             return (
                 element.scrollHeight -
-                    element.scrollTop -
-                    element.clientHeight <
+                element.scrollTop -
+                element.clientHeight <
                 (autoScrollOnForeignMessagesThreshold ?? 0)
             )
         },
 
-        isUploadingFileAttachment() {
-            return this.uploadingFileAttachments.length > 0
+        destroy() {
+            this.resizeObserver?.disconnect()
         },
     }
 }

@@ -10,7 +10,7 @@ use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Exception;
 
-it('can send a message', function () {
+test('can send a message', function () {
     $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
@@ -38,7 +38,7 @@ it('can send a message', function () {
         ->author->getKey()->toBe($author->getKey());
 });
 
-it('can send a message through message model', function () {
+test('can send a message through message model', function () {
     $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
@@ -61,7 +61,7 @@ it('can send a message through message model', function () {
         ->author->getKey()->toBe($author->getKey());
 });
 
-it('can send a reply to a message', function () {
+test('can send a reply to a message', function () {
     $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
@@ -95,7 +95,7 @@ it('can send a reply to a message', function () {
         ->and($message->replies->first()->getKey())->toBe($reply->getKey());
 });
 
-it('cannot reply to a message from different conversation', function () {
+test('cannot reply to a message from different conversation', function () {
     $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 

@@ -30,7 +30,7 @@ describe('active conversation', function () {
             ->getActiveConversation()->getKey()->toBe($conversation->getKey());
     });
 
-    it('can configure conversation schema contents', function () {
+    test('can configure conversation schema contents', function () {
         $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
@@ -45,7 +45,7 @@ describe('active conversation', function () {
             ->assertSeeText('Conversation thread custom empty state');
     });
 
-    it('can persist active conversation in session', function () {
+    test('can persist active conversation in session', function () {
         Carbon::setTestNow();
 
         $owner = User::factory()->create();
@@ -81,7 +81,7 @@ describe('active conversation', function () {
             ->toBe($secondLivewireWithConfiguration->instance()->getActiveConversationSessionKey());
     });
 
-    it('can retrieve authenticated user participation belonging to an active conversation', function () {
+    test('can retrieve authenticated user participation belonging to an active conversation', function () {
         $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
@@ -113,6 +113,9 @@ class SessionConfiguration
 {
     public static function configure(ConversationSchema $schema): ConversationSchema
     {
-        return $schema->persistActiveConversationInSession();
+        return $schema
+            ->conversationThread(static fn (ConversationThread $conversationThread) => $conversationThread
+                ->persistActiveConversationInSession()
+            );
     }
 }

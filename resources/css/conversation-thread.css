@@ -5,50 +5,6 @@
         @apply ring-primary-700 dark:ring-primary-600 relative ring-2;
     }
 
-    & .fi-converse-upload-modal-overlay {
-        @apply absolute inset-0 flex items-start justify-center pt-40;
-
-        & .fi-converse-upload-modal-backdrop {
-            @apply absolute inset-0 z-10 rounded-xl bg-gray-950/20 dark:bg-gray-950/50;
-        }
-
-        & .fi-converse-upload-modal {
-            @apply max-w-2/3 sm:max-w-1/3 md:max-w-1/3 lg:max-w-1/3 xl:max-w-1/3 relative z-10 flex w-full flex-col items-center justify-center rounded-xl bg-white p-6 shadow-xl ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
-
-            & .fi-converse-upload-modal-header {
-                @apply mb-5 flex items-center justify-center;
-
-                & .fi-converse-upload-modal-icon-bg {
-                    @apply rounded-full bg-gray-100 p-3 dark:bg-gray-500/20;
-
-                    & > .fi-icon {
-                        @apply text-gray-500 dark:text-gray-400;
-                    }
-
-                    &.fi-color {
-                        @apply bg-color-100 dark:bg-color-500/20;
-
-                        & > .fi-icon {
-                            @apply text-color-600 dark:text-color-400;
-                        }
-                    }
-                }
-            }
-
-            & .fi-converse-upload-modal-content {
-                @apply flex w-full flex-col items-center gap-y-2 text-center;
-
-                & .fi-converse-upload-modal-heading {
-                    @apply w-full break-words font-semibold leading-6 text-gray-950 dark:text-white;
-                }
-
-                & .fi-converse-upload-modal-description {
-                    @apply w-full break-words text-sm text-gray-500 dark:text-gray-400;
-                }
-            }
-        }
-    }
-
     & .fi-converse-conversation-thread-header {
         @apply min-h-1/8 flex flex-shrink-0 flex-wrap items-center gap-4 border-b border-gray-200 p-6 dark:border-white/10;
 
@@ -82,7 +38,7 @@
         }
 
         & .fi-converse-conversation-thread-messages-content-footer {
-            @apply mt-auto flex min-h-10 items-center px-5;
+            @apply mt-auto flex min-h-8 items-center px-5;
             content: '';
 
             &
@@ -130,7 +86,8 @@
         }
 
         & .fi-converse-conversation-thread-message-container {
-            @apply mt-3 flex flex-col gap-1 px-4;
+            @apply flex mt-3 flex-col gap-1 px-4;
+            transition: background-color 300ms ease;
 
             & .fi-converse-conversation-thread-new-messages-divider-content {
                 @apply text-primary-600 dark:text-primary-400 flex w-full items-center gap-3 py-1 text-xs;
@@ -247,96 +204,136 @@
 
     & .fi-converse-conversation-thread-footer-wrapper {
         @apply min-h-1/8 flex flex-shrink-0 flex-col border-t border-gray-200 p-6 dark:border-white/10;
+    }
+}
 
-        & .fi-sc {
-            @apply divide-y-0 p-0.5;
+.fi-converse-image-attachment-container {
+    @apply relative h-16 w-16;
 
-            & .fi-sc-actions {
-                @apply dark:bg-white/5;
-            }
+    &.fi-converse-image-attachment-container-grid {
+        @apply col-span-1;
+    }
+
+    & .fi-converse-image-attachment {
+        @apply h-full w-full rounded-xl object-cover;
+    }
+
+    & .fi-converse-image-attachment-remove-button {
+        @apply absolute right-1 top-1 text-white;
+    }
+
+    & .fi-converse-image-attachment-skeleton {
+        @apply flex h-full w-full animate-pulse items-center justify-center rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-950/50 dark:ring-white/10;
+    }
+}
+
+.fi-converse-generic-attachment-container {
+    @apply flex h-16 w-full gap-3 rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-950/50 dark:ring-white/10;
+
+    &.fi-converse-generic-attachment-container-grid {
+        @apply col-span-full min-w-60 bg-white ring-gray-300 dark:bg-gray-900 dark:ring-gray-700;
+    }
+
+    &.fi-converse-attachment-adaptable-width {
+        width: 100%;
+
+        @container (min-width: 16rem) {
+            width: calc((100% - theme(spacing.3)) / 2);
         }
 
-        & .fi-converse-attachment-area {
-            @apply max-h-22 flex flex-wrap gap-3 overflow-y-auto dark:bg-white/5;
-
-            &.fi-converse-attachment-area-has-content {
-                @apply p-3;
-            }
+        @container (min-width: 32rem) {
+            width: calc((100% - theme(spacing.3) * 2) / 3);
         }
     }
 
-    & .fi-converse-image-attachment-container {
-        @apply relative h-16 w-16;
+    & .fi-converse-generic-attachment-image {
+        @apply w-12 shrink-0 rounded-xl object-cover;
+    }
 
-        &.fi-converse-image-attachment-container-grid {
-            @apply col-span-1;
+    & .fi-converse-attachment-icon {
+        @apply rounded-full bg-gray-100 p-3 dark:bg-white/5;
+    }
+
+    & .fi-converse-attachment-information-container {
+        @apply flex w-full min-w-0;
+
+        &.fi-converse-attachment-has-mime-type-name {
+            @apply flex-col gap-0.5;
+
+            & .fi-converse-attachment-mime-type-badge {
+                @apply w-fit;
+            }
         }
 
-        & .fi-converse-image-attachment {
-            @apply h-full w-full rounded-xl object-cover;
+        &:not(.fi-converse-attachment-has-mime-type-name) {
+            @apply items-center;
         }
 
-        & .fi-converse-image-attachment-remove-button {
-            @apply absolute right-1 top-1 text-white;
-        }
-
-        & .fi-converse-image-attachment-skeleton {
-            @apply flex h-full w-full animate-pulse items-center justify-center rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900/50 dark:ring-white/10;
+        & .fi-converse-attachment-name {
+            @apply truncate text-sm leading-6 text-gray-950 dark:text-white;
         }
     }
 
-    & .fi-converse-generic-attachment-container {
-        @apply flex h-16 w-full gap-3 rounded-xl bg-white/5 p-2 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-950/50 dark:ring-white/10;
+    & .fi-converse-generic-attachment-skeleton {
+        @apply h-12 w-12 flex-shrink-0 animate-pulse rounded-full bg-gray-200 p-3 dark:bg-white/10;
+    }
 
-        &.fi-converse-generic-attachment-container-grid {
-            @apply col-span-full min-w-60 bg-white ring-gray-300 dark:bg-gray-900 dark:ring-gray-700;
+    & .fi-converse-attachment-information-container-skeleton {
+        @apply flex w-full min-w-0 animate-pulse flex-col justify-center gap-3;
+
+        & .fi-converse-attachment-name-skeleton {
+            @apply h-3 w-3/4 animate-pulse rounded-md bg-gray-200 dark:bg-white/10;
         }
 
-        &.fi-converse-attachment-adaptable-width {
-            @apply sm:w-[calc((100%_-_theme(spacing.3))_/_2)] md:w-[calc((d100%_-_theme(spacing.3))_/_2)] lg:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)] xl:w-[calc((100%_-_theme(spacing.3)_*_2)_/_3)];
+        & .fi-converse-attachment-mime-type-badge-skeleton {
+            @apply h-3 w-1/2 animate-pulse rounded-md bg-gray-200 dark:bg-white/10;
+        }
+    }
+}
+
+.fi-converse-replying-to-message {
+    @apply relative isolate;
+
+    &::before {
+        content: '';
+        @apply absolute inset-0 -z-10 bg-primary-50 rounded-xl transition-colors duration-300;
+    }
+
+    .dark &::before {
+        @apply bg-primary-400/50 absolute inset-0 -z-10  rounded-xl transition-colors duration-300;
+    }
+}
+
+.message-highlight {
+    @apply relative isolate;
+
+    &::before {
+        content: '';
+        @apply absolute inset-0 -z-10 bg-primary-50 dark:bg-gray-950/50 rounded-xl transition-colors duration-300;
+    }
+}
+
+.fi-converse-conversation-thread-message-input {
+    & .fi-converse-reply-to-message-author-name {
+        @apply  text-gray-950 dark:text-white;
+    }
+
+    & .fi-sc {
+        @apply divide-y-0 p-0.5;
+
+        & .fi-sc-actions {
+            @apply dark:bg-white/5;
         }
 
-        & .fi-converse-generic-attachment-image {
-            @apply w-12 shrink-0 rounded-xl object-cover;
-        }
+        & .fi-sc-flex {
+            @apply  border-b-1 border-gray-950/10 dark:border-white/20 px-3 py-2 dark:bg-white/5 cursor-pointer;
 
-        & .fi-converse-attachment-icon {
-            @apply rounded-full bg-gray-100 p-3 dark:bg-white/5;
-        }
+            & > .fi-growable {
+                @apply min-w-0;
 
-        & .fi-converse-attachment-information-container {
-            @apply flex w-full min-w-0;
-
-            &.fi-converse-attachment-has-mime-type-name {
-                @apply flex-col gap-2;
-
-                & .fi-converse-attachment-mime-type-badge {
-                    @apply w-fit;
+                & > .fi-sc-text {
+                    @apply block truncate;
                 }
-            }
-
-            &:not(.fi-converse-attachment-has-mime-type-name) {
-                @apply items-center;
-            }
-
-            & .fi-converse-attachment-name {
-                @apply truncate text-sm leading-6 text-gray-950 dark:text-white;
-            }
-        }
-
-        & .fi-converse-generic-attachment-skeleton {
-            @apply h-12 w-12 flex-shrink-0 animate-pulse rounded-full bg-gray-200 p-3 dark:bg-white/10;
-        }
-
-        & .fi-converse-attachment-information-container-skeleton {
-            @apply flex w-full min-w-0 animate-pulse flex-col justify-center gap-3;
-
-            & .fi-converse-attachment-name-skeleton {
-                @apply h-3 w-3/4 animate-pulse rounded-md bg-gray-200 dark:bg-white/10;
-            }
-
-            & .fi-converse-attachment-mime-type-badge-skeleton {
-                @apply h-3 w-1/2 animate-pulse rounded-md bg-gray-200 dark:bg-white/10;
             }
         }
     }

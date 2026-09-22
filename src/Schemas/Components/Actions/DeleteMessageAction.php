@@ -49,7 +49,7 @@ class DeleteMessageAction extends Action
                 $message->author_id === $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey()
         );
 
-        $this->deleteMessageUsing(static fn (Message $message): bool => $message->delete());
+        $this->deleteMessageUsing(static fn (Message $message, Conversation $conversation): bool => $message->deleteMessage($conversation));
 
         $this->action(static function (DeleteMessageAction $action, ConversationManager $livewire, Message $message): void {
             if (! $action->deleteMessageUsing) {
@@ -64,8 +64,13 @@ class DeleteMessageAction extends Action
                 return;
             }
 
-
-            $livewire->handleMessageChangeDuringConversationSession($message->getKey(), false);
+            $messageKey = $message->getKey();
+            $livewire->handleMessageChangeDuringConversationSession($messageKey, false);
+            
+            if ($livewire->isReplyingToMessage($messageKey)) {
+                $livewire->cancelReplyToMessage();
+            }
+            
             $action->success();
         });
     }
