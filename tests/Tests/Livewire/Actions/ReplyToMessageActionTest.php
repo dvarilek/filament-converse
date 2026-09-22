@@ -47,8 +47,3 @@ it('can reply to a message', function () {
         ->toBeInstanceOf(Message::class)
         ->content->toBe('reply message');
 });
-
-it('can reply with attachments to a message', function () {
-
-})->skip();
-

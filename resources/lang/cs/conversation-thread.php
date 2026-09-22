@@ -84,11 +84,13 @@ return [
 
     ],
 
-    'footer-actions' => [
+    'message-input-actions' => [
 
         'upload-attachment-label' => 'Nahrát přílohu',
 
         'send-message-label' => 'Poslat zprávu',
+
+        'update-message-label' => 'Upravit zprávu',
 
     ],
 

@@ -8,15 +8,18 @@ use Closure;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\Concerns\CanSendMessages;
+use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
+use Dvarilek\FilamentConverse\Schemas\Components\Contracts\HasMessageInput;
 use Filament\Actions\Action;
-use Filament\Forms\Components\Field;
-use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class EditMessageAction extends Action
+class EditMessageAction extends Action implements HasMessageInput
 {
-    protected ?Closure $modifyTextareaComponentUsing = null;
+    use CanSendMessages;
 
     protected ?Closure $updateMessageUsing = null;
 
@@ -52,21 +55,45 @@ class EditMessageAction extends Action
         );
 
         $this->visible(
-            static fn (ConversationManager $livewire, ?Message $message): bool => filled($message?->content) &&
-                $message->author_id === $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey()
+            static fn (ConversationManager $livewire, ?Message $message): bool => $message?->author_id === $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey()
         );
 
-        $this->fillForm(static fn (?Message $message): array => [
-            'messageContent' => $message?->content,
+        $this->fillForm(static fn (Message $message): array => [
+            'messageContent' => $message->content,
+            'attachments' => array_combine($message->attachments, $message->attachment_file_names),
         ]);
 
-        $this->schema(static fn (EditMessageAction $action): array => [
-            $action->getTextareaComponent(),
+        $this->schema(static fn (Schema $schema, EditMessageAction $action): Schema => MessageInputSchemaConfiguration::configure($schema, $action));
+
+        $this->extraModalWindowAttributes([
+            'x-ref' => 'uploadDropZoneRef',
         ]);
 
-        $this->updateMessageUsing(static fn (array $data, Message $message): bool => $message->update([
-            'content' => $data['messageContent'],
-        ]));
+        $this->updateMessageUsing(static function (array $data, Message $message, Conversation $conversation): bool {
+            $messageContent = $data['messageContent'] ?? null;
+            $uploadedAttachments = $data['attachments'] ?? [];
+
+            if (blank($messageContent) && blank($uploadedAttachments)) {
+                return false;
+            }
+
+            $attachments = $attachmentFileNames = [];
+
+            foreach ($uploadedAttachments as $storedFileName => $attachment) {
+                $attachments[] = $storedFileName;
+                $attachmentFileNames[] = $attachment instanceof TemporaryUploadedFile ? $attachment->getClientOriginalName() : $attachment;
+            }
+
+            if ($message->content === $messageContent && $message->attachments === $attachments && $message->attachment_file_names === $attachmentFileNames) {
+                return false;
+            }
+
+            return $message->updateMessage($conversation, [
+                'content' => $messageContent,
+                'attachments' => $attachments,
+                'attachment_file_names' => $attachmentFileNames,
+            ]);
+        });
 
         $this->action(static function (array $data, EditMessageAction $action): void {
             if (! $action->updateMessageUsing) {
@@ -83,13 +110,8 @@ class EditMessageAction extends Action
 
             $action->success();
         });
-    }
 
-    public function modifyTextareaComponentUsing(?Closure $callback = null): static
-    {
-        $this->modifyTextareaComponentUsing = $callback;
-
-        return $this;
+        $this->modalFooterActions([]);
     }
 
     public function updateMessageUsing(?Closure $callback = null): static
@@ -99,29 +121,24 @@ class EditMessageAction extends Action
         return $this;
     }
 
-    public function getTextareaComponent(): Field
+    public function getSendMessageAction(): ?Action
     {
-        $component = Textarea::make('messageContent')
-            ->hiddenLabel()
-            ->placeholder(__('filament-converse::conversation-thread.placeholder'))
-            ->required(static fn (Message $message) => blank($message->attachments))
-            ->autosize()
-            ->autofocus()
-            ->rows(4)
-            ->maxLength(65535)
-            ->extraAttributes([
-                'style' => 'max-height: 8rem; overflow: auto',
-            ]);
+        $action = $this->evaluate($this->getSendMessageActionUsing);
 
-        if ($this->modifyTextareaComponentUsing) {
-            $component = $this->evaluate($this->modifyTextareaComponentUsing, [
-                'component' => $component,
-            ], [
-                Textarea::class => $component,
-            ]) ?? null;
+        if ($action instanceof Action) {
+            $action
+                ->label(__('filament-converse::conversation-thread.message-input-actions.update-message-label'))
+                ->icon(Heroicon::OutlinedCheck)
+                ->action($this->getLivewireCallMountedActionName());
         }
 
-        return $component;
+        if ($this->modifySendMessageActionUsing) {
+            $action = $this->evaluate($this->modifySendMessageActionUsing, [
+                'action' => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
     }
 
     /**

@@ -6,11 +6,9 @@ namespace Dvarilek\FilamentConverse\Schemas\Components\Concerns;
 
 use BackedEnum;
 use Closure;
-use Dvarilek\FilamentConverse\Models\Message;
 use Filament\Schemas\Components\Icon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
-use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 
 trait HasFileAttachments
@@ -110,50 +108,50 @@ trait HasFileAttachments
         return str_starts_with($mimeType, 'image/');
     }
 
-    public function shouldShowOnlyImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): bool
+    public function shouldShowOnlyImageAttachment(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): bool
     {
         return (bool) $this->evaluate($this->shouldShowOnlyImageAttachment, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,
         ]);
     }
 
-    public function shouldPreviewImageAttachment(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): bool
+    public function shouldPreviewImageAttachment(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): bool
     {
         return (bool) $this->evaluate($this->shouldPreviewImageAttachment, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,
         ]);
     }
 
-    public function getFileAttachmentName(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | Htmlable
+    public function getFileAttachmentName(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | Htmlable
     {
         return $this->evaluate($this->getFileAttachmentNameUsing, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,
         ]) ?? $attachmentOriginalName;
     }
 
-    public function getFileAttachmentToolbar(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | Htmlable | null
+    public function getFileAttachmentToolbar(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | Htmlable | null
     {
         return $this->evaluate($this->getFileAttachmentToolbarUsing, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,
         ]);
     }
 
-    public function getFileAttachmentIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): Htmlable | Icon | null
+    public function getFileAttachmentIcon(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): Htmlable | Icon | null
     {
         $icon = $this->evaluate($this->fileAttachmentIcon, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,
@@ -169,37 +167,37 @@ trait HasFileAttachments
 
         if ($icon instanceof Icon) {
             $icon->color(
-                $this->getFileAttachmentIconColor($attachmentPath, $attachmentOriginalName, $attachmentMimeType, $data),
+                $this->getFileAttachmentIconColor($attachmentName, $attachmentOriginalName, $attachmentMimeType, $data),
             );
         }
 
         return $icon;
     }
 
-    public function getFileAttachmentIconColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | array
+    public function getFileAttachmentIconColor(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | array
     {
         return $this->evaluate($this->fileAttachmentIconColor, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,
         ]) ?? 'primary';
     }
 
-    public function getFileAttachmentMimeTypeBadgeLabel(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | Htmlable | null
+    public function getFileAttachmentMimeTypeBadgeLabel(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | Htmlable | null
     {
         return $this->evaluate($this->fileAttachmentMimeTypeBadgeLabel, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,
         ]);
     }
 
-    public function getFileAttachmentMimeTypeBadgeIcon(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | BackedEnum | null
+    public function getFileAttachmentMimeTypeBadgeIcon(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | BackedEnum | null
     {
         return $this->evaluate($this->fileAttachmentMimeTypeBadgeIcon, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,
@@ -207,13 +205,12 @@ trait HasFileAttachments
     }
 
     /**
-     * @param  Collection<int, Message>  $messages
      * @return string | array<string>
      */
-    public function getFileAttachmentMimeTypeBadgeColor(string $attachmentPath, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | array
+    public function getFileAttachmentMimeTypeBadgeColor(string $attachmentName, string $attachmentOriginalName, string $attachmentMimeType, array $data): string | array
     {
         return $this->evaluate($this->fileAttachmentMimeTypeBadgeColor, [
-            'attachmentPath' => $attachmentPath,
+            'attachmentName' => $attachmentName,
             'attachmentOriginalName' => $attachmentOriginalName,
             'attachmentMimeType' => $attachmentMimeType,
             'data' => $data,

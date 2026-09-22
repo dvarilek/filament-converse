@@ -110,9 +110,5 @@ export function conversationThread({
                 (autoScrollOnForeignMessagesThreshold ?? 0)
             )
         },
-
-        isUploadingFileAttachment() {
-            return this.uploadingFileAttachments.length > 0
-        },
     }
 }
