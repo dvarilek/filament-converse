@@ -64,7 +64,6 @@ class DeleteMessageAction extends Action
                 return;
             }
 
-
             $livewire->handleMessageChangeDuringConversationSession($message->getKey(), false);
             $action->success();
         });

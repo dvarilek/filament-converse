@@ -48,7 +48,4 @@ it('can reply to a message', function () {
         ->content->toBe('reply message');
 });
 
-it('can reply with attachments to a message', function () {
-
-})->skip();
-
+it('can reply with attachments to a message', function () {})->skip();

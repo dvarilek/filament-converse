@@ -28,7 +28,8 @@
     "require": {
         "php": "^8.2|^8.3|^8.4",
         "spatie/laravel-package-tools": "^1.18",
-        "filament/filament": "^v4.1.0"
+        "filament/filament": "^v4.1.0",
+        "livewire/livewire": "^v3.8.8"
     },
     "require-dev": {
         "pestphp/pest": "^2.31|^3.0.0",

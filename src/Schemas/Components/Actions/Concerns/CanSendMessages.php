@@ -2,14 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Dvarilek\FilamentConverse\Actions\Concerns;
+namespace Dvarilek\FilamentConverse\Schemas\Components\Actions\Concerns;
 
 use Closure;
+use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\UploadAttachmentAction;
 use Dvarilek\FilamentConverse\Schemas\Components\AttachmentArea;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Actions;
+use League\Csv\Exception;
 
 trait CanSendMessages
 {
@@ -119,6 +122,14 @@ trait CanSendMessages
     {
         $action = $this->evaluate($this->getUploadAttachmentActionUsing);
 
+        if (! $action instanceof UploadAttachmentAction) {
+            throw new Exception(
+                'The action must be of type [' . UploadAttachmentAction::class . '], [' . get_debug_type($action) . '] given.'
+            );
+        }
+
+        $action->attachmentAreaComponent(schemaName: static fn (ConversationManager $livewire) => $livewire->getMountedActionSchemaName());
+
         if ($this->modifyUploadAttachmentActionUsing) {
             $action = $this->evaluate($this->modifyUploadAttachmentActionUsing, [
                 'action' => $action,
@@ -132,7 +143,8 @@ trait CanSendMessages
 
     public function getSendMessageAction(): ?Action
     {
-        $action = $this->evaluate($this->getSendMessageActionUsing);
+        $action = $this->evaluate($this->getSendMessageActionUsing)
+            ->action($this->getLivewireCallMountedActionName());
 
         if ($this->modifySendMessageActionUsing) {
             $action = $this->evaluate($this->modifySendMessageActionUsing, [

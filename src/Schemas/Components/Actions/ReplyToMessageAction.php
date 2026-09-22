@@ -5,17 +5,18 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
 use Closure;
-use Dvarilek\FilamentConverse\Actions\Concerns\CanSendMessages;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\Concerns\CanSendMessages;
+use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
+use Dvarilek\FilamentConverse\Schemas\Components\Contracts\HasMessageInput;
 use Filament\Actions\Action;
-use Filament\Schemas\Components\Actions;
-use Filament\Schemas\Components\FusedGroup;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 
-class ReplyToMessageAction extends Action
+class ReplyToMessageAction extends Action implements HasMessageInput
 {
     use CanSendMessages;
 
@@ -50,21 +51,13 @@ class ReplyToMessageAction extends Action
                 ->find($arguments['recordKey'] ?? null)
         );
 
-        // TODO: add to EditMessageAction
-        $this->schema(static fn (ReplyToMessageAction $action): array => [
-            FusedGroup::make([
-                $action->getAttachmentAreaComponent(),
-                $action->getTextareaComponent(),
-                Actions::make([
-                    $action->getUploadAttachmentAction(),
-                    $action->getSendMessageAction()
-                        ->action($action->getLivewireCallMountedActionName()),
-                ])
-                    ->alignBetween(),
-            ]),
+        $this->schema(static fn (Schema $schema, ReplyToMessageAction $action) => MessageInputSchemaConfiguration::configure($schema, $action));
+
+        $this->extraModalWindowAttributes([
+            'x-ref' => 'uploadDropZoneRef',
         ]);
 
-        $this->action(static function (array $data, Message $message, ReplyToMessageAction $action, ConversationManager $livewire): void {
+        $this->action(static function (array $data, ?Message $message, ReplyToMessageAction $action, ConversationManager $livewire): void {
             if (! $action->replyToMessageUsing) {
                 return;
             }
