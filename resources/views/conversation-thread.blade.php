@@ -247,7 +247,11 @@
                         @endif
 
                         <div
-                            class="fi-converse-conversation-thread-message-content"
+                            id="fi-converse-conversation-thread-message-content-{{$messageKey}}"
+                            @class([
+                                'fi-converse-replying-to-message' => $this->isReplyingToMessage($messageKey),
+                                'fi-converse-conversation-thread-message-content'
+                            ])
                         >
                             @if ($hasMessageAuthorName || $hasMessageTimestamp)
                                 <div

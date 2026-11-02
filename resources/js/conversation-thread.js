@@ -93,6 +93,27 @@ export function conversationThread({
             )
         },
 
+        navigateToMessage(messageKey) {
+            const element = document.getElementById(
+                'fi-converse-conversation-thread-message-content-' + messageKey
+            )
+
+            if (!element) {
+                return
+            }
+
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            })
+
+            element.classList.add('message-highlight')
+
+            setTimeout(() => {
+                element.classList.remove('message-highlight')
+            }, 1500)
+        },
+
         async fireUserTypingEvent(event) {
             const data = event.target.value
 
