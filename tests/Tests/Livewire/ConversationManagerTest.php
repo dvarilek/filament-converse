@@ -113,6 +113,9 @@ class SessionConfiguration
 {
     public static function configure(ConversationSchema $schema): ConversationSchema
     {
-        return $schema->persistActiveConversationInSession();
+        return $schema
+            ->conversationThread(static fn (ConversationThread $conversationThread) => $conversationThread
+                ->persistActiveConversationInSession()
+            );
     }
 }

@@ -47,11 +47,12 @@ trait InteractsWithConversationManager
     public function mountInteractsWithConversationManager(): void
     {
         $conversationSchema = $this->getConversationSchema();
+        $conversationThread = $conversationSchema->getConversationThread();
         $activeConversationSessionKey = $this->getActiveConversationSessionKey();
 
         if (
             $this->activeConversationKey === null &&
-            $conversationSchema->shouldPersistActiveConversationInSession() &&
+            $conversationThread->shouldPersistActiveConversationInSession() &&
             session()->has($activeConversationSessionKey)
         ) {
             $this->activeConversationKey = session()->get($activeConversationSessionKey);
@@ -66,23 +67,29 @@ trait InteractsWithConversationManager
         $this->activeConversationKey = $conversationKey;
 
         $this->activeConversationMessagesPage = 1;
-        $this->oldestNewMessageKey = null;
         $this->messageChangesDuringConversationSession = [];
+        $this->oldestNewMessageKey = null;
 
         $conversationSchema = $this->getConversationSchema();
+        $conversationThread = $conversationSchema->getConversationThread();
 
-        if ($conversationSchema->shouldPersistActiveConversationInSession()) {
+        if ($conversationThread->shouldPersistActiveConversationInSession()) {
             session()->put(
                 $this->getActiveConversationSessionKey(),
                 $this->activeConversationKey,
             );
         }
 
-        $statePath = $conversationSchema->getConversationThread()->getStatePath();
+        if (! $this->replyingToMessageKey && $conversationThread->shouldCacheUnsendMessagesOnConversationChange()) {
+            $statePath = $conversationThread->getStatePath();
 
-        $this->cachedUnsendMessages[$previousActiveConversationKey] = data_get($this, $statePath);
-        data_set($this, $statePath, $this->cachedUnsendMessages[$conversationKey] ?? null);
+            data_set($this->cachedUnsendMessages, "{$statePath}.{$previousActiveConversationKey}", data_get($this, $statePath));
+            $conversationSchema->state(data_get($this->cachedUnsendMessages, "{$statePath}.{$conversationKey}") ?? []);
 
+            return;
+        }
+
+        $this->cancelReplyToMessage();
         $this->content->fill();
     }
 

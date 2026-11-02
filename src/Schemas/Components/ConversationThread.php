@@ -1282,12 +1282,15 @@ class ConversationThread extends Component implements HasMessageInput
                     return;
                 }
 
-                $statePath = $livewire->getConversationSchema()->getConversationThread()->getStatePath();
-                $activeConversation = $livewire->getActiveConversation();
+                if (! $livewire->isReplyingToMessage($message->getKey()) && $this->shouldCacheUnsendMessagesOnConversationChange()) {
+                    $statePath = $this->getStatePath();
+                    $activeConversation = $livewire->getActiveConversation();
 
-                data_set($livewire->cachedUnsendMessages, $statePath . ".{$activeConversation->getKey()}", null);
-                $livewire->handleMessageChangeDuringConversationSession($message->getKey());
+                    data_set($livewire->cachedUnsendMessages, $statePath . '.' . $activeConversation->getKey(), null);
 
+                }
+
+                $livewire->cancelReplyToMessage();
                 $livewire->content->fill();
             });
 
