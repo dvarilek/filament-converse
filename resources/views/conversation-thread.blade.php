@@ -450,7 +450,10 @@
     </div>
 
     @if ($hasConversation)
-        <div class="fi-converse-conversation-thread-footer-wrapper">
+        <div
+            class="fi-converse-conversation-thread-footer-wrapper"
+            x-ref="conversationThreadFooter"
+        >
             {{ $getChildSchema() }}
         </div>
     @endif

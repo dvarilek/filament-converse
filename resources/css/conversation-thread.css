@@ -38,7 +38,7 @@
         }
 
         & .fi-converse-conversation-thread-messages-content-footer {
-            @apply mt-auto flex min-h-10 items-center px-5;
+            @apply mt-auto flex min-h-8 items-center px-5;
             content: '';
 
             &
