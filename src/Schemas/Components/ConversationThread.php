@@ -968,31 +968,28 @@ class ConversationThread extends Component
         return $query;
     }
 
-    /**
-     * @param  Collection<int, Message>  $messages
-     * @return array{attachmentOriginalName: string, attachmentMimeType: string, hasImageMimeType: bool, shouldShowOnlyMessageImageAttachment: bool}
-     */
-    public function getMessageAttachmentData(Message $message, Authenticatable $messageAuthor, Collection $messages): array
+    public function canReplyToMessage(Message $message): bool
     {
-        return $this->evaluate($this->getMessageAttachmentDataUsing, [
+        return (bool) $this->evaluate($this->canReplyToMessage, [
             'message' => $message,
-            'messageAuthor' => $messageAuthor,
-            'messages' => $messages,
         ], [
             Message::class => $message,
-            Authenticatable::class => $messageAuthor,
-            Collection::class => $messages,
         ]);
+    }
+
+    public function shouldPersistActiveConversationInSession(): bool
+    {
+        return (bool) $this->evaluate($this->persistsActiveConversationInSession);
+    }
+
+    public function shouldCacheUnsendMessagesOnConversationChange(): bool
+    {
+        return (bool) $this->evaluate($this->shouldCacheUnsendMessagesOnConversationChange);
     }
 
     public function getUploadAttachmentAction(): Action
     {
-        $action = Action::make('uploadAttachment')
-            ->label(__('filament-converse::conversation-thread.footer-actions.upload-attachment-label'))
-            ->iconButton()
-            ->iconSize(IconSize::Large)
-            ->icon(Heroicon::PaperClip)
-            ->alpineClickHandler("\$dispatch('filament-converse-trigger-file-input')");
+        $action = UploadAttachmentAction::make();
 
         if ($this->modifyUploadAttachmentActionUsing) {
             $action = $this->evaluate($this->modifyUploadAttachmentActionUsing, [
