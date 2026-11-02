@@ -51,6 +51,7 @@
                     userTypingEventDispatchThreshold: @js($getUserTypingEventDispatchThreshold()),
                     $wire,
                 })"
+        x-on:filament-converse-fire-user-typing-event.window="fireUserTypingEvent($event)"
         x-ref="uploadDropZoneRef"
     @endif
     {{

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 
 /**
  * @property Collection<int, Conversation> $conversations
@@ -34,6 +35,9 @@ trait InteractsWithConversationManager
     public array $messageChangesDuringConversationSession = [];
 
     public ?string $oldestNewMessageKey = null;
+
+    #[Locked]
+    public ?string $replyingToMessageKey = null;
 
     /**
      * @var array<string, mixed>
@@ -159,6 +163,16 @@ trait InteractsWithConversationManager
             'exists' => $exists,
             'createdByAuthenticatedUser' => $messageAuthorKey === auth()->id(),
         ];
+    }
+
+    public function cancelReplyToMessage(): void
+    {
+        $this->replyingToMessageKey = null;
+    }
+
+    public function isReplyingToMessage(string $messageKey): bool
+    {
+        return $this->replyingToMessageKey === $messageKey;
     }
 
     public function getActiveConversationSessionKey(): string

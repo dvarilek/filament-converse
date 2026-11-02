@@ -10,7 +10,25 @@ return [
 
     ],
 
-    'placeholder' => 'Message...',
+    'message-input' => [
+
+        'placeholder' => 'Message...',
+
+        'reply-to-message-text' => 'Replying to :name',
+
+        'actions' => [
+
+            'upload-attachment-label' => 'Upload Attachments',
+
+            'send-message-label' => 'Send Message',
+
+            'update-message-label' => 'Update Message',
+
+            'cancel-reply' => 'Cancel Reply'
+
+        ]
+
+    ],
 
     'upload-modal' => [
 
@@ -60,10 +78,6 @@ return [
 
             'label' => 'Reply',
 
-            'modal-heading' => 'Reply to message',
-
-            'submit-label' => 'Reply',
-
         ],
 
     ],
@@ -79,14 +93,6 @@ return [
         'today' => 'Today',
 
         'yesterday' => 'Yesterday',
-
-    ],
-
-    'footer-actions' => [
-
-        'upload-attachment-label' => 'Upload Attachments',
-
-        'send-message-label' => 'Send Message',
 
     ],
 

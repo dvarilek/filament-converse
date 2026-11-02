@@ -77,3 +77,36 @@ test('can delete a message', function () {
 
     expect($conversation->fresh()->messages()->count())->toBe(0);
 });
+
+test('deleting message being replied to cancels reply', function () {
+    $owner = User::factory()->create();
+    $participant = User::factory()->create();
+
+    $this->actingAs($owner);
+
+    /* @var Conversation $conversation */
+    $conversation = app(CreateConversation::class)->handle($owner, $participant);
+    $messageKey = $conversation->participations()->first()->sendMessage($conversation, [
+        'content' => 'message',
+    ])->getKey();
+
+    $livewire = livewire(ConversationManager::class)
+        ->callAction(
+            TestAction::make(ReplyToMessageAction::getDefaultName())
+                ->schemaComponent('conversation_schema.conversation_thread')
+                ->arguments([
+                    'recordKey' => $messageKey,
+                ]),
+        )
+        ->callAction(
+            TestAction::make(DeleteMessageAction::getDefaultName())
+                ->schemaComponent('conversation_schema.conversation_thread')
+                ->arguments([
+                    'recordKey' => $messageKey,
+                ]),
+        );
+
+    expect($conversation->fresh()->messages()->count())
+        ->toBe(0)
+        ->and($livewire->instance()->isReplyingToMessage($messageKey))->toBeFalse();
+});

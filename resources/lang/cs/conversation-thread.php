@@ -10,7 +10,25 @@ return [
 
     ],
 
-    'placeholder' => 'Zpráva...',
+    'message-input' => [
+
+        'placeholder' => 'Zpráva...',
+
+        'reply-to-message-text' => 'Odpovídáte na zprávu od :name',
+
+        'actions' => [
+
+            'upload-attachment-label' => 'Nahrát přílohu',
+
+            'send-message-label' => 'Poslat zprávu',
+
+            'update-message-label' => 'Upravit zprávu',
+
+            'cancel-reply' => 'Zrušit odpověď'
+
+        ]
+
+    ],
 
     'upload-modal' => [
 
@@ -62,10 +80,6 @@ return [
 
             'label' => 'Odpovědět',
 
-            'modal-heading' => 'Odpovědět na zprávu',
-
-            'submit-label' => 'Odpovědět',
-
         ],
 
     ],
@@ -81,14 +95,6 @@ return [
         'today' => 'Dnes',
 
         'yesterday' => 'Včera',
-
-    ],
-
-    'footer-actions' => [
-
-        'upload-attachment-label' => 'Nahrát přílohu',
-
-        'send-message-label' => 'Poslat zprávu',
 
     ],
 

@@ -64,8 +64,13 @@ class DeleteMessageAction extends Action
                 return;
             }
 
-
-            $livewire->handleMessageChangeDuringConversationSession($message->getKey(), false);
+            $messageKey = $message->getKey();
+            $livewire->handleMessageChangeDuringConversationSession($messageKey, false);
+            
+            if ($livewire->isReplyingToMessage($messageKey)) {
+                $livewire->cancelReplyToMessage();
+            }
+            
             $action->success();
         });
     }
