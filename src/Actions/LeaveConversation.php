@@ -29,7 +29,7 @@ class LeaveConversation
                 ->firstWhere('participant_id', $participant->getKey());
 
             if (! $participation) {
-                throw new Exception("The user [$participant] does not participante in the conversation.");
+                throw new Exception("The user [$participant] does not participate in the conversation.");
             }
 
             if ($conversation->owner_id === $participation->getKey()) {

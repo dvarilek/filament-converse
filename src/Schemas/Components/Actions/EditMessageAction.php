@@ -8,16 +8,38 @@ use Closure;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
+use Dvarilek\FilamentConverse\Schemas\Components\AttachmentArea;
+use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
+use Dvarilek\FilamentConverse\Schemas\Components\Contracts\HasMessageInput;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use League\Csv\Exception;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
-class EditMessageAction extends Action
+class EditMessageAction extends Action implements HasMessageInput
 {
+    protected ?Closure $getAttachmentAreaComponentUsing = null;
+
+    protected ?Closure $getTextareaComponentUsing = null;
+
+    protected ?Closure $getUploadAttachmentActionUsing = null;
+
+    protected ?Closure $getSendMessageActionUsing = null;
+
+    protected ?Closure $modifyAttachmentAreaComponentUsing = null;
+
     protected ?Closure $modifyTextareaComponentUsing = null;
 
+    protected ?Closure $modifyUploadAttachmentActionUsing = null;
+
+    protected ?Closure $modifySendMessageActionUsing = null;
+    
     protected ?Closure $updateMessageUsing = null;
 
     public static function getDefaultName(): string
@@ -83,6 +105,43 @@ class EditMessageAction extends Action
 
             $action->success();
         });
+
+        $this->modalFooterActions([]);
+    }
+
+    public function getAttachmentAreaComponentUsing(?Closure $callback = null): static
+    {
+        $this->getAttachmentAreaComponentUsing = $callback;
+
+        return $this;
+    }
+
+    public function getTextareaComponentUsing(?Closure $callback = null): static
+    {
+        $this->getTextareaComponentUsing = $callback;
+
+        return $this;
+    }
+
+    public function getUploadAttachmentActionUsing(?Closure $callback = null): static
+    {
+        $this->getUploadAttachmentActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function getSendMessageActionUsing(?Closure $callback = null): static
+    {
+        $this->getSendMessageActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyAttachmentAreaComponentUsing(?Closure $callback = null): static
+    {
+        $this->modifyAttachmentAreaComponentUsing = $callback;
+
+        return $this;
     }
 
     public function modifyTextareaComponentUsing(?Closure $callback = null): static
@@ -92,6 +151,20 @@ class EditMessageAction extends Action
         return $this;
     }
 
+    public function modifyUploadAttachmentActionUsing(?Closure $callback = null): static
+    {
+        $this->modifyUploadAttachmentActionUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifySendMessageActionUsing(?Closure $callback = null): static
+    {
+        $this->modifySendMessageActionUsing = $callback;
+
+        return $this;
+    }
+    
     public function updateMessageUsing(?Closure $callback = null): static
     {
         $this->updateMessageUsing = $callback;
@@ -99,29 +172,82 @@ class EditMessageAction extends Action
         return $this;
     }
 
-    public function getTextareaComponent(): Field
+    public function getReplyToMessageBanner(): null
     {
-        $component = Textarea::make('messageContent')
-            ->hiddenLabel()
-            ->placeholder(__('filament-converse::conversation-thread.placeholder'))
-            ->required(static fn (Message $message) => blank($message->attachments))
-            ->autosize()
-            ->autofocus()
-            ->rows(4)
-            ->maxLength(65535)
-            ->extraAttributes([
-                'style' => 'max-height: 8rem; overflow: auto',
-            ]);
+        return null;
+    }
+    
+    public function getAttachmentAreaComponent(): ?Field
+    {
+        $component = $this->evaluate($this->getAttachmentAreaComponentUsing);
+
+        if ($this->modifyAttachmentAreaComponentUsing) {
+            $component = $this->evaluate($this->modifyAttachmentAreaComponentUsing, [
+                'component' => $component,
+            ], [
+                AttachmentArea::class => $component,
+            ]) ?? $component;
+        }
+
+        return $component;
+    }
+
+    public function getTextareaComponent(): ?Field
+    {
+        $component = $this->evaluate($this->getTextareaComponentUsing);
 
         if ($this->modifyTextareaComponentUsing) {
             $component = $this->evaluate($this->modifyTextareaComponentUsing, [
                 'component' => $component,
             ], [
                 Textarea::class => $component,
-            ]) ?? null;
+            ]) ?? $component;
         }
 
         return $component;
+    }
+
+    public function getUploadAttachmentAction(): ?Action
+    {
+        $action = $this->evaluate($this->getUploadAttachmentActionUsing);
+
+        if (! $action instanceof UploadAttachmentAction) {
+            throw new Exception(
+                'The action must be of type [' . UploadAttachmentAction::class . '], [' . get_debug_type($action) . '] given.'
+            );
+        }
+
+        $action->attachmentAreaComponent(schemaName: static fn (ConversationManager $livewire) => $livewire->getMountedActionSchemaName());
+
+        if ($this->modifyUploadAttachmentActionUsing) {
+            $action = $this->evaluate($this->modifyUploadAttachmentActionUsing, [
+                'action' => $action,
+            ], [
+                Actions::class => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
+    }
+    
+    public function getSendMessageAction(): ?Action
+    {
+        $action = $this->evaluate($this->getSendMessageActionUsing);
+
+        if ($action instanceof Action) {
+            $action
+                ->label(__('filament-converse::conversation-thread.message-input.actions.update-message-label'))
+                ->icon(Heroicon::OutlinedCheck)
+                ->action($this->getLivewireCallMountedActionName());
+        }
+
+        if ($this->modifySendMessageActionUsing) {
+            $action = $this->evaluate($this->modifySendMessageActionUsing, [
+                'action' => $action,
+            ]) ?? $action;
+        }
+
+        return $action;
     }
 
     /**

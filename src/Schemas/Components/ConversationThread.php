@@ -11,18 +11,24 @@ use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollec
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\CancelReplyToMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ReplyToMessageAction;
+use Illuminate\Support\Js;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\UploadAttachmentAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
+use Dvarilek\FilamentConverse\Schemas\Components\Contracts\HasMessageInput;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
-use Filament\Schemas\Components\FusedGroup;
+use Filament\Schemas\Components\Flex;
+use Filament\Schemas\Components\Text;
+use Filament\Schemas\Schema;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Icons\Heroicon;
@@ -37,7 +43,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use League\Flysystem\UnableToCheckFileExistence;
 
-class ConversationThread extends Component
+class ConversationThread extends Component implements HasMessageInput
 {
     use Concerns\BelongsToConversationSchema;
     use Concerns\HasEmptyState;
@@ -141,21 +147,9 @@ class ConversationThread extends Component
 
         $this->emptyStateHeading(__('filament-converse::conversation-thread.empty-state.heading'));
 
-        $this->model(static fn ($livewire) => $livewire->getActiveConversation());
+        $this->model(static fn (ConversationManager $livewire) => $livewire->getActiveConversation());
 
-        // TODO: Participants joined_at and left_at indicators in thread
-
-        $this->schema(static fn (ConversationThread $component) => [
-            FusedGroup::make([
-                $component->getAttachmentAreaComponent(),
-                $component->getTextareaComponent(),
-                Actions::make([
-                    $component->getUploadAttachmentAction(),
-                    $component->getSendMessageAction(),
-                ])
-                    ->alignBetween(),
-            ]),
-        ]);
+        $this->schema(static fn (Schema $schema, ConversationThread $component): Schema => MessageInputSchemaConfiguration::configure($schema, $component));
 
         $this->headerActions(static fn (ConversationThread $component) => [
             $component->getManageConversationAction(),
@@ -684,6 +678,13 @@ class ConversationThread extends Component
     public function modifyAttachmentAreaComponentUsing(?Closure $callback): static
     {
         $this->modifyAttachmentAreaComponentUsing = $callback;
+
+        return $this;
+    }
+
+    public function modifyTextareaComponentUsing(?Closure $callback): static
+    {
+        $this->modifyTextareaComponentUsing = $callback;
 
         return $this;
     }
