@@ -6,7 +6,6 @@ namespace Dvarilek\FilamentConverse\Schemas\Components;
 
 use BackedEnum;
 use Closure;
-use Dvarilek\FilamentConverse\Models\Conversation;
 use Filament\Forms\Components\Field;
 use Filament\Schemas\Components\Concerns\HasKey;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
