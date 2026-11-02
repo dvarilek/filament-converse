@@ -1029,7 +1029,11 @@ class ConversationThread extends Component implements HasMessageInput
 
     public function getEditMessageAction(): Action
     {
-        $action = EditMessageAction::make();
+        $action = EditMessageAction::make()
+            ->getAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
+            ->getTextareaComponentUsing($this->getTextAreaComponent(...))
+            ->getSendMessageActionUsing($this->getSendMessageAction(...))
+            ->getUploadAttachmentActionUsing($this->getUploadAttachmentAction(...));
 
         if ($this->modifyEditMessageActionUsing) {
             $action = $this->evaluate($this->modifyEditMessageActionUsing, [

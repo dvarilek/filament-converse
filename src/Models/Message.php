@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Models;
 
 use Dvarilek\FilamentConverse\Actions\DeleteMessage;
+use Dvarilek\FilamentConverse\Actions\UpdateMessage;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -84,5 +85,13 @@ class Message extends Model
     public function deleteMessage(Conversation $conversation): bool
     {
         return app(DeleteMessage::class)->handle($this, $conversation);
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function updateMessage(Conversation $conversation, array $attributes): bool
+    {
+        return app(UpdateMessage::class)->handle($this, $conversation, $attributes);
     }
 }

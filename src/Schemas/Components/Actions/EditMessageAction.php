@@ -74,21 +74,45 @@ class EditMessageAction extends Action implements HasMessageInput
         );
 
         $this->visible(
-            static fn (ConversationManager $livewire, ?Message $message): bool => filled($message?->content) &&
-                $message->author_id === $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey()
+            static fn (ConversationManager $livewire, ?Message $message): bool => $message?->author_id === $livewire->getActiveConversationAuthenticatedUserParticipation()->getKey()
         );
 
-        $this->fillForm(static fn (?Message $message): array => [
-            'messageContent' => $message?->content,
+        $this->fillForm(static fn (Message $message): array => [
+            'messageContent' => $message->content,
+            'attachments' => array_combine($message->attachments, $message->attachment_file_names),
         ]);
 
-        $this->schema(static fn (EditMessageAction $action): array => [
-            $action->getTextareaComponent(),
+        $this->schema(static fn (Schema $schema, EditMessageAction $action): Schema => MessageInputSchemaConfiguration::configure($schema, $action));
+
+        $this->extraModalWindowAttributes([
+            'x-ref' => 'uploadDropZoneRef',
         ]);
 
-        $this->updateMessageUsing(static fn (array $data, Message $message): bool => $message->update([
-            'content' => $data['messageContent'],
-        ]));
+        $this->updateMessageUsing(static function (array $data, Message $message, Conversation $conversation): bool {
+            $messageContent = $data['messageContent'] ?? null;
+            $uploadedAttachments = $data['attachments'] ?? [];
+
+            if (blank($messageContent) && blank($uploadedAttachments)) {
+                return false;
+            }
+
+            $attachments = $attachmentFileNames = [];
+
+            foreach ($uploadedAttachments as $storedFileName => $attachment) {
+                $attachments[] = $storedFileName;
+                $attachmentFileNames[] = $attachment instanceof TemporaryUploadedFile ? $attachment->getClientOriginalName() : $attachment;
+            }
+
+            if ($message->content === $messageContent && $message->attachments === $attachments && $message->attachment_file_names === $attachmentFileNames) {
+                return false;
+            }
+
+            return $message->updateMessage($conversation, [
+                'content' => $messageContent,
+                'attachments' => $attachments,
+                'attachment_file_names' => $attachmentFileNames,
+            ]);
+        });
 
         $this->action(static function (array $data, EditMessageAction $action): void {
             if (! $action->updateMessageUsing) {
