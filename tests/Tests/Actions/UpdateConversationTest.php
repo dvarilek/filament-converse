@@ -9,7 +9,7 @@ use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Illuminate\Foundation\Auth\User as DefaultUser;
 
-it('can update a conversation with new participants', function () {
+test('can update a conversation with new participants', function () {
     $owner = User::factory()->create();
     $initialParticipant = User::factory()->create();
     $newParticipant = User::factory()->create();
@@ -43,7 +43,7 @@ it('can update a conversation with new participants', function () {
         ->toBe(collect([$owner->getKey(), $initialParticipant->getKey(), $newParticipant->getKey()])->sort()->values()->toArray());
 });
 
-it('can update a conversation and remove participants by setting deactivated_at', function () {
+test('can update a conversation and remove participants by setting deactivated_at', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();
@@ -77,7 +77,7 @@ it('can update a conversation and remove participants by setting deactivated_at'
         ->toBe($secondParticipant->getKey());
 });
 
-it('can update a conversation attributes without changing participants', function () {
+test('can update a conversation attributes without changing participants', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -105,7 +105,7 @@ it('can update a conversation attributes without changing participants', functio
         ->and($conversation->participations->active())->toHaveCount(2);
 });
 
-it('does not duplicate participants when updating with existing participants', function () {
+test('does not duplicate participants when updating with existing participants', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -131,7 +131,7 @@ it('does not duplicate participants when updating with existing participants', f
         ->toBe($originalActiveParticipations->pluck('participant_id')->sort()->values()->toArray());
 });
 
-it('throws an exception when updating with a participant that does not use the Conversable trait', function () {
+test('throws an exception when updating with a participant that does not use the Conversable trait', function () {
     $owner = User::factory()->create();
     $validParticipant = User::factory()->create();
 
@@ -154,7 +154,7 @@ it('throws an exception when updating with a participant that does not use the C
     ))->toThrow(Exception::class);
 });
 
-it('can update a conversation with multiple participants replacing all previous ones', function () {
+test('can update a conversation with multiple participants replacing all previous ones', function () {
     $owner = User::factory()->create();
     $oldFirstParticipant = User::factory()->create();
     $oldSecondParticipant = User::factory()->create();
@@ -179,7 +179,7 @@ it('can update a conversation with multiple participants replacing all previous 
         ->toBe(collect([$owner->getKey(), $newFirstParticipant->getKey(), $newSecondParticipant->getKey()])->sort()->values()->toArray());
 });
 
-it('can re-add a previously removed participant without creating duplicate participation', function () {
+test('can re-add a previously removed participant without creating duplicate participation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -219,7 +219,7 @@ it('can re-add a previously removed participant without creating duplicate parti
         ->toHaveCount(0);
 });
 
-it('updates joined_at when re-adding a removed participant', function () {
+test('updates joined_at when re-adding a removed participant', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 

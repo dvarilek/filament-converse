@@ -8,7 +8,7 @@ use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Illuminate\Foundation\Auth\User as DefaultUser;
 
-it('can leave a conversation as a participant', function () {
+test('can leave a conversation as a participant', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -37,7 +37,7 @@ it('can leave a conversation as a participant', function () {
         ->toBe($participant->getKey());
 });
 
-it('can leave a conversation with multiple participants', function () {
+test('can leave a conversation with multiple participants', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();
@@ -67,7 +67,7 @@ it('can leave a conversation with multiple participants', function () {
         ->toBe($firstParticipant->getKey());
 });
 
-it('throws an exception when the owner tries to leave the conversation', function () {
+test('throws an exception when the owner tries to leave the conversation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -81,7 +81,7 @@ it('throws an exception when the owner tries to leave the conversation', functio
         ->toThrow(Exception::class);
 });
 
-it('throws an exception when inactive participant tries to leave the conversation', function () {
+test('throws an exception when inactive participant tries to leave the conversation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -99,7 +99,7 @@ it('throws an exception when inactive participant tries to leave the conversatio
         ->toThrow(Exception::class);
 });
 
-it('throws an exception when a non-participant tries to leave the conversation', function () {
+test('throws an exception when a non-participant tries to leave the conversation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
     $nonParticipant = User::factory()->create();
@@ -114,7 +114,7 @@ it('throws an exception when a non-participant tries to leave the conversation',
         ->toThrow(Exception::class);
 });
 
-it('throws an exception when a user not using the Conversable trait tries to leave', function () {
+test('throws an exception when a user not using the Conversable trait tries to leave', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 

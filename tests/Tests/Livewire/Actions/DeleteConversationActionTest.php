@@ -30,7 +30,7 @@ test('is hidden for regular participants', function () {
     $livewire->assertActionHidden(DeleteConversationAction::getDefaultName());
 });
 
-it('can delete conversation', function () {
+test('can delete conversation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 

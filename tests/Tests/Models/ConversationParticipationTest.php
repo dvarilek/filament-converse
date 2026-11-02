@@ -7,7 +7,7 @@ use Dvarilek\FilamentConverse\Actions\CreateConversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 
-it('can create conversation participation with participant name', function () {
+test('can create conversation participation with participant name', function () {
     $firstUser = User::factory()->state(['name' => 'user name'])->create();
     $secondUser = User::factory()->create();
 
@@ -22,7 +22,7 @@ it('can create conversation participation with participant name', function () {
         ->participant->name->toBe('user name');
 });
 
-it('can deactivate participation', function () {
+test('can deactivate participation', function () {
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
 
@@ -40,7 +40,7 @@ it('can deactivate participation', function () {
     expect($secondParticipation->fresh()->deactivated_at)->not->toBeNull();
 });
 
-it('can deactivate many participations', function () {
+test('can deactivate many participations', function () {
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
     $thirdUser = User::factory()->create();
@@ -61,7 +61,7 @@ it('can deactivate many participations', function () {
         ->and($conversation->participations()->firstWhere('participant_id', $thirdUser->getKey()))->deactivated_at->not->toBeNull();
 });
 
-IT('can activate participation', function () {
+test('can activate participation', function () {
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
 
@@ -89,7 +89,7 @@ IT('can activate participation', function () {
         ->and($joinedAtAfterActivate)->toBeGreaterThan($oldJoinedAt);
 });
 
-it('can activate many participations', function () {
+test('can activate many participations', function () {
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
     $thirdUser = User::factory()->create();

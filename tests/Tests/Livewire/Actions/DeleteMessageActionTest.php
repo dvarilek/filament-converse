@@ -5,12 +5,13 @@ use Dvarilek\FilamentConverse\Livewire\ConversationManager;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\ReplyToMessageAction;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
 
-it('is only visible to message author ', function () {
+test('is only visible to message author ', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -52,7 +53,7 @@ it('is only visible to message author ', function () {
         );
 });
 
-it('can delete a message', function () {
+test('can delete a message', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 

@@ -8,7 +8,7 @@ use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
 
-it('can create a new direct conversation through action', function () {
+test('can create a new direct conversation through action', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -42,7 +42,7 @@ it('can create a new direct conversation through action', function () {
         ->getActiveConversation()->getKey()->toBe($conversation->getKey());
 });
 
-it('requires a selected participant to create a new direct conversation', function () {
+test('requires a selected participant to create a new direct conversation', function () {
     $this->actingAs(User::factory()->create());
 
     livewire(ConversationManager::class)
@@ -53,7 +53,7 @@ it('requires a selected participant to create a new direct conversation', functi
         ->assertHasFormErrors(['participants' => 'required']);
 });
 
-it('can create a new group conversation through action', function () {
+test('can create a new group conversation through action', function () {
     $owner = User::factory()->create();
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
@@ -89,7 +89,7 @@ it('can create a new group conversation through action', function () {
         ->getActiveConversation()->getKey()->toBe($conversation->getKey());
 });
 
-it('can create a new group conversation through action with additional data', function () {
+test('can create a new group conversation through action with additional data', function () {
     $owner = User::factory()->create();
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();
@@ -124,7 +124,7 @@ it('can create a new group conversation through action with additional data', fu
         ->getActiveConversation()->getKey()->toBe($conversation->getKey());
 });
 
-it('can create multiple group conversations with the same participants', function () {
+test('can create multiple group conversations with the same participants', function () {
     $owner = User::factory()->create();
     $firstUser = User::factory()->create();
     $secondUser = User::factory()->create();

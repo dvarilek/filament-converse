@@ -8,7 +8,7 @@ use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Tests\Models\User;
 use Illuminate\Foundation\Auth\User as DefaultUser;
 
-it('can transfer conversation ownership to another participant', function () {
+test('can transfer conversation ownership to another participant', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -32,7 +32,7 @@ it('can transfer conversation ownership to another participant', function () {
         ->toBe($participant->getKey());
 });
 
-it('can transfer conversation ownership between multiple participants', function () {
+test('can transfer conversation ownership between multiple participants', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();
@@ -58,7 +58,7 @@ it('can transfer conversation ownership between multiple participants', function
         ->toBe($secondParticipant->getKey());
 });
 
-it('throws an exception when transferring to a non-participant', function () {
+test('throws an exception when transferring to a non-participant', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
     $nonParticipant = User::factory()->create();
@@ -73,7 +73,7 @@ it('throws an exception when transferring to a non-participant', function () {
         ->toThrow(Exception::class);
 });
 
-it('throws an exception when transferring to inactive participant', function () {
+test('throws an exception when transferring to inactive participant', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
@@ -91,7 +91,7 @@ it('throws an exception when transferring to inactive participant', function () 
         ->toThrow(Exception::class);
 });
 
-it('throws an exception when transferring to a user not using the Conversable trait', function () {
+test('throws an exception when transferring to a user not using the Conversable trait', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 

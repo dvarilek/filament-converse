@@ -8,7 +8,7 @@ use Filament\Actions\Testing\TestAction;
 
 use function Pest\Livewire\livewire;
 
-it('can update conversation', function () {
+test('can update conversation', function () {
     $owner = User::factory()->create();
     $firstParticipant = User::factory()->create();
     $secondParticipant = User::factory()->create();
@@ -44,7 +44,7 @@ it('can update conversation', function () {
         ->toBe(collect([$firstParticipant->getKey(), $thirdParticipant->getKey()])->sort()->values()->toArray());
 });
 
-it('requires a selected participant to update conversation', function () {
+test('requires a selected participant to update conversation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 

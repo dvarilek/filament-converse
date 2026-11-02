@@ -14,7 +14,7 @@ use Dvarilek\FilamentConverse\Tests\Models\User;
 use function Pest\Livewire\livewire;
 
 describe('render', function () {
-    it('can render conversations', function () {
+    test('can render conversations', function () {
         $owner = User::factory()->create();
         $firstUser = User::factory()->create();
         $secondUser = User::factory()->create();
@@ -45,7 +45,7 @@ describe('render', function () {
             ->assertSeeText($firstUser->name . ', ' . $secondUser->name . ' & ' . $thirdUser->name);
     });
 
-    it('does not render conversations where the user is no longer present', function () {
+    test('does not render conversations where the user is no longer present', function () {
         $owner = User::factory()->create();
         $firstUser = User::factory()->create();
 
@@ -58,7 +58,7 @@ describe('render', function () {
             ->toHaveCount(0);
     });
 
-    it('can render conversation name', function () {
+    test('can render conversation name', function () {
         $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 
@@ -70,7 +70,7 @@ describe('render', function () {
             ->assertSeeText($otherUser->name);
     });
 
-    it('can render conversation latest messages', function () {
+    test('can render conversation latest messages', function () {
         Carbon::setTestNow();
 
         $owner = User::factory()->create();
@@ -106,7 +106,7 @@ describe('render', function () {
 });
 
 describe('search', function () {
-    it('can search conversations by participants', function () {
+    test('can search conversations by participants', function () {
         $owner = User::factory()->state(['name' => 'owner'])->create();
         $firstUser = User::factory()->state(['name' => 'first'])->create();
         $secondUser = User::factory()->state(['name' => 'second'])->create();
@@ -147,7 +147,7 @@ describe('search', function () {
             ->toContain($firstUserConversation->getKey(), $secondUserConversation->getKey(), $groupConversation->getKey());
     });
 
-    it('can search conversations by name or description', function () {
+    test('can search conversations by name or description', function () {
         $owner = User::factory()->create();
         $otherUser = User::factory()->create();
 

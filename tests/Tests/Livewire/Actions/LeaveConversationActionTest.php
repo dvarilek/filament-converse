@@ -29,7 +29,7 @@ test('is hidden for conversation owner', function () {
     $livewire->assertActionVisible(LeaveConversationAction::getDefaultName());
 });
 
-it('can leave conversation', function () {
+test('can leave conversation', function () {
     $owner = User::factory()->create();
     $participant = User::factory()->create();
 
