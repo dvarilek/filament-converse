@@ -161,6 +161,13 @@ class ConversationThread extends Component implements HasMessageInput
 
         $this->model(static fn (ConversationManager $livewire) => $livewire->getActiveConversation());
 
+        // TODO: Show reply indication in thread and navigate on click
+        // TODO: Lightbox for image attachments
+        // TODO: Add option to download file attachments <- attachmentActions/in lightbox
+        // TODO: Show message edited indicator, message history
+        // TODO: Participants joined_at and left_at indicators in thread
+        // TODO: Refactor last_read_at
+
         $this->schema(static fn (Schema $schema, ConversationThread $component): Schema => MessageInputSchemaConfiguration::configure($schema, $component));
 
         $this->headerActions(static fn (ConversationThread $component) => [
