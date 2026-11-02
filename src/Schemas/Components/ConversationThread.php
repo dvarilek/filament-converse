@@ -105,8 +105,6 @@ class ConversationThread extends Component
 
     protected ?Closure $modifyMessagesQueryUsing = null;
 
-    protected ?Closure $getMessageAttachmentDataUsing = null;
-
     protected ?Closure $modifyUploadAttachmentActionUsing = null;
 
     protected ?Closure $modifyManageConversationActionUsing = null;
@@ -216,31 +214,6 @@ class ConversationThread extends Component
 
         $this->getMessageActionsTimestampUsing(static function (Message $message): string {
             return $message->created_at->isoFormat('L LT');
-        });
-
-        $this->getMessageAttachmentDataUsing(static function (ConversationThread $component, Message $message, Authenticatable $messageAuthor, Collection $messages): array {
-            $fileAttachmentsDisk = $component->getFileAttachmentsDisk();
-
-            return collect(array_combine($message->attachments, $message->attachment_file_names))
-                ->filter(static fn (string $attachmentOriginalName, string $attachmentPath) => $fileAttachmentsDisk->exists($attachmentPath))
-                ->mapWithKeys(function (string $attachmentOriginalName, string $attachmentPath) use ($component, $fileAttachmentsDisk, $message, $messageAuthor, $messages) {
-                    $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentPath);
-                    $hasImageMimeType = $component->isImageMimeType($attachmentMimeType);
-
-                    return [
-                        $attachmentPath => [
-                            'attachmentOriginalName' => $attachmentOriginalName,
-                            'attachmentMimeType' => $attachmentMimeType,
-                            'hasImageMimeType' => $hasImageMimeType,
-                            'shouldShowOnlyMessageImageAttachment' => $component->shouldShowOnlyImageAttachment($attachmentPath, $attachmentOriginalName, $attachmentMimeType, [
-                                'message' => $message,
-                                'messageAuthor' => $messageAuthor,
-                                'messages' => $messages,
-                            ]),
-                        ],
-                    ];
-                })
-                ->toArray();
         });
 
         $this->messenger();
@@ -641,13 +614,6 @@ class ConversationThread extends Component
     public function modifyMessagesQueryUsing(?Closure $callback): static
     {
         $this->modifyMessagesQueryUsing = $callback;
-
-        return $this;
-    }
-
-    public function getMessageAttachmentDataUsing(?Closure $callback): static
-    {
-        $this->getMessageAttachmentDataUsing = $callback;
 
         return $this;
     }

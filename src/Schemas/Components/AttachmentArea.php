@@ -15,6 +15,8 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\Support\Renderable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -47,7 +49,11 @@ class AttachmentArea extends Field
 
     protected string | Htmlable | Closure | null $uploadModalDescription = null;
 
+    protected bool | Closure $isMultiple = true;
+
     protected int | Closure | null $maxFiles = null;
+
+    protected int | Closure | null $minFiles = null;
 
     /**
      * @var array<string> | Arrayable | Closure | null
@@ -68,17 +74,21 @@ class AttachmentArea extends Field
 
     protected int | Closure | null $maxSize = 12288;
 
+    protected int | Closure | null $minSize = null;
+
     protected string | Closure | null $directory = null;
 
     protected string | Closure | null $diskName = null;
 
     protected string | Closure | null $visibility = null;
 
-    protected bool | Closure $shouldPreserveFilenames = false;
-
     protected ?Closure $getUploadedFileNameForStorageUsing = null;
 
     protected ?Closure $saveUploadedFileUsing = null;
+
+    protected ?Closure $getSavedFileAttachmentUrlUsing = null;
+
+    protected bool | Closure $isRemovable = true;
 
     /**
      * @var array<string>
@@ -104,10 +114,11 @@ class AttachmentArea extends Field
 
         $this->beforeStateDehydrated(static function (AttachmentArea $component): void {
             $component->saveUploadedFiles();
+            $component->deleteRemovedFiles();
         }, shouldUpdateValidatedStateAfter: true);
 
         $this->getUploadedFileNameForStorageUsing(static function (AttachmentArea $component, TemporaryUploadedFile $file) {
-            return $component->shouldPreserveFilenames() ? $file->getClientOriginalName() : (Str::ulid() . '.' . $file->getClientOriginalExtension());
+            return Str::ulid() . '.' . $file->getClientOriginalExtension();
         });
 
         $this->saveUploadedFileUsing(static function (AttachmentArea $component, TemporaryUploadedFile $file): ?string {
@@ -170,9 +181,23 @@ class AttachmentArea extends Field
         return $this;
     }
 
+    public function multiple(bool | Closure $condition = true): static
+    {
+        $this->isMultiple = $condition;
+
+        return $this;
+    }
+
     public function maxFiles(int | Closure | null $maxFiles): static
     {
         $this->maxFiles = $maxFiles;
+
+        return $this;
+    }
+
+    public function minFiles(int | Closure | null $count): static
+    {
+        $this->minFiles = $count;
 
         return $this;
     }
@@ -206,6 +231,19 @@ class AttachmentArea extends Field
         return $this;
     }
 
+    public function minSize(int | Closure | null $size): static
+    {
+        $this->minSize = $size;
+
+        $this->rule(static function (AttachmentArea $component): string {
+            $size = $component->getMinSize();
+
+            return "min:{$size}";
+        });
+
+        return $this;
+    }
+
     public function directory(string | Closure | null $directory): static
     {
         $this->directory = $directory;
@@ -227,13 +265,6 @@ class AttachmentArea extends Field
         return $this;
     }
 
-    public function preserveFilenames(bool | Closure $condition = true): static
-    {
-        $this->shouldPreserveFilenames = $condition;
-
-        return $this;
-    }
-
     public function getUploadedFileNameForStorageUsing(?Closure $callback): static
     {
         $this->getUploadedFileNameForStorageUsing = $callback;
@@ -244,6 +275,20 @@ class AttachmentArea extends Field
     public function saveUploadedFileUsing(?Closure $callback): static
     {
         $this->saveUploadedFileUsing = $callback;
+
+        return $this;
+    }
+
+    public function getSavedFileAttachmentUrlUsing(?Closure $callback): static
+    {
+        $this->getSavedFileAttachmentUrlUsing = $callback;
+
+        return $this;
+    }
+
+    public function removable(bool | Closure $condition = true): static
+    {
+        $this->isRemovable = $condition;
 
         return $this;
     }
@@ -292,6 +337,11 @@ class AttachmentArea extends Field
         return $this->evaluate($this->maxFiles);
     }
 
+    public function getMinFiles(): ?int
+    {
+        return $this->evaluate($this->minFiles);
+    }
+
     public function getDirectory(): ?string
     {
         return $this->evaluate($this->directory);
@@ -338,11 +388,6 @@ class AttachmentArea extends Field
         return $this->evaluate($this->visibility);
     }
 
-    public function shouldPreserveFilenames(): bool
-    {
-        return (bool) $this->evaluate($this->shouldPreserveFilenames);
-    }
-
     public function getUploadedFileNameForStorage(TemporaryUploadedFile $file): string
     {
         return $this->evaluate($this->getUploadedFileNameForStorageUsing, [
@@ -369,6 +414,11 @@ class AttachmentArea extends Field
         return $this->evaluate($this->maxSize);
     }
 
+    public function getMinSize(): ?int
+    {
+        return $this->evaluate($this->minSize);
+    }
+
     public function isMultiple(): bool
     {
         return (bool) $this->evaluate($this->isMultiple);
@@ -381,8 +431,14 @@ class AttachmentArea extends Field
             'array',
         ];
 
-        if (filled($count = $this->getMaxFiles())) {
+        if (! $this->isMultiple()) {
+            $rules[] = 'max:1';
+        } elseif (filled($count = $this->getMaxFiles())) {
             $rules[] = "max:{$count}";
+        }
+
+        if (filled($count = $this->getMinFiles())) {
+            $rules[] = "min:{$count}";
         }
 
         $arrayRules = [];
@@ -436,16 +492,51 @@ class AttachmentArea extends Field
         return in_array($ruleName, static::ARRAY_VALIDATION_RULES, strict: true);
     }
 
-    public function getActiveConversation(): Conversation
+    public function getSavedFileAttachmentUrl(mixed $file): ?string
     {
-        return $this->getLivewire()->getActiveConversation();
+        if ($this->getSavedFileAttachmentUrlUsing) {
+            return $this->evaluate($this->getSavedFileAttachmentUrlUsing, [
+                'file' => $file,
+            ]);
+        }
+
+        /** @var FilesystemAdapter $storage */
+        $storage = $this->getDisk();
+
+        try {
+            if (! $storage->exists($file)) {
+                return null;
+            }
+        } catch (UnableToCheckFileExistence $exception) {
+            return null;
+        }
+
+        if ($this->getVisibility() === 'private') {
+            try {
+                return $storage->temporaryUrl(
+                    $file,
+                    now()->addMinutes(30)->endOfHour(),
+                );
+            } catch (Throwable $exception) {
+                // This driver does not support creating temporary URLs.
+            }
+        }
+
+        return $storage->url($file);
+    }
+
+    public function isRemovable(string | TemporaryUploadedFile $fileAttachment): bool
+    {
+        return (bool) $this->evaluate($this->isRemovable, [
+            'fileAttachment' => $fileAttachment,
+        ]);
     }
 
     public function saveUploadedFiles(): void
     {
-        $state = $this->getRawState() ?? [];
+        $rawState = Arr::wrap($this->getRawState());
 
-        if (blank($state)) {
+        if (blank($rawState)) {
             $this->rawState([]);
 
             return;
@@ -453,54 +544,97 @@ class AttachmentArea extends Field
 
         $uploadedFiles = [];
 
-        foreach (Arr::wrap($state) as $file) {
+        foreach ($rawState as $key => $fileAttachment) {
+            if (is_string($key) && is_string($fileAttachment)) {
+                $uploadedFiles[$key] = $fileAttachment;
+
+                continue;
+            }
+
             $callback = $this->saveUploadedFileUsing;
 
             if (! $callback) {
-                $file->delete();
-                $uploadedFiles[$this->getUploadedFileNameForStorage($file)] = $file;
+                $fileAttachment->delete();
+                $uploadedFiles[$this->getUploadedFileNameForStorage($fileAttachment)] = $fileAttachment;
 
                 continue;
             }
 
             $storedFileName = $this->evaluate($callback, [
-                'file' => $file,
+                'file' => $fileAttachment,
             ]);
 
             if (blank($storedFileName)) {
                 continue;
             }
 
-            $file->delete();
-            $uploadedFiles[$storedFileName] = $file;
+            $fileAttachment->delete();
+            $uploadedFiles[$storedFileName] = $fileAttachment;
         }
 
         $this->rawState($uploadedFiles);
         $this->callAfterStateUpdated();
     }
 
+    public function deleteRemovedFiles(): void
+    {
+        /* @var ?Model $record */
+        $record = $this->getRecord();
+
+        if (! $record instanceof Model) {
+            return;
+        }
+
+        $disk = $this->getDisk();
+        $rawState = $this->getRawState();
+
+        foreach (Arr::wrap($record->getAttribute($this->getName())) as $savedAttachmentName) {
+            if (array_key_exists($savedAttachmentName, $rawState)) {
+                continue;
+            }
+
+            if (! $this->isRemovable($savedAttachmentName)) {
+                continue;
+            }
+
+            if ($disk->exists($savedAttachmentName)) {
+                $disk->delete($savedAttachmentName);
+            }
+        }
+    }
+
     #[ExposedLivewireMethod]
     #[Renderless]
-    public function removeUploadedFile(string $fileName): string | TemporaryUploadedFile | null
+    public function removeUploadedFile(string $attachmentName): string | TemporaryUploadedFile | null
     {
         if ($this->isDisabled()) {
             return null;
         }
 
-        $rawState = Arr::wrap($this->getRawState() ?? []);
-        $file = Arr::first($rawState, static fn (TemporaryUploadedFile $file) => $file->getFilename() === $fileName);
+        $fileAttachment = null;
+        $rawState = Arr::wrap($this->getRawState());
 
-        if (! $file) {
-            return null;
+        foreach ($rawState as $key => $fileAttachment) {
+            $isTemporaryUploadedFile = $fileAttachment instanceof TemporaryUploadedFile;
+
+            if ($isTemporaryUploadedFile ? $fileAttachment->getFilename() !== $attachmentName : $key !== $attachmentName) {
+                continue;
+            }
+
+            if (! $this->isRemovable($isTemporaryUploadedFile ? $fileAttachment : $key)) {
+                continue;
+            }
+
+            if ($fileAttachment instanceof TemporaryUploadedFile) {
+                $fileAttachment->delete();
+            }
+
+            unset($rawState[$key]);
         }
 
-        $file->delete();
-
-        $this->rawState(
-            Arr::reject($rawState, static fn (TemporaryUploadedFile $file) => $file->getFilename() === $fileName)
-        );
+        $this->rawState($rawState);
         $this->callAfterStateUpdated();
 
-        return $file;
+        return $fileAttachment;
     }
 }
