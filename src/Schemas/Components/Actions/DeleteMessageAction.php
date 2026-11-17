@@ -66,11 +66,11 @@ class DeleteMessageAction extends Action
 
             $messageKey = $message->getKey();
             $livewire->handleMessageChangeDuringConversationSession($messageKey, false);
-            
-            if ($livewire->isReplyingToMessage($messageKey)) {
-                $livewire->cancelReplyToMessage();
+
+            if ($livewire->isReplyingToMessage($messageKey) || $livewire->isEditingMessage($messageKey)) {
+                $livewire->cancelTargetMessageAction();
             }
-            
+
             $action->success();
         });
     }

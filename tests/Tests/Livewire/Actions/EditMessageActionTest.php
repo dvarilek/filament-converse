@@ -12,47 +12,6 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 use function Pest\Livewire\livewire;
 
-test('is only visible to message author', function () {
-    $owner = User::factory()->create();
-    $participant = User::factory()->create();
-
-    $this->actingAs($owner);
-
-    /* @var Conversation $conversation */
-    $conversation = app(CreateConversation::class)->handle($owner, $participant);
-
-    /* @var Message $ownerMessage */
-    $ownerMessage = $conversation
-        ->participations()
-        ->firstWhere('participant_id', $owner->getKey())
-        ->sendMessage($conversation, [
-            'content' => 'test',
-        ]);
-
-    /* @var Message $participantMessage */
-    $participantMessage = $conversation
-        ->participations()
-        ->firstWhere('participant_id', $participant->getKey())
-        ->sendMessage($conversation, [
-            'content' => 'test',
-        ]);
-
-    livewire(ConversationManager::class)
-        ->assertActionVisible(
-            TestAction::make(EditMessageAction::getDefaultName())
-                ->schemaComponent('conversation_schema.conversation_thread')
-                ->arguments([
-                    'recordKey' => $ownerMessage->getKey(),
-                ]),
-        )
-        ->assertActionHidden(
-            TestAction::make(EditMessageAction::getDefaultName())
-                ->schemaComponent('conversation_schema.conversation_thread')
-                ->arguments([
-                    'recordKey' => $participantMessage->getKey(),
-                ]),
-        );
-});
 
 test('can update a message', function () {
     $owner = User::factory()->create();

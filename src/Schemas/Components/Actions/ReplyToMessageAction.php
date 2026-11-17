@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
-use Closure;
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Dvarilek\FilamentConverse\MessageActionType;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
 use Filament\Actions\Action;
-use Filament\Schemas\Schema;
-use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 
 class ReplyToMessageAction extends Action
@@ -40,7 +37,9 @@ class ReplyToMessageAction extends Action
         );
 
         $this->action(function (ConversationManager $livewire, Message $message): void {
-            $livewire->replyingToMessageKey = $message->getKey();
+            $livewire->targetMessageKey = $message->getKey();
+            $livewire->targetMessageActionType = MessageActionType::REPLY;
+
             // The dropdown doesn't close automatically after the action.
             $livewire->dispatch('fi-converse-close-actions-dropdown');
         });

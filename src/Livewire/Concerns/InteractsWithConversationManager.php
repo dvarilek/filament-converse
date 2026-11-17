@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Livewire\Concerns;
 
 use Dvarilek\FilamentConverse\Exceptions\FilamentConverseException;
+use Dvarilek\FilamentConverse\MessageActionType;
 use Dvarilek\FilamentConverse\Models\Concerns\Conversable;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
@@ -37,7 +38,10 @@ trait InteractsWithConversationManager
     public ?string $oldestNewMessageKey = null;
 
     #[Locked]
-    public ?string $replyingToMessageKey = null;
+    public ?string $targetMessageKey = null;
+
+    #[Locked]
+    public ?MessageActionType $targetMessageActionType = null;
 
     /**
      * @var array<string, mixed>
@@ -80,7 +84,7 @@ trait InteractsWithConversationManager
             );
         }
 
-        if (! $this->replyingToMessageKey && $conversationThread->shouldCacheUnsendMessagesOnConversationChange()) {
+        if ($this->hasNoTargetMessageAction() && $conversationThread->shouldCacheUnsendMessagesOnConversationChange()) {
             $statePath = $conversationThread->getStatePath();
 
             data_set($this->cachedUnsendMessages, "{$statePath}.{$previousActiveConversationKey}", data_get($this, $statePath));
@@ -89,7 +93,7 @@ trait InteractsWithConversationManager
             return;
         }
 
-        $this->cancelReplyToMessage();
+        $this->cancelTargetMessageAction();
         $this->content->fill();
     }
 
@@ -172,14 +176,25 @@ trait InteractsWithConversationManager
         ];
     }
 
-    public function cancelReplyToMessage(): void
+    public function hasNoTargetMessageAction(): bool
     {
-        $this->replyingToMessageKey = null;
+        return ! $this->targetMessageActionType || ! $this->targetMessageKey;
+    }
+
+    public function cancelTargetMessageAction(): void
+    {
+        $this->targetMessageActionType = null;
+        $this->targetMessageKey = null;
     }
 
     public function isReplyingToMessage(string $messageKey): bool
     {
-        return $this->replyingToMessageKey === $messageKey;
+        return $this->targetMessageActionType === MessageActionType::REPLY && $this->targetMessageKey === $messageKey;
+    }
+
+    public function isEditingMessage(string $messageKey): bool
+    {
+        return $this->targetMessageActionType === MessageActionType::EDIT && $this->targetMessageKey === $messageKey;
     }
 
     public function getActiveConversationSessionKey(): string

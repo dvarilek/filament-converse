@@ -16,6 +16,8 @@ return [
 
         'reply-to-message-text' => 'Replying to :name',
 
+        'editing-message-text' => 'Editing',
+
         'actions' => [
 
             'upload-attachment-label' => 'Upload Attachments',
@@ -24,7 +26,9 @@ return [
 
             'update-message-label' => 'Update Message',
 
-            'cancel-reply' => 'Cancel Reply'
+            'cancel-reply' => 'Cancel Reply',
+
+            'cancel-edit' => 'Cancel Edit',
 
         ]
 
@@ -67,16 +71,10 @@ return [
             'label' => 'Copy'
 
         ],
-        
+
         'edit' => [
 
             'label' => 'Edit',
-
-            'modal-heading' => 'Edit message',
-
-            'submit-label' => 'Update',
-
-            'success' => 'Message updated',
 
         ],
 

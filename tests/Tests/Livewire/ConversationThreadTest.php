@@ -11,10 +11,11 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\ReplyToMessageAction;
 use Illuminate\Support\Collection;
 use Dvarilek\FilamentConverse\Models\Message;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationSchema;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\ConversationThread;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\CancelReplyToMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\CancelTargetMessageAction;
 
 use function Pest\Livewire\livewire;
 
@@ -184,11 +185,12 @@ describe('message input', function () {
                 'conversation_schema.messageContent' => 'Test message',
             ])
             ->callAction(
-                TestAction::make(CancelReplyToMessageAction::getDefaultName())
+                TestAction::make(CancelTargetMessageAction::getDefaultName())
                     ->schemaComponent('conversation_schema.conversation_thread'),
             )
             ->assertSet('data.conversation_schema.attachments', null)
             ->assertSet('data.conversation_schema.messageContent', null);
+
 
         expect($livewire->instance())->isReplyingToMessage($originalMessageKey)->toBeFalse();
     });
@@ -210,7 +212,7 @@ describe('message input', function () {
         $firstFileName = 'first.pdf';
         $secondFileName = 'second.pdf';
 
-        $livewire = livewire(ConversationManager::class)
+         livewire(ConversationManager::class)
             ->call('updateActiveConversation', $firstConversation->getKey())
             ->fillForm([
                 'conversation_schema.messageContent' => $firstMessage,
@@ -366,6 +368,93 @@ describe('message input', function () {
             ->assertSet('data.conversation_schema.messageContent', null)
             ->assertSet('data.conversation_schema.attachments', null);
     });
+
+    test('edit action is only visible to message author', function () {
+        $owner = User::factory()->create();
+        $participant = User::factory()->create();
+
+        $this->actingAs($owner);
+
+        /* @var Conversation $conversation */
+        $conversation = app(CreateConversation::class)->handle($owner, $participant);
+
+        /* @var Message $ownerMessage */
+        $ownerMessage = $conversation
+            ->participations()
+            ->firstWhere('participant_id', $owner->getKey())
+            ->sendMessage($conversation, [
+                'content' => 'test',
+            ]);
+
+        /* @var Message $participantMessage */
+        $participantMessage = $conversation
+            ->participations()
+            ->firstWhere('participant_id', $participant->getKey())
+            ->sendMessage($conversation, [
+                'content' => 'test',
+            ]);
+
+        livewire(ConversationManager::class)
+            ->assertActionVisible(
+                TestAction::make(EditMessageAction::getDefaultName())
+                    ->schemaComponent('conversation_schema.conversation_thread')
+                    ->arguments([
+                        'recordKey' => $ownerMessage->getKey(),
+                    ]),
+            )
+            ->assertActionHidden(
+                TestAction::make(EditMessageAction::getDefaultName())
+                    ->schemaComponent('conversation_schema.conversation_thread')
+                    ->arguments([
+                        'recordKey' => $participantMessage->getKey(),
+                    ]),
+            );
+    });
+
+    test('can update a message', function () {
+        $owner = User::factory()->create();
+        $participant = User::factory()->create();
+        $this->actingAs($owner);
+
+        /* @var Conversation $conversation */
+        $conversation = app(CreateConversation::class)->handle($owner, $participant);
+        /* @var Message $originalMessage */
+        $originalMessage = $conversation->participations()->first()->sendMessage($conversation, [
+            'content' => 'original message',
+        ]);
+        $originalMessageKey = $originalMessage->getKey();
+
+        $livewire = livewire(ConversationManager::class)
+            ->callAction(
+                TestAction::make(EditMessageAction::getDefaultName())
+                    ->schemaComponent('conversation_schema.conversation_thread')
+                    ->arguments([
+                        'recordKey' => $originalMessageKey,
+                    ]),
+            )
+            ->assertSet('conversation_schema.messageContent', $originalMessage->content);
+
+        expect($livewire->instance()->isEditingMessage($originalMessageKey))->toBeTrue();
+
+        $livewire
+            ->fillForm([
+                'conversation_schema.messageContent' => 'New message',
+            ])
+            ->callAction(
+                TestAction::make('sendMessage')
+                    ->schemaComponent('conversation_schema.conversation_thread')
+            )
+            ->assertHasNoFormErrors();
+
+        expect($livewire->instance()->isEditingMessage($originalMessageKey))->toBeFalse();
+
+        /* @var Collection<int, Message> $messages */
+        $messages = $conversation->refresh()->messages;
+
+        dd($messages->first);
+
+    })->only();
+
 });
 
 class UnsendMessagesCachingConfiguration

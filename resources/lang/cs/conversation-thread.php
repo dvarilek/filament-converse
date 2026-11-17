@@ -16,6 +16,8 @@ return [
 
         'reply-to-message-text' => 'Odpovídáte na zprávu od :name',
 
+        'editing-message-text' => 'Upravujete zprávu',
+
         'actions' => [
 
             'upload-attachment-label' => 'Nahrát přílohu',
@@ -24,7 +26,9 @@ return [
 
             'update-message-label' => 'Upravit zprávu',
 
-            'cancel-reply' => 'Zrušit odpověď'
+            'cancel-reply' => 'Zrušit odpověď',
+
+            'cancel-edit' => 'Zrušit úpravu',
 
         ]
 
@@ -73,12 +77,6 @@ return [
         'edit' => [
 
             'label' => 'Upravit',
-
-            'modal-heading' => 'Upravit zprávu',
-
-            'submit-label' => 'Upravit',
-
-            'success' => 'Zpráva upravena',
 
         ],
 

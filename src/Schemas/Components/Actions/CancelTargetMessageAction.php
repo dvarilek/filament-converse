@@ -5,29 +5,34 @@ declare(strict_types=1);
 namespace Dvarilek\FilamentConverse\Schemas\Components\Actions;
 
 use Dvarilek\FilamentConverse\Livewire\ConversationManager;
+use Dvarilek\FilamentConverse\MessageActionType;
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Filament\Actions\Action;
 use Filament\Support\Icons\Heroicon;
 
-class CancelReplyToMessageAction extends Action
+class CancelTargetMessageAction extends Action
 {
     public static function getDefaultName(): string
     {
-        return 'cancelReplyToMessage';
+        return 'cancelTargetMessageAction';
     }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->label(__('filament-converse::conversation-thread.message-input.actions.cancel-reply'));
+        $this->label(static fn (?MessageActionType $targetMessageActionType = null): ?string => match (true) {
+            $targetMessageActionType === MessageActionType::REPLY => __('filament-converse::conversation-thread.message-input.actions.cancel-reply'),
+            $targetMessageActionType === MessageActionType::EDIT => __('filament-converse::conversation-thread.message-input.actions.cancel-edit'),
+            default => null
+        });
 
         $this->icon(Heroicon::OutlinedXMark);
 
         $this->iconButton();
 
         $this->action(static function (ConversationManager $livewire): void {
-            $livewire->cancelReplyToMessage();
+            $livewire->cancelTargetMessageAction();
             $livewire->content->fill();
         });
     }
@@ -37,9 +42,12 @@ class CancelReplyToMessageAction extends Action
      */
     protected function resolveDefaultClosureDependencyForEvaluationByName(string $parameterName): array
     {
+        $livewire = $this->getLivewire();
+
         return match ($parameterName) {
             'conversation',
-            'activeConversation' => [$this->getLivewire()->getActiveConversation()],
+            'activeConversation' => [$livewire->getActiveConversation()],
+            'targetMessageActionType' => [$livewire->targetMessageActionType],
             default => parent::resolveDefaultClosureDependencyForEvaluationByName($parameterName),
         };
     }
@@ -49,8 +57,11 @@ class CancelReplyToMessageAction extends Action
      */
     protected function resolveDefaultClosureDependencyForEvaluationByType(string $parameterType): array
     {
+        $livewire = $this->getLivewire();
+
         return match ($parameterType) {
-            Conversation::class => [$this->getLivewire()->getActiveConversation()],
+            Conversation::class => [$livewire->getActiveConversation()],
+            MessageActionType::class => [$livewire->targetMessageActionType],
             default => parent::resolveDefaultClosureDependencyForEvaluationByType($parameterType),
         };
     }
