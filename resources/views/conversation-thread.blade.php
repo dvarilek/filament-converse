@@ -9,10 +9,13 @@
     use Filament\Actions\Action;
     use Filament\Actions\ActionGroup;
     use Filament\Schemas\Components\Icon;
+    use Filament\Support\Icons\Heroicon;
     use Illuminate\Contracts\Filesystem\Filesystem;
     use Illuminate\Contracts\Support\Htmlable;
     use Illuminate\Support\Collection;
     use Illuminate\View\ComponentAttributeBag;
+
+    use function Filament\Support\generate_icon_html;
 
     $id = $getId();
     $fieldWrapperView = $getFieldWrapperView();
@@ -146,7 +149,8 @@
             @foreach ($messages as $message)
                 @php
                     $messageKey = $message->getKey();
-                    $messageAuthor = $conversation->participations->firstWhere((new ConversationParticipation)->getKeyName(), $message->author_id)->participant;
+                    $conversationParticipationKeyName = (new ConversationParticipation)->getKeyName();
+                    $messageAuthor = $conversation->participations->firstWhere($conversationParticipationKeyName, $message->author_id)->participant;
                     $isAuthoredByAuthenticatedUser = $messageAuthor->getKey() === auth()->id();
                     $messageAuthorName = $getMessageAuthorName($message, $messageAuthor, $messages);
                     $messageAuthorAvatar = $getMessageAuthorAvatar($message, $messageAuthor, $messages);
@@ -231,7 +235,11 @@
                     @endif
 
                     <div
-                        class="fi-converse-conversation-thread-message-layout group"
+                        id="fi-converse-conversation-thread-message-layout-{{ $messageKey }}"
+                        @class([
+                            'fi-converse-replying-to-message' => $this->isReplyingToMessage($messageKey),
+                            'fi-converse-conversation-thread-message-layout group',
+                        ])
                     >
                         @if (filled($messageAuthorAvatar))
                             @if ($messageAuthorAvatar instanceof Htmlable)
@@ -249,6 +257,82 @@
                         <div
                             class="fi-converse-conversation-thread-message-content"
                         >
+                            @if (($repliedToMessageKey = $message->reply_to_message_id) && filled($repliedToMessage = $getMessagesQuery(false)->find($repliedToMessageKey)))
+                                @php
+                                    $repliedToMessageAuthor = $conversation->participations->firstWhere($conversationParticipationKeyName, $repliedToMessage->author_id)->participant;
+                                    $repliedToMessageAuthorName = $getRepliedToMessageAuthorName($repliedToMessage, $message, $repliedToMessageAuthor, $messages);
+                                    $repliedToMessageAuthorAvatar = $getRepliedToMessageAuthorAvatar($repliedToMessage, $message, $repliedToMessageAuthor, $messages);
+                                    $repliedToMessageContent = $getRepliedToMessageContent($repliedToMessage, $message, $repliedToMessageAuthor, $messages);
+
+                                    $hasRepliedToMessageAuthorName = filled($repliedToMessageAuthorName);
+                                    $hasRepliedToMessageAuthorAvatar = filled($repliedToMessageAuthorAvatar);
+                                    $hasRepliedToMessageContent = filled($repliedToMessageContent);
+                                @endphp
+
+                                @if ($hasRepliedToMessageAuthorName || $hasRepliedToMessageAuthorAvatar || $hasRepliedToMessageContent)
+                                    <div
+                                        class="fi-converse-conversation-thread-replied-to-message-layout"
+                                        x-on:click="navigateToMessage(@js($repliedToMessageKey))"
+                                        @if (filled($repliedToMessageToolbar = $getRepliedToMessageToolbar($repliedToMessage, $message, $repliedToMessageAuthor, $messages)))
+                                            x-tooltip="{
+                                                content: @js($repliedToMessageToolbar),
+                                                theme: $store.theme,
+                                                allowHTML: @js($repliedToMessageToolbar instanceof Htmlable),
+                                            }"
+                                        @endif
+                                    >
+                                        <div
+                                            class="fi-converse-conversation-thread-reply-curve"
+                                            content=""
+                                        ></div>
+
+                                        @if ($hasRepliedToMessageAuthorAvatar)
+                                            @if ($repliedToMessageAuthorAvatar instanceof Htmlable)
+                                                {{ $repliedToMessageAuthorAvatar }}
+                                            @else
+                                                <x-filament::avatar
+                                                    class="fi-converse-conversation-thread-message-avatar"
+                                                    :src="$repliedToMessageAuthorAvatar"
+                                                    :alt="$repliedToMessageAuthorName"
+                                                    size="sm"
+                                                />
+                                            @endif
+                                        @endif
+
+                                        @if ($hasRepliedToMessageAuthorName)
+                                            <div
+                                                class="fi-converse-conversation-thread-replied-to-message-author-container"
+                                            >
+                                                <div
+                                                    class="fi-converse-conversation-thread-replied-to-message-author-name"
+                                                >
+                                                    {{ $repliedToMessageAuthorName }}
+                                                </div>
+                                                <div>:</div>
+                                            </div>
+                                        @endif
+
+                                        @if ($hasRepliedToMessageContent)
+                                            <div
+                                                class="fi-converse-conversation-thread-replied-to-message-content"
+                                            >
+                                                @if ($repliedToMessageContent instanceof Htmlable)
+                                                    {{ $repliedToMessageContent }}
+                                                @else
+                                                    <p>
+                                                        {{ $repliedToMessageContent }}
+                                                    </p>
+
+                                                    @if (filled($repliedToMessage->attachments))
+                                                        {{ generate_icon_html(Heroicon::OutlinedDocumentText) }}
+                                                    @endif
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+                            @endif
+
                             @if ($hasMessageAuthorName || $hasMessageTimestamp)
                                 <div
                                     class="fi-converse-conversation-thread-message-heading"
@@ -272,78 +356,82 @@
                             @endif
 
                             <div
-                                class="fi-converse-conversation-thread-message-body-container"
+                                class="fi-converse-conversation-thread-message"
                             >
                                 <div
-                                    {{
-                                        (new ComponentAttributeBag)
-                                            ->color(ConversationMessageComponent::class, $messageColor)
-                                            ->class([
-                                                'fi-converse-conversation-thread-message-body',
-                                            ])
-                                    }}
+                                    class="fi-converse-conversation-thread-message-body-container"
                                 >
-                                    @if (filled($messageContent))
-                                        @if ($messageContent instanceof Htmlable)
-                                            {{ $messageContent }}
-                                        @else
-                                            <p>
+                                    <div
+                                        {{
+                                            (new ComponentAttributeBag)
+                                                ->color(ConversationMessageComponent::class, $messageColor)
+                                                ->class([
+                                                    'fi-converse-conversation-thread-message-body',
+                                                ])
+                                        }}
+                                    >
+                                        @if (filled($messageContent))
+                                            @if ($messageContent instanceof Htmlable)
                                                 {{ $messageContent }}
-                                            </p>
+                                            @else
+                                                <p>
+                                                    {{ $messageContent }}
+                                                </p>
+                                            @endif
                                         @endif
-                                    @endif
 
-                                    @if (count($messageFileAttachments))
-                                        @php
-                                            $messageContext = [
-                                                'message' => $message,
-                                                'messageAuthor' => $messageAuthor,
-                                                'messages' => $messages,
-                                            ];
+                                        @if (count($messageFileAttachments))
+                                            @php
+                                                $messageContext = [
+                                                    'message' => $message,
+                                                    'messageAuthor' => $messageAuthor,
+                                                    'messages' => $messages,
+                                                ];
 
-                                            $hasOnlyImageAttachments = collect($messageFileAttachments)
-                                                ->every(static function (string $attachmentOriginalName, string $attachmentName) use ($fileAttachmentsDisk, $isImageMimeType, $shouldShowOnlyImageAttachment, $messageContext) {
-                                                    $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentName);
+                                                $hasOnlyImageAttachments = collect($messageFileAttachments)
+                                                    ->every(static function (string $attachmentOriginalName, string $attachmentName) use ($fileAttachmentsDisk, $isImageMimeType, $shouldShowOnlyImageAttachment, $messageContext) {
+                                                        $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentName);
 
-                                                    return $isImageMimeType($attachmentMimeType) && $shouldShowOnlyImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext);
-                                                });
-                                        @endphp
+                                                        return $isImageMimeType($attachmentMimeType) && $shouldShowOnlyImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext);
+                                                    });
+                                            @endphp
 
-                                        <div
-                                            @class([
-                                                'fi-converse-conversation-thread-message-attachments',
-                                                'fi-converse-conversation-thread-message-attachments-with-generic-attachments' => ! $hasOnlyImageAttachments,
-                                            ])
-                                        >
-                                            @foreach ($messageFileAttachments as $attachmentName => $attachmentOriginalName)
-                                                @php
-                                                    $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentName);
-                                                    $hasImageMimeType = $isImageMimeType($attachmentMimeType);
-                                                @endphp
+                                            <div
+                                                @class([
+                                                    'fi-converse-conversation-thread-message-attachments',
+                                                    'fi-converse-conversation-thread-message-attachments-with-generic-attachments' => ! $hasOnlyImageAttachments,
+                                                ])
+                                            >
+                                                @foreach ($messageFileAttachments as $attachmentName => $attachmentOriginalName)
+                                                    @php
+                                                        $attachmentMimeType = $fileAttachmentsDisk->mimeType($attachmentName);
+                                                        $hasImageMimeType = $isImageMimeType($attachmentMimeType);
+                                                    @endphp
 
-                                                <x-filament-converse::conversation-attachment
-                                                    :has-image-mime-type="$hasImageMimeType"
-                                                    :file-attachment-name="$getFileAttachmentName($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
-                                                    :file-attachment-toolbar="$getFileAttachmentToolbar($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
-                                                    :should-show-only-image-attachment="$shouldShowOnlyImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
-                                                    :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentName) : null"
-                                                    :should-preview-image-attachment="$shouldPreviewImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
-                                                    :file-attachment-icon="$getFileAttachmentIcon($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
-                                                    :mime-type-badge-label="$getFileAttachmentMimeTypeBadgeLabel($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
-                                                    :mime-type-badge-icon="$getFileAttachmentMimeTypeBadgeIcon($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
-                                                    :mime-type-badge-color="$getFileAttachmentMimeTypeBadgeColor($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
-                                                    :image-attachment-container-extra-attributes-bag="
-                                                        (new ComponentAttributeBag)
-                                                            ->class(['fi-converse-image-attachment-container-grid'])
-                                                    "
-                                                    :generic-attachment-container-extra-attributes-bag="
-                                                        (new ComponentAttributeBag)
-                                                            ->class(['fi-converse-generic-attachment-container-grid'])
-                                                    "
-                                                />
-                                            @endforeach
-                                        </div>
-                                    @endif
+                                                    <x-filament-converse::conversation-attachment
+                                                        :has-image-mime-type="$hasImageMimeType"
+                                                        :file-attachment-name="$getFileAttachmentName($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                        :file-attachment-toolbar="$getFileAttachmentToolbar($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                        :should-show-only-image-attachment="$shouldShowOnlyImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                        :file-attachment-url="$hasImageMimeType ? $getFileAttachmentUrl($attachmentName) : null"
+                                                        :should-preview-image-attachment="$shouldPreviewImageAttachment($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                        :file-attachment-icon="$getFileAttachmentIcon($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                        :mime-type-badge-label="$getFileAttachmentMimeTypeBadgeLabel($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                        :mime-type-badge-icon="$getFileAttachmentMimeTypeBadgeIcon($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                        :mime-type-badge-color="$getFileAttachmentMimeTypeBadgeColor($attachmentName, $attachmentOriginalName, $attachmentMimeType, $messageContext)"
+                                                        :image-attachment-container-extra-attributes-bag="
+                                                            (new ComponentAttributeBag)
+                                                                ->class(['fi-converse-image-attachment-container-grid'])
+                                                        "
+                                                        :generic-attachment-container-extra-attributes-bag="
+                                                            (new ComponentAttributeBag)
+                                                                ->class(['fi-converse-generic-attachment-container-grid'])
+                                                        "
+                                                    />
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 <div
@@ -430,14 +518,22 @@
                     x-show="areOtherUsersTyping(@js($conversationKey))"
                     class="fi-converse-conversation-thread-messages-users-typing-loading-indicator"
                 >
-                    <div class="typing-dots-container">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
+                    <div
+                        class="fi-converse-conversation-thread-typing-dots-container"
+                    >
+                        <div
+                            class="fi-converse-conversation-thread-typing-dot"
+                        ></div>
+                        <div
+                            class="fi-converse-conversation-thread-typing-dot"
+                        ></div>
+                        <div
+                            class="fi-converse-conversation-thread-typing-dot"
+                        ></div>
                     </div>
                     <div
                         x-text="getTypingUsersMessage(@js($conversationKey))"
-                        class="typing-dots-container"
+                        class="fi-converse-conversation-thread-typing-dots-container"
                     ></div>
                 </div>
             @endif

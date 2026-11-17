@@ -62,6 +62,12 @@ return [
 
         ],
 
+        'copy-to-clipboard' => [
+
+            'label' => 'Copy'
+
+        ],
+        
         'edit' => [
 
             'label' => 'Edit',
@@ -93,6 +99,14 @@ return [
         'today' => 'Today',
 
         'yesterday' => 'Yesterday',
+
+    ],
+
+    'replied-to-message' => [
+
+        'only-attachments' => 'Click to see attachments',
+
+        'toolbar' => 'Click to see message'
 
     ],
 

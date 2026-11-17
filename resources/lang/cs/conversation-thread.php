@@ -64,6 +64,12 @@ return [
 
         ],
 
+        'copy-to-clipboard' => [
+
+            'label' => 'Zkopírovat'
+
+        ],
+
         'edit' => [
 
             'label' => 'Upravit',
@@ -95,6 +101,14 @@ return [
         'today' => 'Dnes',
 
         'yesterday' => 'Včera',
+
+    ],
+
+    'replied-to-message' => [
+
+        'only-attachments' => 'Kliknutím zobrazíte přílohy',
+
+        'toolbar' => 'Zobrazit zprávu'
 
     ],
 

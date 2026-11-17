@@ -16,6 +16,7 @@ use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ReplyToMessageAction;
+use Filament\Support\Components\Attributes\ExposedLivewireMethod;
 use Illuminate\Support\Js;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\UploadAttachmentAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
@@ -42,10 +43,14 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use League\Flysystem\UnableToCheckFileExistence;
+use Livewire\Attributes\Renderless;
+
+use function Filament\Support\generate_icon_html;
 
 class ConversationThread extends Component implements HasMessageInput
 {
     use Concerns\BelongsToConversationSchema;
+    use Concerns\CanReplyToMessage;
     use Concerns\HasEmptyState;
     use Concerns\HasExtraMessageAttributes;
     use Concerns\HasFileAttachments;
@@ -117,25 +122,17 @@ class ConversationThread extends Component implements HasMessageInput
 
     protected ?Closure $getMessageActionsTimestampUsing = null;
 
+    protected ?Closure $modifyCopyMessageToClipboardActionUsing = null;
+
     protected ?Closure $modifyEditMessageActionUsing = null;
 
-    protected ?Closure $modifyReplyToMessageActionUsing = null;
-
     protected ?Closure $modifyDeleteMessageActionUsing = null;
-
-    protected ?Closure $getReplyingToMessageTextUsing = null;
-
-    protected ?Closure $modifyReplyingToMessageTextComponent = null;
-
-    protected ?Closure $modifyCancelReplyToMessageActionUsing = null;
 
     protected ?Closure $modifyAttachmentAreaComponentUsing = null;
 
     protected ?Closure $modifyTextareaComponentUsing = null;
 
     protected ?Closure $sendMessageUsing = null;
-
-    protected bool | Closure $canReplyToMessage = true;
 
     protected bool | Closure $persistsActiveConversationInSession = false;
 
@@ -215,6 +212,27 @@ class ConversationThread extends Component implements HasMessageInput
             ));
         });
 
+        $this->getRepliedToMessageAuthorNameUsing(static function (Authenticatable $messageAuthor): ?string {
+            return $messageAuthor->getAttributeValue(FilamentConverseServiceProvider::getFilamentConverseUserModel()::getFilamentNameAttribute());
+        });
+
+        $this->getRepliedToMessageAuthorAvatarUsing(static function (Authenticatable $messageAuthor): ?string {
+            return filament()->getUserAvatarUrl($messageAuthor);
+        });
+
+        $this->getRepliedToMessageContentUsing(static function (Message $message): string | Htmlable | null {
+            $hasContent = filled($message->content);
+            $hasAttachments = filled($message->attachments);
+
+            if (! $hasContent && ! $hasAttachments) {
+                return null;
+            }
+
+            return $hasContent ? $message->content : __('filament-converse::conversation-thread.replied-to-message.only-attachments');
+        });
+
+        $this->getRepliedToMessageToolbarUsing(__('filament-converse::conversation-thread.replied-to-message.toolbar'));
+
         $this->sendMessageUsing(static function (ConversationManager $livewire, ConversationThread $component, array $data): ?Message {
             $messageContent = $data['messageContent'] ?? null;
             $uploadedAttachments = $data['attachments'] ?? [];
@@ -223,15 +241,15 @@ class ConversationThread extends Component implements HasMessageInput
                 return null;
             }
 
-            if ($replyToMessageKey = $livewire->replyingToMessageKey) {
-                /* @var ?Message $replyToMessage*/
-                $replyToMessage = $component->getMessagesQuery(false)->find($replyToMessageKey);
+            if ($replyingToMessageKey = $livewire->replyingToMessageKey) {
+                /* @var ?Message $replyingToMessage*/
+                $replyingToMessage = $component->getMessagesQuery(false)->find($replyingToMessageKey);
 
-                if (! $replyToMessage instanceof Message) {
+                if (! $replyingToMessage instanceof Message) {
                     return null;
                 }
 
-                if (! $component->canReplyToMessage($replyToMessage)) {
+                if (! $component->canReplyToMessage($replyingToMessage)) {
                     return null;
                 }
             }
@@ -245,7 +263,7 @@ class ConversationThread extends Component implements HasMessageInput
 
             return $livewire->getActiveConversationAuthenticatedUserParticipation()->sendMessage($livewire->getActiveConversation(), [
                 'content' => $messageContent,
-                'reply_to_message_id' => $replyToMessageKey,
+                'reply_to_message_id' => $replyingToMessageKey,
                 'attachments' => $attachments,
                 'attachment_file_names' => $attachmentFileNames,
             ]);
@@ -717,13 +735,6 @@ class ConversationThread extends Component implements HasMessageInput
         return $this;
     }
 
-    public function replyToMessage(bool | CLosure $condition = true): static
-    {
-        $this->canReplyToMessage = $condition;
-
-        return $this;
-    }
-
     public function persistActiveConversationInSession(bool | Closure $condition = true): static
     {
         $this->persistsActiveConversationInSession = $condition;
@@ -734,27 +745,6 @@ class ConversationThread extends Component implements HasMessageInput
     public function cacheUnsendMessagesOnConversationChange(bool | Closure $condition = true): static
     {
         $this->shouldCacheUnsendMessagesOnConversationChange = $condition;
-
-        return $this;
-    }
-
-    public function getReplyingToMessageTextUsing(?Closure $callback): static
-    {
-        $this->getReplyingToMessageTextUsing = $callback;
-
-        return $this;
-    }
-
-    public function modifyReplyingToMessageTextComponent(?Closure $callback): static
-    {
-        $this->modifyReplyingToMessageTextComponent = $callback;
-
-        return $this;
-    }
-
-    public function modifyCancelReplyToMessageActionUsing(?Closure $callback): static
-    {
-        $this->modifyCancelReplyToMessageActionUsing = $callback;
 
         return $this;
     }
@@ -1053,13 +1043,31 @@ class ConversationThread extends Component implements HasMessageInput
         return $query;
     }
 
-    public function canReplyToMessage(Message $message): bool
+    #[ExposedLivewireMethod]
+    public function paginateToMessage(string $messageKey): void
     {
-        return (bool) $this->evaluate($this->canReplyToMessage, [
-            'message' => $message,
-        ], [
-            Message::class => $message,
-        ]);
+        /* @var ConversationManager $livewire */
+        $livewire = $this->getLivewire();
+        $conversation = $livewire->getActiveConversation();
+
+        /* @var ?Message $targetMessage */
+        $targetMessage = $this->getMessagesQuery(false)->whereKey($messageKey)->first();
+
+        if (! $targetMessage) {
+            return;
+        }
+
+        $messagesBeforeTargetMessageCount = $this->getMessagesQuery(false)
+            ->where('messages.created_at', '>=', $targetMessage->created_at)
+            ->count();
+
+        $defaultLoadedMessagesCount = $this->getDefaultLoadedMessagesCount();
+
+        if ($messagesBeforeTargetMessageCount <= $defaultLoadedMessagesCount) {
+            return;
+        }
+
+        $livewire->activeConversationMessagesPage = 1 + (int) ceil(($messagesBeforeTargetMessageCount - $defaultLoadedMessagesCount) / $this->getMessagesLoadedPerPage());
     }
 
     public function shouldPersistActiveConversationInSession(): bool
@@ -1131,16 +1139,19 @@ class ConversationThread extends Component implements HasMessageInput
         return $action;
     }
 
-    public function getReplyToMessageAction(): Action
+    public function getEditMessageAction(): Action
     {
-        $action = ReplyToMessageAction::make()
-            ->visible(fn (?Message $message): bool => $message && $this->canReplyToMessage($message));
+        $action = EditMessageAction::make()
+            ->getAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
+            ->getTextareaComponentUsing($this->getTextAreaComponent(...))
+            ->getSendMessageActionUsing($this->getSendMessageAction(...))
+            ->getUploadAttachmentActionUsing($this->getUploadAttachmentAction(...));
 
-        if ($this->modifyReplyToMessageActionUsing) {
-            $action = $this->evaluate($this->modifyReplyToMessageActionUsing, [
+        if ($this->modifyEditMessageActionUsing) {
+            $action = $this->evaluate($this->modifyEditMessageActionUsing, [
                 'action' => $action,
             ], [
-                ReplyToMessageAction::class => $action,
+                EditMessageAction::class => $action,
                 Action::class => $action,
             ]) ?? $action;
         }
@@ -1162,42 +1173,6 @@ class ConversationThread extends Component implements HasMessageInput
         }
 
         return $action;
-    }
-
-    public function getReplyToMessageBanner(): ?Component
-    {
-        $replyingToMessageKey = $this->getLivewire()->replyingToMessageKey;
-
-        if (! $replyingToMessageKey) {
-            return null;
-        }
-
-        $textComponent = Text::make(fn () => $this->evaluate($this->getReplyingToMessageTextUsing))
-            ->extraAttributes([
-                'x-on:click' => 'navigateToMessage(' . Js::from($replyingToMessageKey) . ')',
-            ]);
-        $action = CancelReplyToMessageAction::make();
-
-        if ($this->modifyReplyingToMessageTextComponent) {
-            $textComponent = $this->evaluate($this->modifyReplyingToMessageTextComponent, [
-                'component' => $textComponent,
-            ], [
-                Text::class => $textComponent,
-            ]) ?? $textComponent;
-        }
-
-        if ($this->modifyCancelReplyToMessageActionUsing) {
-            $action = $this->evaluate($this->modifyCancelReplyToMessageActionUsing, [
-                'action' => $action,
-            ], [
-                CancelReplyToMessageAction::class => $action,
-            ]) ?? $action;
-        }
-
-        return Flex::make([
-            $textComponent,
-            $action
-        ]);
     }
 
     public function getAttachmentAreaComponent(): Field

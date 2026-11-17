@@ -93,6 +93,41 @@ export function conversationThread({
             )
         },
 
+        async navigateToMessage(messageKey) {
+            const getMessageLayoutElement = () =>
+                document.getElementById(
+                    'fi-converse-conversation-thread-message-layout-' +
+                        messageKey,
+                )
+
+            let element = getMessageLayoutElement()
+
+            if (!element) {
+                await $wire.callSchemaComponentMethod(
+                    key,
+                    'paginateToMessage',
+                    [messageKey],
+                )
+
+                element = getMessageLayoutElement()
+
+                if (!element) {
+                    return
+                }
+            }
+
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            })
+
+            element.classList.add('fi-converse-message-highlight')
+
+            setTimeout(() => {
+                element.classList.remove('fi-converse-message-highlight')
+            }, 1500)
+        },
+
         async fireUserTypingEvent(event) {
             const data = event.target.value
 
