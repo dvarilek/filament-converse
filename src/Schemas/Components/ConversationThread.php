@@ -11,13 +11,11 @@ use Dvarilek\FilamentConverse\Models\Collections\ConversationParticipationCollec
 use Dvarilek\FilamentConverse\Models\Conversation;
 use Dvarilek\FilamentConverse\Models\ConversationParticipation;
 use Dvarilek\FilamentConverse\Models\Message;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\CancelReplyToMessageAction;
+use Dvarilek\FilamentConverse\Schemas\Components\Actions\CopyMessageToClipboardAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\DeleteMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\EditMessageAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\ManageConversationAction;
-use Dvarilek\FilamentConverse\Schemas\Components\Actions\ReplyToMessageAction;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
-use Illuminate\Support\Js;
 use Dvarilek\FilamentConverse\Schemas\Components\Actions\UploadAttachmentAction;
 use Dvarilek\FilamentConverse\Schemas\Components\Configurations\MessageInputSchemaConfiguration;
 use Dvarilek\FilamentConverse\Schemas\Components\Contracts\HasMessageInput;
@@ -27,8 +25,6 @@ use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Concerns\HasKey;
-use Filament\Schemas\Components\Flex;
-use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
 use Filament\Support\Concerns\HasExtraAttributes;
 use Filament\Support\Enums\IconSize;
@@ -43,9 +39,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use League\Flysystem\UnableToCheckFileExistence;
-use Livewire\Attributes\Renderless;
-
-use function Filament\Support\generate_icon_html;
 
 class ConversationThread extends Component implements HasMessageInput
 {
@@ -170,6 +163,7 @@ class ConversationThread extends Component implements HasMessageInput
                     ->label(static fn (ConversationThread $component, Message $message) => $component->getMessageActionsTimestamp($message))
                     ->disabled(),
                 ActionGroup::make([
+                    $component->getCopyMessageToClipboardAction(),
                     $component->getEditMessageAction(),
                     $component->getReplyToMessageAction(),
                     $component->getDeleteMessageAction(),
@@ -700,16 +694,16 @@ class ConversationThread extends Component implements HasMessageInput
         return $this;
     }
 
-    public function editMessageAction(?Closure $callback): static
+    public function getCopyMessageToClipboardActionUsing(?Closure $callback): static
     {
-        $this->modifyEditMessageActionUsing = $callback;
+        $this->modifyCopyMessageToClipboardActionUsing = $callback;
 
         return $this;
     }
 
-    public function replyToMessageAction(?Closure $callback): static
+    public function editMessageAction(?Closure $callback): static
     {
-        $this->modifyReplyToMessageActionUsing = $callback;
+        $this->modifyEditMessageActionUsing = $callback;
 
         return $this;
     }
@@ -1119,20 +1113,15 @@ class ConversationThread extends Component implements HasMessageInput
         ]);
     }
 
-    public function getEditMessageAction(): Action
+    public function getCopyMessageToClipboardAction(): Action
     {
-        $action = EditMessageAction::make()
-            ->getAttachmentAreaComponentUsing($this->getAttachmentAreaComponent(...))
-            ->getTextareaComponentUsing($this->getTextAreaComponent(...))
-            ->getSendMessageActionUsing($this->getSendMessageAction(...))
-            ->getUploadAttachmentActionUsing($this->getUploadAttachmentAction(...));
+        $action = CopyMessageToClipboardAction::make();
 
-        if ($this->modifyEditMessageActionUsing) {
-            $action = $this->evaluate($this->modifyEditMessageActionUsing, [
+        if ($this->modifyCopyMessageToClipboardActionUsing) {
+            $action = $this->evaluate($this->modifyCopyMessageToClipboardActionUsing, [
                 'action' => $action,
             ], [
-                EditMessageAction::class => $action,
-                Action::class => $action,
+                CopyMessageToClipboardAction::class => $action,
             ]) ?? $action;
         }
 
